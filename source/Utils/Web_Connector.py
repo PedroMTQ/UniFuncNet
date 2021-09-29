@@ -1,3 +1,4 @@
+import os
 
 from source.Utils.util import find_path,DRAX_FOLDER,SPLITTER
 
@@ -85,31 +86,24 @@ class Web_Connector():
 
     def get_path_driver(self,browser):
         platform= sys.platform.lower()
-        if browser=='chrome':
-            if not self.chromedriver_path:
-                if platform.startswith('win'):
-                    self.chromedriver_path= f'{DRAX_FOLDER}{SPLITTER}Browser_Drivers{SPLITTER}chromedriver_win64.exe'
-                elif 'linux' in platform:
-                    self.chromedriver_path= f'{DRAX_FOLDER}{SPLITTER}Browser_Drivers{SPLITTER}chromedriver_linux64'
-                elif 'darwin' in platform:
-                    self.chromedriver_path= f'{DRAX_FOLDER}{SPLITTER}Browser_Drivers{SPLITTER}chromedriver_mac64'
+        browser_driver_folder=f'{DRAX_FOLDER}{SPLITTER}Browser_Drivers{SPLITTER}'
+        for file in os.listdir(browser_driver_folder):
+            if file.startswith('chromedriver') and browser=='chrome':
+                if not self.chromedriver_path:
+                    self.chromedriver_path=f'{browser_driver_folder}{file}'
+                return self.chromedriver_path
 
-            return self.chromedriver_path
-        elif browser=='firefox':
-            if not self.geckodriver_path:
-                if platform.startswith('win'):
-                    self.geckodriver_path= f'{DRAX_FOLDER}{SPLITTER}Browser_Drivers{SPLITTER}geckodriver_win64.exe'
+            elif file.startswith('gecko') and browser=='firefox':
+                if not self.geckodriver_path:
+                    self.geckodriver_path=f'{browser_driver_folder}{file}'
+                return self.geckodriver_path
 
-                elif 'linux' in platform:
-                    self.geckodriver_path= f'{DRAX_FOLDER}{SPLITTER}Browser_Drivers{SPLITTER}geckodriver_linux64'
-            return self.geckodriver_path
-        elif browser=='phantomjs':
-            if not self.phantomjs_path:
-                if platform.startswith('win'):
-                    self.phantomjs_path= f'{DRAX_FOLDER}{SPLITTER}Browser_Drivers{SPLITTER}phantomjs_win.exe'
-                elif 'linux' in platform:
-                    self.phantomjs_path= f'{DRAX_FOLDER}{SPLITTER}Browser_Drivers{SPLITTER}phantomjs_linux64'
-            return self.phantomjs_path
+            elif file.startswith('phantomjs') and browser=='phantomjs':
+                if not self.phantomjs_path:
+                    self.phantomjs_path=f'{browser_driver_folder}{file}'
+                return self.phantomjs_path
+
+
 
     def setup_driver(self):
         if self.browser=='chrome':

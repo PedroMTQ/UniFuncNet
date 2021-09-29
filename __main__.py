@@ -82,10 +82,20 @@ def run_test_web():
     a=f.get_driver_selenium(url)
     print(a)
 
-
+def run_test_browser_drivers():
+    from source.Utils.Web_Connector import Web_Connector
+    f=Web_Connector()
+    url='https://www.kegg.jp/'
+    try:
+        f.get_driver_selenium(url)
+        print('Passed selenium check')
+    except:
+        print('Did not manage to connect using selenium! Did you download the drivers?')
+        raise Exception
 
 def run_searcher(target_path,output_folder,search_type,search_direction,reaction_metabolites,politeness_timer=10):
     start=time()
+    run_test_browser_drivers()
     if search_direction=='na': search_direction=''
     if search_type=='gene_search': searcher= Gene_Searcher(search_direction=search_direction,output_folder=output_folder,do_reaction_met_instances=reaction_metabolites,politeness_timer=politeness_timer)
     elif search_type=='protein_search': searcher= Protein_Searcher(search_direction=search_direction,output_folder=output_folder,do_reaction_met_instances=reaction_metabolites,politeness_timer=politeness_timer)
