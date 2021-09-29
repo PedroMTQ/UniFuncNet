@@ -304,10 +304,6 @@ class Base_Component():
         if hasattr(self,'reaction_with_instances'):
             if self.reaction_with_instances:
                 if self.reaction_with_instances!=reaction_with_instances:
-
-                    #print('reaction with instances already set!',self.get_detail('rhea'))
-                    #print('reaction with instances already set!',self.get_reaction(),self.reaction_with_instances)
-                    #print('trying to change to :',reaction_with_instances)
                     self.reaction_with_instances= reaction_with_instances
         else:
             self.reaction_with_instances= reaction_with_instances

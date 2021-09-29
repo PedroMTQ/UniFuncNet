@@ -79,7 +79,7 @@ class Compound_Searcher(Global_Searcher):
         :param db: database
         :return: returns a list of [n molecules][compound instance]
         """
-        print('Reaction from', db, ': ', rn, rn_with_ids)
+        print('Reaction from', db, ': ', rn)
         rn,complete_l,len_sub = get_stoichiometry(rn, rn)
         # when the reaction is incomplete (either no products or no substrates
         if not rn: return None
@@ -335,7 +335,8 @@ class Compound_Searcher(Global_Searcher):
         dbs_to_use = SCRAPPABLE_DBS
         dbs_to_use=[i for i in dbs_to_use if i not in dbs_to_exclude]
         if dbs_to_use:
-            print(f'Searching for derivates in {dbs_to_use}')
+            str_dbs_to_use=', '.join(dbs_to_use)
+            print(f'Searching for derivates in {str_dbs_to_use}')
             found_cpd=self.all_derivatives(search_cpd,dbs_to_use)
             if found_cpd: return found_cpd
             else:

@@ -84,6 +84,10 @@ class Web_Connector():
 ###############DRIVER##############
 ###################################
 
+    def download_browser_drivers(self):
+        platform= sys.platform.lower()
+        browser_driver_folder=f'{DRAX_FOLDER}{SPLITTER}Browser_Drivers{SPLITTER}'
+
     def get_path_driver(self,browser):
         platform= sys.platform.lower()
         browser_driver_folder=f'{DRAX_FOLDER}{SPLITTER}Browser_Drivers{SPLITTER}'

@@ -10,7 +10,8 @@ It was built to aid in the expansion of metabolic networks, automating the often
 1. `git clone git@github.com:PedroMTQ/DRAX.git`  
 2. Go to the cloned DRAX folder and run `conda env create -f drax_env.yml`
 3. Run `conda activate drax_env`
-4. Download the drivers for your browser and add it to the `Browser_Drivers` folder
+4. Download the browser driver for your current OS and current browser version (e.g., [geckodriver](https://github.com/mozilla/geckodriver/releases) for Mozilla Firefox)
+5. Move downloaded browser driver to `DRAX/External_Tools/Browser_Drivers/`
 
 #### Browser drivers
 
@@ -22,7 +23,20 @@ DRAX supports two browsers, Mozilla Firefox and Google Chrome, please download t
 ## Using DRAX
 
 
-Data collection is possile for multiple databases:
+Running DRAX within a personal computer should be straightforward, however keep in mind that in order to scrape websites with Javascript, DRAX (more specifically the package `Selenium`) needs to use a browser. To install browsers in a server you may need admin access. 
+
+You can run the code below to test the execution:
+
+    python DRAX --example
+
+A typical run would look like:
+
+    python DRAX pr protein_search -i input.tsv 
+
+
+
+
+Data collection is possible for multiple databases:
 - KEGG
 - HMDB
 - Biocyc
@@ -51,6 +65,8 @@ Where each parameter corresponds to the following:
 - `output_folder` - the output folder where the spreadsheets are stored
 - `reaction_metabolites` - searches for data on each reaction's compound, which improves reaction matching across different databases
 - `databases ` - databases that DRAX can search in, by default HMDB,Biocyc, and KEGG
+- `politeness_timer` - time (seconds) between requests. Default is 10. Please be careful not to overleaf the corresponding databases, you might get blocked from doing future requests.
+
 
 All search types except `compound_search` provide network-based scraping, we have decided to keep `compound_search` as an option since the user may also use it to search for more information on compounds (e.g., start with a synonym or KEGG ID and find more information on these)
 
@@ -59,23 +75,7 @@ All search types except `compound_search` provide network-based scraping, we hav
 
 Data is  retrieved according to the information provided, for example, if the user provides the KEGG gene ID hsa:150763, then, given that the gpr_convergence is used, DRAX would fetch information on this gene, the KEGG protein entries connected to this gene (i.e., 2.3.1.15) and by extent the reactions these protein(s) catalyze (i.e., R00851,R02617,R09380).
 
-### Configuration
 
-1. `git clone DRAX REPO`  
-2. Go to cloned folder and run `conda env create -f drax_env.yml`
-3. Run `conda activate drax_env`
-4. Download the browser driver for your current OS and current browser version (e.g., [geckodriver](https://github.com/mozilla/geckodriver/releases) for Mozilla Firefox)
-5. Move downloaded browser driver to `DRAX/External_Tools/Browser_Drivers/`
-
-Running DRAX within a personal computer should be straightforward, however keep in mind that in order to scrape websites with Javascript, DRAX (more specifically the package `Selenium`) needs to to use a browser. To install browsers in a server you may need admin access. 
-
-You can run the code below to test the execution:
-
-    python DRAX --example
-
-A typical run would look like:
-
-    python DRAX pr protein_search -i input.tsv 
 
 
 ### Formatting input file
