@@ -61,6 +61,7 @@ else:
     SPLITTER = '/'
 
 def run_test():
+    run_test_browser_drivers()
     set_scrappable_dbs(['kegg','biocyc'])
     datetime_str = str(datetime.now().strftime("%Y-%m-%dT%H%M%S"))
     output_folder = os.getcwd() + SPLITTER + 'DRAX_OUTPUT_' + datetime_str + SPLITTER
