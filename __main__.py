@@ -1,44 +1,4 @@
 
-'''
-entry points:
-compound:
-synonyms
-brenda
-biocyc
-kegg
-chemspider
-inchi_key
-drugbank
-hmdb
-
-reaction:
-brenda
-biocyc
-kegg
-drugbank
-hmdb
-
-
-protein:
-enzyme_ec
-kegg
-biocyc
-brenda
-uniprot
-kegg_ko
-
-gene:
-kegg
-uniprot
-biocyc
-
-
-python DRAX/ gpr protein_search -i DRAX/test/test.tsv -o drax_test -db kegg -rm
-
-scp -P 8022 -r /home/pedroq/PycharmProjects/DRAX/source pedro.queiros@10.240.6.223:/home/pedro.queiros/python_projects/DRAX/
-'''
-
-
 import argparse
 import sys
 import os
@@ -153,7 +113,7 @@ if __name__ == '__main__':
         output_folder = args.output_folder
         search_type = args.search_type
         search_direction = args.search_direction
-        politeness_timer = args.politeness_timer
+        politeness_timer = int(args.politeness_timer)
         reaction_metabolites = args.reaction_metabolites
         databases = args.databases
         if output_folder:
