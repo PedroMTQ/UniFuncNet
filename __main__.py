@@ -70,7 +70,7 @@ def run_searcher(target_path,output_folder,search_type,search_direction,reaction
             if line:
                 db_type,db_id=line.split('\t')
                 searcher.run_searcher(db_id,db_type)
-                print(f'{line}\n',file=check_list,flush=True)
+                print(f'{line}',file=check_list,flush=True)
             line=infile.readline()
         searcher.output_results()
     print(f'DRAX took {time()-start} seconds to run')
