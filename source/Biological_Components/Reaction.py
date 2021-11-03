@@ -95,25 +95,8 @@ class Reaction(Base_Component):
             elif detail_type == 'reaction_with_instances':      self.set_detail(detail_type,instance_2.get_detail(detail_type,all_possible=True))
             else:                                               unite_possible_ids(self, instance_2, detail_type)
 
-####Reaction exporting
-    def convert_instance_to_reaction_str(self):
-        #we retrieve a list since a reaction may have different directionality signs in different dbs
-        for rn in self.get_strs_reaction():
-            print(l_rn_ids_to_str(rn,self.get_reaction_with_instances()))
 
 
-    def is_compound_in_reaction(self,compound_instance):
-        for n_mol,cpd_inst in self.get_reaction_with_instances():
-            if cpd_inst==compound_instance:
-                return True
-        return False
-
-    def print_all_ids(self):
-        res=[]
-        for i in SCRAPPABLE_DBS:
-            if self.get_detail(i,all_possible=True):
-                res.append([i,self.get_detail(i,all_possible=True)])
-        return res
 
 
 

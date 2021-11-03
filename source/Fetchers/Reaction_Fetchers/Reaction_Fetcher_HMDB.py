@@ -31,6 +31,10 @@ class Reaction_Fetcher_HMDB(Reaction_Fetcher):
         common_name = soup.find('th', text='Common Name').findNext().text
         if compound.lower() == common_name.lower(): return True
         synonyms = soup.find('th', text='Synonyms').findNext()
+        chemical_formula = soup.find('th', string='Chemical Formula')
+        if chemical_formula:
+            chemical_formula = chemical_formula.findNext()
+            if chemical_formula.text: chemical_formula = chemical_formula.text
         if synonyms.text != 'Not Available':
             headings = [th.get_text() for th in synonyms.find("tr").find_all("th")]
             datasets = []
@@ -42,6 +46,7 @@ class Reaction_Fetcher_HMDB(Reaction_Fetcher):
                     if field[0] == 'Value':
                         synonym = field[1]
                         if synonym.lower() == compound.lower(): return True
+        if chemical_formula.lower()==compound.lower(): return True
         return False
 
     def list_dict_keys(self, l1, dictio):

@@ -372,11 +372,11 @@ class Base_Component():
         c=self.score_match_instances(instance_2)
         if no_penalties:         c=ceil(c)
         node_type=get_instance_type(self)
-        if threshold_for_match: pass
-        elif node_type=='Compound': threshold_for_match=3
-        elif node_type=='Gene': threshold_for_match=2
-        elif node_type=='Protein': threshold_for_match=2
-        elif node_type=='Reaction': threshold_for_match=2
+        if not threshold_for_match:
+            if node_type=='Compound': threshold_for_match=3
+            elif node_type=='Gene': threshold_for_match=2
+            elif node_type=='Protein': threshold_for_match=2
+            elif node_type=='Reaction': threshold_for_match=2
         if c >= threshold_for_match:        return True
         else:                               return False
 
@@ -428,4 +428,3 @@ class Base_Component():
 if __name__ == '__main__':
     bc=Base_Component({'kegg_ko':'KOOOO1'})
     bc.set_detail('kegg_ko','1')
-    print(bc.get_detail('kegg_ko',all_possible=True))

@@ -5,10 +5,22 @@ class Compound_Fetcher_KEGG(Compound_Fetcher):
     def __init__(self,compound_id,memory_storage=None):
         Compound_Fetcher.__init__( self, compound_id,memory_storage)
         self.db='kegg'
+        self.set_convergence_args()
         self.compound=self.get_compound_KEGG()
         self.add_compound()
 
-    #we could also do c->p or c->r but chose not to
+
+    def set_convergence_args(self):
+        #args for convergence
+        self.convergence_args['reactions'] = set()
+        self.convergence_args['soup'] = None
+
+    def get_reactions(self,soup):
+        res = self.textbox_KEGG(soup, 'Reaction')
+        res=res.split()
+        res=[i.strip('\n') for i in res]
+        res=set(res)
+        return res
 
     def get_compound_KEGG(self):
         wanted_DBs = {'CAS': 'cas',
@@ -54,7 +66,25 @@ class Compound_Fetcher_KEGG(Compound_Fetcher):
         if formula: res['Chemical_formula'] = formula
         if number_of_nones_dict(res)==len(res): return None
         compound_instance= Compound(res)
+        self.convergence_args['soup']=soup
         return compound_instance
+
+
+    def converge_compound_global(self):
+        self.converge_compound_to_reaction()
+
+
+
+
+    #RP with enzyme ec
+    def converge_compound_to_reaction(self):
+        self.convergence_args['reactions']=self.get_reactions(self.convergence_args['soup'])
+        if self.convergence_args['reactions']:
+            for reaction_id in self.convergence_args['reactions']:
+                self.find_reaction(query_id=reaction_id)
+        self.convergence_args['soup']=None
+
+
 
 if __name__ == '__main__':
     search= Compound_Fetcher_KEGG('C00093')

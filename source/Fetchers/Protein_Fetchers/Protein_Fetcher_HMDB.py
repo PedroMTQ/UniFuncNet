@@ -28,8 +28,8 @@ class Protein_Fetcher_HMDB(Protein_Fetcher):
             protein_soup = BeautifulSoup(webpage, 'lxml')
             self.convergence_args['protein_soup']=protein_soup
         enz_syns = [protein_soup.find('th', text=re.compile('Name')).findNext().text]
-        wanted_enz_details=['General Function',
-                             'Specific Function',
+        wanted_enz_details=[#'General Function',
+                            # 'Specific Function',
                              'UniProtKB/Swiss-Prot ID',
                              'UniProtKB/Swiss-Prot Entry Name',
                              'PDB IDs',
@@ -39,7 +39,16 @@ class Protein_Fetcher_HMDB(Protein_Fetcher):
         for i in wanted_enz_details:
             wanted_detail= protein_soup.find('th', text=re.compile(i)).findNext().text
             if 'Not Available' not in wanted_detail:
-                details[i]=wanted_detail.strip()
+                fixed_detail=wanted_detail.strip()
+                fixed_detail=fixed_detail.replace('\n',',')
+                if i!='Pathways':
+                    fixed_detail=fixed_detail.replace('"','')
+                    fixed_detail=fixed_detail.replace(']','')
+                    fixed_detail=fixed_detail.replace('[','')
+                fixed_detail=fixed_detail.split(',')
+                fixed_detail=[j for j in fixed_detail if j]
+                fixed_detail=[j.strip() for j in fixed_detail]
+                details[i]=fixed_detail
             else:
                 details[i]=None
 
@@ -50,7 +59,6 @@ class Protein_Fetcher_HMDB(Protein_Fetcher):
                                    'uniprot':details['UniProtKB/Swiss-Prot ID'],
                                    'uniprot_name':details['UniProtKB/Swiss-Prot Entry Name'],
                                    'pdb':details['PDB IDs'],
-                                   'pathways':details['Pathways'],
                                  })
         self.get_reactions_from_soup(protein_soup)
         return protein_instance

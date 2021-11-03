@@ -18,7 +18,8 @@ class Protein_Searcher(Global_Searcher):
 
     def find_protein(self,db,query_id=None,extra_args={}):
         if db in SCRAPPABLE_DBS:
-            return self.find_info(db, query_id, extra_args)
+            fetcher_protein,fetcher= self.find_info(db, query_id, extra_args)
+            return fetcher_protein
 
     def select_fetcher(self,db,query_id,extra_args,init_Fetcher=True):
         if db in SCRAPPABLE_DBS and not self.check_already_searched_memory(db,query_id):
@@ -29,20 +30,21 @@ class Protein_Searcher(Global_Searcher):
 
 
     def find_info(self, db,query_id,extra_args={}):
-        if not query_id: return None
+        if not query_id: return None,None
         fetcher=self.select_fetcher(db=db,query_id=query_id,extra_args=extra_args)
         if fetcher:
             self.add_to_already_tried_to_search(db,query_id)
-            if fetcher.get_protein():
+            fetcher_protein=fetcher.get_protein()
+            if fetcher_protein:
                 #converge only occurs in the searchers- these are the global classes
-                if self.search_direction=='global':             fetcher.converge_protein_global()
-                elif self.search_direction=='rpg':  fetcher.converge_protein_rpg()
-                elif self.search_direction=='pg':  fetcher.converge_protein_rpg()
-                elif self.search_direction=='gpr':  fetcher.converge_protein_gpr()
-                elif self.search_direction=='pr':  fetcher.converge_protein_gpr()
-                if fetcher.get_protein():
-                    return fetcher.get_protein()
-
+                if {'global'}.intersection(self.search_direction):          fetcher.converge_protein_global()
+                elif {'rpg','pg'}.intersection(self.search_direction):      fetcher.converge_protein_rpg()
+                elif {'gpr','pr'}.intersection(self.search_direction):      fetcher.converge_protein_gpr()
+                return fetcher_protein,fetcher
+            else:
+                return None, None
+        else:
+            return None,None
 
 
     def run_searcher(self,bio_query,bio_db):
@@ -53,10 +55,9 @@ class Protein_Searcher(Global_Searcher):
         enzyme_ec
         ko
         uniprot
-        drugbank - uniprot id
-        biocyc - uniprot id or enzyme ec
-        kegg  - ko or enzyme ec
-        hmdb - uniprot id
+        biocyc - uniprot id or enzyme ec or biocyc id
+        kegg  - enzyme ec
+        hmdb - uniprot id or hmdb id
 
         Ko and uniprot has 1:n but others 1:1 so, we assume that the 1:1 dbs input will be correct and will unite instances accordingly
 
@@ -128,7 +129,7 @@ class Protein_Searcher(Global_Searcher):
 
     def get_proteins_from_uniprot(self,uniprot_id):
         """
-        hmdb and drugbank have 1:1 relation with uniprot (since its only for humans)
+        hmdb has 1:1 relation with uniprot (since its only for humans)
         biocyc and kegg have a 1:n relationship (n for families)
         brenda has no connection
         """
@@ -152,7 +153,7 @@ class Protein_Searcher(Global_Searcher):
 
     def get_protein_from_ec(self,enzyme_ec):
         """
-        hmdb, drugbank dont have EC info
+        hmdb doesnt have EC info
         brenda and kegg have a 1:1 relationship
         biocyc has 1:n
         """

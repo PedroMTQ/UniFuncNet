@@ -14,7 +14,8 @@ class Gene_Searcher(Global_Searcher):
     #this is db specific
     def find_gene(self,db,query_id=None,extra_args={}):
         if db in SCRAPPABLE_DBS:
-            return self.find_info(db, query_id, extra_args)
+            fetcher_gene,fetcher=self.find_info(db, query_id, extra_args)
+            return fetcher_gene
 
     def select_fetcher(self,db,query_id,extra_args,init_Fetcher=True):
         if db in SCRAPPABLE_DBS and not self.check_already_searched_memory(db,query_id):
@@ -24,18 +25,20 @@ class Gene_Searcher(Global_Searcher):
             else:                     return    Global_Fetcher()
 
     def find_info(self,db,query_id,extra_args={}):
-        if not query_id: return None
-
+        if not query_id: return None,None
         fetcher=self.select_fetcher(db=db,query_id=query_id,extra_args=extra_args)
         if fetcher:
             self.add_to_already_tried_to_search(db, query_id)
-            if fetcher.get_gene():
+            fetcher_gene=fetcher.get_gene()
+            if fetcher_gene:
                 #converge only occurs in the searchers- these are the global classes
-                if self.search_direction=='global':                 fetcher.converge_gene_global()
-                elif self.search_direction=='gpr' or\
-                     self.search_direction=='gp':       fetcher.converge_gene_gpr()
-                if fetcher.get_gene():
-                    return fetcher.get_gene()
+                if {'global'}.intersection(self.search_direction):                 fetcher.converge_gene_global()
+                elif {'gpr','gp'}.intersection(self.search_direction):             fetcher.converge_gene_gpr()
+                return fetcher_gene,fetcher
+            else:
+                return None,None
+        else:
+            return None,None
 
     def add_to_args_to_search(self,gene_instance_or_list,args_to_search):
         if not isinstance(gene_instance_or_list, list): gene_instance_or_list = [gene_instance_or_list]

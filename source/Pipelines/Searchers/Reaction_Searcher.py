@@ -12,8 +12,8 @@ class Reaction_Searcher(Global_Searcher):
 
     def find_reaction(self,db,query_id=None,extra_args={}):
         if db in SCRAPPABLE_DBS:
-            return self.find_info(db, query_id, extra_args)
-
+            fetcher_reaction,fetcher= self.find_info(db, query_id, extra_args)
+            return fetcher_reaction
 
 
     def select_fetcher(self,db,query_id,extra_args,init_Fetcher=True):
@@ -24,16 +24,20 @@ class Reaction_Searcher(Global_Searcher):
             else:                     return  Global_Fetcher()
 
     def find_info(self, db, query_id, extra_args={}):
-        if not query_id: return None
+        if not query_id: return None,None
         fetcher=self.select_fetcher(db=db,query_id=query_id,extra_args=extra_args)
         if fetcher:
             self.add_to_already_tried_to_search(db, query_id)
-            if fetcher.get_reaction():
+            fetcher_reaction=fetcher.get_reaction()
+            if fetcher_reaction:
                 #converge only occurs in the searchers- these are the global classes
-                if self.search_direction=='global':             fetcher.converge_reaction_global()
-                elif self.search_direction=='rpg' or\
-                     self.search_direction=='rp':  fetcher.converge_reaction_rpg()
-                return fetcher.get_reaction()
+                if  {'global'}.intersection(self.search_direction):     fetcher.converge_reaction_global()
+                elif {'rpg','rp'}.intersection(self.search_direction):  fetcher.converge_reaction_rpg()
+                return fetcher_reaction,fetcher
+            else:
+                return None, None
+        else:
+            return None,None
 
     def run_searcher(self,bio_query,bio_db):
         print(f'STARTING REACTION SEARCHER {bio_query} in {bio_db}')

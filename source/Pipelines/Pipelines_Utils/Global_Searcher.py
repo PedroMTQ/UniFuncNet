@@ -1,5 +1,6 @@
+import os.path
 
-from source.Utils.util import get_instance_type, check_if_any_none, number_of_nones_dict, unite_instance_list,number_of_nones_dict,find_path,SCRAPPABLE_DBS
+from source.Utils.util import get_instance_type, check_if_any_none, number_of_nones_dict, unite_instance_list,number_of_nones_dict,find_path,SCRAPPABLE_DBS,download_file_ftp,DRAX_FOLDER
 from source.Pipelines.Pipelines_Utils.Memory_Keeper import *
 from source.Biological_Components.Compound import Compound
 from source.Biological_Components.Gene import Gene
@@ -40,6 +41,7 @@ class Global_Searcher(Memory_Keeper):
             self.borrow_memory_lists(memory_storage)
             self.borrow_fetchers(memory_storage)
             self.memory_storage = memory_storage
+            self.search_direction=memory_storage.search_direction
             self.borrow_searchers()
         else:
             self.do_reaction_met_instances=do_reaction_met_instances
@@ -48,6 +50,79 @@ class Global_Searcher(Memory_Keeper):
             self.memory_storage=self
             #starting the fetcher for the corresponding main searcher instance
             self.setup_new_searchers()
+            self.search_direction=search_direction
+        self.download_chebi_to_others()
+
+
+    def trim_chebi_accession(self,infile_path,outfile_path):
+        res=set()
+        with open(infile_path) as infile:
+            with open(outfile_path,'w+') as outfile:
+                line=infile.readline()
+                while line:
+                    line=line.strip('\n')
+                    #ID	COMPOUND_ID	SOURCE	TYPE	ACCESSION_NUMBER
+                    _,chebi_id,_,id_type,secondary_id= line.split('\t')
+                    outline=None
+                    if id_type=='KEGG COMPOUND':
+                        outline=f'{chebi_id}\tkegg\t{secondary_id}'
+                    elif id_type=='KEGG DRUG':
+                        outline=f'{chebi_id}\tkegg\t{secondary_id}'
+                    elif id_type=='KEGG DRUG accession':
+                        outline=f'{chebi_id}\tkegg\t{secondary_id}'
+                    elif id_type=='KEGG COMPOUND accession':
+                        outline=f'{chebi_id}\tkegg\t{secondary_id}'
+                    elif id_type=='MetaCyc accession':
+                        outline=f'{chebi_id}\tbiocyc\t{secondary_id}'
+                    elif id_type=='HMDB accession':
+                        outline=f'{chebi_id}\thmdb\t{secondary_id}'
+                    elif id_type=='Chemspider accession':
+                        outline=f'{chebi_id}\tchemspider\t{secondary_id}'
+                    else:
+                        res.add(id_type)
+                    if outline:
+                        outfile.write(f'{outline}\n')
+
+                    line=infile.readline()
+        os.remove(infile_path)
+
+    def download_chebi_to_others(self):
+        url='https://ftp.ebi.ac.uk/pub/databases/chebi/Flat_file_tab_delimited/database_accession.tsv'
+        infile_path=f'{DRAX_FOLDER}database_accession.tsv'
+        outfile_path=f'{DRAX_FOLDER}chebi2others.tsv'
+        if not os.path.exists(outfile_path):
+            download_file_ftp(url,infile_path)
+            self.trim_chebi_accession(infile_path,outfile_path)
+
+    def set_search_direction(self,search_direction):
+        self_searcher_type= get_instance_type(self)
+        if self_searcher_type!='Gene_Searcher':
+            self.gene_searcher.search_direction=search_direction
+
+        if self_searcher_type != 'Protein_Searcher':
+            self.protein_searcher.search_direction=search_direction
+
+        if self_searcher_type != 'Reaction_Searcher':
+            self.reaction_searcher.search_direction=search_direction
+
+        if self_searcher_type != 'Compound_Searcher':
+            self.compound_searcher.search_direction=search_direction
+
+
+    def set_do_reaction_met_instances(self,do_reaction_met_instances):
+        self_searcher_type= get_instance_type(self)
+        if self_searcher_type!='Gene_Searcher':
+            self.gene_searcher.do_reaction_met_instances=do_reaction_met_instances
+
+        if self_searcher_type != 'Protein_Searcher':
+            self.protein_searcher.do_reaction_met_instances=do_reaction_met_instances
+
+        if self_searcher_type != 'Reaction_Searcher':
+            self.reaction_searcher.do_reaction_met_instances=do_reaction_met_instances
+
+        if self_searcher_type != 'Compound_Searcher':
+            self.compound_searcher.do_reaction_met_instances=do_reaction_met_instances
+
 
     def flush_memory(self):
         print('Flushing memory!')
@@ -102,47 +177,94 @@ class Global_Searcher(Memory_Keeper):
         self.reaction_searcher=None
         self.compound_searcher=None
 
-        #print('Setting up new searchers')
         self_searcher_type= get_instance_type(self)
 
         if self_searcher_type!='Gene_Searcher':
             from source.Pipelines.Searchers.Gene_Searcher import Gene_Searcher
-            self.gene_searcher = Gene_Searcher(memory_storage=self,search_direction=self.search_direction,do_reaction_met_instances=self.do_reaction_met_instances,db_name=self.db_name)
+            self.gene_searcher = Gene_Searcher(memory_storage=self,
+                                               search_direction=self.search_direction,
+                                               do_reaction_met_instances=self.do_reaction_met_instances,
+                                               db_name=self.db_name,
+                                               output_folder=self.output_folder,
+                                               politeness_timer=self.politeness_timer)
         #if it is a gene searcher, find_gene should point to itself so that self.gene_searcher.find_gene == self.find_Gene. the same applies for the other searchers
         else: self.gene_searcher=self
 
 
         if self_searcher_type != 'Protein_Searcher':
             from source.Pipelines.Searchers.Protein_Searcher import Protein_Searcher
-            self.protein_searcher = Protein_Searcher(memory_storage=self,search_direction=self.search_direction,do_reaction_met_instances=self.do_reaction_met_instances,db_name=self.db_name)
+            self.protein_searcher = Protein_Searcher(memory_storage=self,
+                                                     search_direction=self.search_direction,
+                                                     do_reaction_met_instances=self.do_reaction_met_instances,
+                                                     db_name=self.db_name,
+                                                     output_folder=self.output_folder,
+                                                     politeness_timer=self.politeness_timer)
         else: self.protein_searcher=self
 
         if self_searcher_type != 'Reaction_Searcher':
             from source.Pipelines.Searchers.Reaction_Searcher import Reaction_Searcher
-            self.reaction_searcher = Reaction_Searcher(memory_storage=self,search_direction=self.search_direction,do_reaction_met_instances=self.do_reaction_met_instances,db_name=self.db_name)
+            self.reaction_searcher = Reaction_Searcher(memory_storage=self,
+                                                       search_direction=self.search_direction,
+                                                       do_reaction_met_instances=self.do_reaction_met_instances,
+                                                       db_name=self.db_name,
+                                                       output_folder=self.output_folder,
+                                                       politeness_timer=self.politeness_timer)
         else: self.reaction_searcher=self
 
         if self_searcher_type != 'Compound_Searcher':
             from source.Pipelines.Searchers.Compound_Searcher import Compound_Searcher
-            self.compound_searcher = Compound_Searcher(memory_storage=self,search_direction=self.search_direction,do_reaction_met_instances=self.do_reaction_met_instances,db_name=self.db_name)
+            self.compound_searcher = Compound_Searcher(memory_storage=self,
+                                                       search_direction=self.search_direction,
+                                                       do_reaction_met_instances=self.do_reaction_met_instances,
+                                                       db_name=self.db_name,
+                                                       output_folder=self.output_folder,
+                                                       politeness_timer=self.politeness_timer)
         else: self.compound_searcher=self
+
+        #since before creating the searchers we borrow during initizaliation of sub-searchers, we need to launch borrow again to make sure everything is pointing at the same direction
+        for inst in [self.gene_searcher,self.protein_searcher,self.reaction_searcher,self.compound_searcher]:
+            inst.borrow_searchers()
 
 
     def borrow_searchers(self):
-        self_searcher_type= get_instance_type(self)
-        memory_searcher_type= get_instance_type(self.memory_storage)
-        #print(f'Borrowing {memory_searcher_type} to {self_searcher_type}')
-        if memory_searcher_type=='Gene_Searcher':
-            self.gene_searcher = self.memory_storage
+        if self is not self.memory_storage:
+            self_searcher_type= get_instance_type(self)
+            memory_searcher_type= get_instance_type(self.memory_storage)
 
-        if memory_searcher_type == 'Protein_Searcher':
-            self.protein_searcher = self.memory_storage
+            self.gene_searcher = self.memory_storage.gene_searcher
+            self.protein_searcher = self.memory_storage.protein_searcher
+            self.reaction_searcher = self.memory_storage.reaction_searcher
+            self.compound_searcher = self.memory_storage.compound_searcher
 
-        if memory_searcher_type == 'Reaction_Searcher':
-            self.reaction_searcher = self.memory_storage
 
-        if memory_searcher_type == 'Compound_Searcher':
-            self.compound_searcher = self.memory_storage
+
+            if memory_searcher_type=='Gene_Searcher':
+                self.gene_searcher = self.memory_storage
+
+            if memory_searcher_type == 'Protein_Searcher':
+                self.protein_searcher = self.memory_storage
+
+            if memory_searcher_type == 'Reaction_Searcher':
+                self.reaction_searcher = self.memory_storage
+
+            if memory_searcher_type == 'Compound_Searcher':
+                self.compound_searcher = self.memory_storage
+
+
+            if self_searcher_type=='Gene_Searcher':
+                self.gene_searcher = self
+
+            if self_searcher_type == 'Protein_Searcher':
+                self.protein_searcher = self
+
+            if self_searcher_type == 'Reaction_Searcher':
+                self.reaction_searcher = self
+
+            if self_searcher_type == 'Compound_Searcher':
+                self.compound_searcher = self
+
+
+
 
 
     ###Function inheritance###

@@ -69,7 +69,4 @@ if __name__ == '__main__':
     g.set_detail('nt_seq','aaa')
     g.set_detail('nt_seq','bbb')
     a=test_match_possible_ids(g.get_detail('nt_seq',all_possible=True),g.get_detail('nt_seq',all_possible=True))
-    print(a)
-    print(g)
     test=test_instance_creator()
-    print(test)

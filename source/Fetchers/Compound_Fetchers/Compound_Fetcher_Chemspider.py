@@ -59,7 +59,7 @@ class Compound_Fetcher_Chemspider(Compound_Fetcher):
             db_ids = soup.find_all('a', {'href': re.compile(db)})
             if db_ids:
                 db_id = db_ids[0].text
-                if res[dbs_to_look_for[db]] == 'CHEBI':
+                if dbs_to_look_for[db] == 'chebi':
                     chebi_search = re.search('CHEBI:', db_id)
                     if chebi_search: db_id = db_id[chebi_search.span()[1]:]
                 res[dbs_to_look_for[db]] = db_id

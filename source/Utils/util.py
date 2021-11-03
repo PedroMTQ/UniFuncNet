@@ -11,6 +11,9 @@ import sys
 from html.parser import HTMLParser
 from io import StringIO
 from urllib.parse import quote_plus
+from contextlib import closing
+import urllib.request as request
+from shutil import copyfileobj
 
 from types import GeneratorType as generator
 from sys import platform
@@ -18,7 +21,6 @@ from sys import platform
 # to use pubchem API you can use requests.post
 # inchi='InChI=1S/C15H12N2O2/c16-15(18)17-11-7-3-1-5-9(11)13-14(19-13)10-6-2-4-8-12(10)17/h1-8,13-14H,(H2,16,18)'
 # r=requests.post('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchi/cids/JSON/',data={'inchi':inchi})
-# print(r.text)
 
 SCRAPPABLE_DBS=['biocyc','kegg','hmdb']
 SCRAPPABLE_DBS.extend(['uniprot', 'chemspider', 'inchi_key'])
@@ -163,7 +165,6 @@ def find_path(to_search_name,to_search='file',end_dir='DRAX',parent_directory=No
             current_dir = os.getcwd()
             c = 0
         os.chdir("..")
-    print('changed dir',to_search_name)
     for root, dirs, files in os.walk(os.getcwd()):
         parent_dir=root.split(SPLITTER)[-1]
         if to_search=='directory': target=dirs
@@ -200,7 +201,7 @@ def get_stoichiometry_reaction(reaction,ignore_numbers=False,split_plus_str=' + 
                 n=1
             #undefined (e.g. n molecules of something) numbers will be -1
             elif re.match('(\(\d?n[\+\-]?\d?\))|([b-z]\s?)|(\d+n)',n.lower()):
-                #print('POSSIBLE UNDEFINED NUMBER OF COMPOUNDS, CHECK THIS TO BE SURE NO ERRORS ARE OCCURRING',reaction)
+                #POSSIBLE UNDEFINED NUMBER OF COMPOUNDS, CHECK THIS TO BE SURE NO ERRORS ARE OCCURRING',reaction
                 n=-1
             else: n=int(n)
             complete_l[i] = [int(n), to_add]
@@ -492,6 +493,17 @@ def regex_escape(regex_string):
             else: replacer='\\'
             l_regex_string[i]=replacer+l_regex_string[i]
     return ''.join(l_regex_string)
+
+
+
+
+
+
+def download_file_ftp(url, file_path):
+    with closing(request.urlopen(url)) as r:
+        with open(file_path, 'wb') as f:
+            copyfileobj(r, f)
+
 
 
 
