@@ -2,7 +2,7 @@
 
 
 DRAX is a biological data collector, fetching information on gene-protein-reaction-compound relationship across multiple databases.
-It was built to aid in the expansion of metabolic networks, automating the often monotonous, manual data collection.
+It was built to aid in the mapping of metabolism related components, for example to aid in the expansion of metabolic networks, automating the often monotonous, manual data collection. 
 
 ## Installation 
 
@@ -31,7 +31,7 @@ You can run the code below to test the execution:
 
 A typical run would look like:
 
-    python DRAX pr protein_search -i input.tsv 
+    python DRAX -i input.tsv 
 
 
 
@@ -48,19 +48,14 @@ DRAX accepts the following parameters:
 
     python DRAX search_direction search_type -i input_path -o output_folder -rm -db db1,db2
 
-    Mandatory arguments:  search_direction:
-                                accepted: 'global', 'rpg', 'pg', 'gpr', 'pr','gp','na'
-                          search_type
-                                accepted: 'gene_search', 'protein_search', 'reaction_search', 'compound_search'
-                          --input_path / -i
+    Mandatory arguments: --input_path / -i
     Optional arguments:  --output_folder / -o
                          --reaction_metabolites / -rm
                          --databases / -db
 
+
 Where each parameter corresponds to the following:
 
-- `search_direction`  - direction of the search, `global` for searching in both directions, `na` for searching only the provided IDs, without connecting to other instances, `rpg` for searching from reaction->protein->gene, and `pg`, `gpr`, `pr`,`gp`
-- `search_type` - starting point of the search, if the user aims to provide IDs for proteins, then it would be `protein_search`, and the same for the other types of biological instances
 - `input_path` - the input tsv file path. 
 - `output_folder` - the output folder where the spreadsheets are stored
 - `reaction_metabolites` - searches for data on each reaction's compound, which improves reaction matching across different databases
@@ -68,37 +63,54 @@ Where each parameter corresponds to the following:
 - `politeness_timer` - time (seconds) between requests. Default is 10. Please be careful not to overleaf the corresponding databases, you might get blocked from doing future requests.
 
 
-All search types except `compound_search` provide network-based scraping, we have decided to keep `compound_search` as an option since the user may also use it to search for more information on compounds (e.g., start with a synonym or KEGG ID and find more information on these)
 
 
 
 
-Data is  retrieved according to the information provided, for example, if the user provides the KEGG gene ID hsa:150763, then, given that the gpr_convergence is used, DRAX would fetch information on this gene, the KEGG protein entries connected to this gene (i.e., 2.3.1.15) and by extent the reactions these protein(s) catalyze (i.e., R00851,R02617,R09380).
+Data is  retrieved according to the information provided, for example, if the user provides the KEGG gene ID hsa:150763, then, given that the gpr search direction is used, DRAX would fetch information on this gene, the KEGG protein entries connected to this gene (i.e., 2.3.1.15) and by extent the reactions these protein(s) catalyze (i.e., R00851,R02617,R09380).
 
 
+- `search_type` - starting point of the search, if the user aims to provide IDs for proteins, then it would be `protein_search`, and the same for the other types of biological instances
 
 
 ### Formatting input file
 
 The input file should be a tab separated file that looks something like this:
  
-  |      |      |
-  | ---  | ---  |
-  | enzyme_ec  | 2.7.1.1  |
-  | kegg_ko    | K00844   |
+  | Component  | Search direction | ID type | ID |
+  | ---  | ---  | --- | --- |
+  | gene |  | biocyc  | HS08548  |
+  | gene | gp | hmdb  | HMDBP00087  |
+  | gene | global | kegg  | hsa:150763  |
+  | gene |  | uniprot  | P19367  |
+  | protein |  | enzyme_ec  | 2.7.1.1  |
+  | protein | global | kegg  | 2.7.1.1  |
+  | protein |  | biocyc  | 2.7.1.1  |
+  | protein |  | hmdb  | HMDBP00609  |
+  | protein | global | kegg_ko    | K00844   |
+  | protein |  | uniprot    | P19367   |
+  | reaction |  | biocyc  | PROTOHEMEFERROCHELAT-RXN   |
+  | reaction | rp | hmdb  | 14073   |
+  | reaction |  | kegg  | R02887   |
+  | compound | global | biocyc    | CPD-520   |
+  | compound |  | chebi    | 27531   |
+  | compound |  | chemspider    | 937   |
+  | compound |  | hmdb    | HMDB0000538   |
+  | compound |  | kegg    | C00093   |
+  | compound |  | inchi_key  | XLYOFNOQVPJJNP-UHFFFAOYSA-N   |
+  | compound |  | synonyms    | water   |
+
+I've tried to make this example tsv extensive but some caveats remain:
+
+- the first column corresponds to the component type you provided the ID for
+
+- the second column the search direction, i.e., direction of the search, `global` for searching in both directions, `na` for searching only the provided IDs, without connecting to other instances, `rpg` for searching from reaction->protein->gene, and `pg`, `gpr`, `pr`,`gp`. **Keep in mind you can use multiple search directions**, e.g., `rp,pr`. This is especially useful if you want to map compounds to reactions and proteins (web crawling for kegg and biocyc can be only `rp`, but hmdb needs both `rp,pr`).
+
+- keep in mind DRAX will always try to use all available IDs to search for more information. That is, if you start with a certain ID (e.g., kegg ID), if DRAX finds searchable information for the other databases (in this case biocyc and hmdb) then it will also collect data from those databases. This applies to different components as well, e.g., DRAX starts with gene IDs from kegg, then finds the corresponding proteins for these genes in hmdb and biocyc; DRAX (if the search direction is set to `gp,pg`) will then also find information on genes for these two additional databases.
+
+- Some type of IDs (i.e., `enzyme_ec` and `uniprot`) can be matched with multiple databases. `synonyms` and `chebi` can also be used to query multiple databases. For example, for the line `protein | pr | uniprot | P19367`, DRAX will try to match this Uniprot ID with all the databases
 
 
-The first column should correspond to an ID type, where following nomenclature is accepted:
-- biocyc
-- kegg
-- hmdb
-- enzyme_ec
-- uniprot
-- inchi_key
-- chemspider
-- synonym
-
-The second column would then correspond to the respective ID that the user would like to gather information for.
 
 ### Supported input IDs
 
@@ -125,7 +137,7 @@ Several IDs are allowed per biological instance:
     - HMDB (e.g., "HMDBP00087")
 
 - Compound:
-    - Biocyc (e.g., "WATER")
+    - Biocyc (e.g., the ID "WATER")
     - KEGG (e.g., "C00001")
     - HMDB (e.g., "HMDB02111")
     - InChI key (e.g., "XLYOFNOQVPJJNP-UHFFFAOYSA-N")
@@ -157,8 +169,9 @@ The search direction  `na` removes any type of extra search besides the initial 
 
 The search direction `global` is an extensive search, where we can search in both directions (i.e. g->p->r and r->p->g), meaning that if the user provides the KEGG gene ID hsa:150763 we would retrieve the respective proteins 2.3.1.15, but we would then also search for all the gene IDs for the protein 2.3.1.15 (e.g., hsa:150763, ptr:107971389, csab:103215676). The same would apply to the protein and reaction search.
 
-Compound search is limited to retrieve only compound-related information. Should the user provide a compound name (e.g. "water") the compound search may also retrieve related compounds (since DRAX uses the each website's search bar to retrieve the most likely compound entry). However, if an ID is provided, DRAX will first search for the ID, if information is not found, then the synonyms are used as a search method.
+Should the user provide a compound name (e.g. "water") the compound search may also retrieve related compounds (since DRAX uses the each website's search bar to retrieve the most likely compound entry). However, if an ID is provided, DRAX will first search for the ID, if information is not found, then the synonyms are used as a search method.
 This also applies to when the option `reaction_metabolites` is enabled and the reaction does not contain any compound ID, in that case the reaction string (e.g. "sn-Glycerol 3-phosphate + Acyl-CoA <=> 1-Acyl-sn-glycerol 3-phosphate + CoA") is parsed  and its compounds are searched using the method previously described.
+DRAX can also search for information connected to compounds (i.e., reactions) by enabling the required search directions `rp,pr`
 
 
 # License and copyright

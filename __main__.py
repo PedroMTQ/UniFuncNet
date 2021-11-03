@@ -35,7 +35,7 @@ biocyc
 
 python DRAX/ gpr protein_search -i DRAX/test/test.tsv -o drax_test -db kegg -rm
 
-scp -P 8022 -r /home/pedroq/PycharmProjects/DRAX/source pedro.queiros@10.240.6.223:/home/pedro.queiros/python_projects/DRAX/
+
 '''
 
 
@@ -155,16 +155,6 @@ if __name__ == '__main__':
                                                         '| |/ /| |\ \| | | |/ /^\ \\\n'+
                                                         '|___/ \_| \_\_| |_/\/   \/, a biological database scraper',
                                          formatter_class=argparse.RawTextHelpFormatter)
-        #parser.add_argument('search_direction',
-        #                    help='Please choose a search direction from :'
-        #                         'For example, if given a gene ID with gpr, the search would start in gene,it would then go to protein level and then to reaction. '
-        #                         'If starting from protein level, the gpr would only do protein to reaction.',
-         #                   choices=['global', 'rpg', 'pg', 'gpr', 'pr','gp','na'])
-        #parser.add_argument('search_type',
-        #                    help='Please choose from :\n\tgene_search\n\tprotein_search\n\tcompound_search\n\treaction_search\n\n'
-        #                         'For example, if the user has a list of KEGG gene IDs, the searcher type would be gene_searcher, '
-        #                         'if the gpr would also be applied, the search would start from these gene IDs, go to protein level and then to reaction.',
-        #                    choices=['gene_search', 'protein_search', 'compound_search', 'reaction_search'])
         parser.add_argument('-i', '--input_path', help='[required]\tTSV file path with a list of identifiers.')
         parser.add_argument('-o', '--output_folder', help='[required]\tOutput folder path for the information collected from the different sources')
         parser.add_argument('-db', '--databases', help='[optional]\tComma separated list of databases to search for information in.')
