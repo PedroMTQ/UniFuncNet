@@ -28,25 +28,35 @@ class Reaction_Fetcher_HMDB(Reaction_Fetcher):
         webpage = self.get_with_fetcher(url)
         if not webpage: return None
         soup = BeautifulSoup(webpage, 'lxml')
-        common_name = soup.find('th', text='Common Name').findNext().text
-        if compound.lower() == common_name.lower(): return True
-        synonyms = soup.find('th', text='Synonyms').findNext()
-        chemical_formula = soup.find('th', string='Chemical Formula')
-        if chemical_formula:
-            chemical_formula = chemical_formula.findNext()
-            if chemical_formula.text: chemical_formula = chemical_formula.text
-        if synonyms.text != 'Not Available':
-            headings = [th.get_text() for th in synonyms.find("tr").find_all("th")]
-            datasets = []
-            for row in synonyms.find_all("tr")[1:]:
-                dataset = zip(headings, (td.get_text() for td in row.find_all("td")))
-                datasets.append(dataset)
-            for dataset in datasets:
-                for field in dataset:
-                    if field[0] == 'Value':
-                        synonym = field[1]
-                        if synonym.lower() == compound.lower(): return True
-        if chemical_formula.lower()==compound.lower(): return True
+        try:
+            common_name = soup.find('th', text='Common Name').findNext().text
+            if compound.lower() == common_name.lower(): return True
+        except:
+            pass
+        try:
+            chemical_formula = soup.find('th', string='Chemical Formula')
+            if chemical_formula:
+                chemical_formula = chemical_formula.findNext()
+                if chemical_formula.text: chemical_formula = chemical_formula.text
+                if chemical_formula.lower() == compound.lower(): return True
+
+        except:
+            pass
+        try:
+            synonyms = soup.find('th', text='Synonyms').findNext()
+            if synonyms.text != 'Not Available':
+                headings = [th.get_text() for th in synonyms.find("tr").find_all("th")]
+                datasets = []
+                for row in synonyms.find_all("tr")[1:]:
+                    dataset = zip(headings, (td.get_text() for td in row.find_all("td")))
+                    datasets.append(dataset)
+                for dataset in datasets:
+                    for field in dataset:
+                        if field[0] == 'Value':
+                            synonym = field[1]
+                            if synonym.lower() == compound.lower(): return True
+        except:
+            pass
         return False
 
     def list_dict_keys(self, l1, dictio):
@@ -57,7 +67,8 @@ class Reaction_Fetcher_HMDB(Reaction_Fetcher):
                 l1[i] = self.find_compound_ID_HMDB(l1[i])
         return l1
 
-    def find_compound_ID_HMDB(self, compound):  # this will catch the first compound in the hmdb query
+    def find_compound_ID_HMDB(self, compound):
+        # this will only check the first page, which should already contain the best results
         url = 'http://www.hmdb.ca/unearth/q?utf8=%E2%9C%93&query=' + compound + '&searcher=metabolites&button='
         webpage = self.get_with_fetcher(url)
         if not webpage: return None
@@ -106,37 +117,38 @@ class Reaction_Fetcher_HMDB(Reaction_Fetcher):
 
 
     def get_reaction_HMDB(self):
-        cpd_id=self.convergence_args['cpd_id']
 
         url = 'http://www.hmdb.ca/reactions/' + self.reaction_id
         webpage = self.get_with_fetcher(url)
         if not webpage: return None
         reaction_soup = BeautifulSoup(webpage, 'lxml')
-        correct_reaction= self.check_correct_reaction_HMDB(reaction_soup,cpd_id)
-        if correct_reaction:
-            rn_with_ids = self.reaction_IDs_HMDB(reaction_soup)
-            reaction_str = reaction_soup.find('div', class_='reaction-panel').strong.text
-            reaction_str=reaction_str.replace('+',' + ').replace('=',' = ')
-            reaction_str = fix_html_sign(reaction_str)
-            rn_with_ids,complete_l,len_sub = get_stoichiometry(reaction_str, rn_with_ids)
-            rn_with_instances = self.reaction_met_instances(reaction_str, rn_with_ids, 'hmdb')
-            rn_info={
-                'hmdb': self.reaction_id,
-                'reaction_str': reaction_str,
-            }
-            external_links= reaction_soup.find('h4',text='External Links')
-            if external_links:
-                external_links=external_links.findNext('ol').findChildren('li')
-                for ext_link in external_links:
-                    if 'kegg' in ext_link.text.lower():
-                        kegg_id= ext_link.text.split(':')[1].strip()
-                        rn_info['kegg']=kegg_id
+        #if self.check_correct_reaction_HMDB(reaction_soup,self.convergence_args['cpd_id']):
+        rn_with_ids = self.reaction_IDs_HMDB(reaction_soup)
+        reaction_str = reaction_soup.find('div', class_='reaction-panel').strong.text
+        reaction_str=reaction_str.replace('+',' + ').replace('=',' = ')
+        reaction_str = fix_html_sign(reaction_str)
+        try:
+            rn_with_ids, complete_l, len_sub = get_stoichiometry(reaction_str, rn_with_ids)
+        except:
+            rn_with_ids, complete_l, len_sub = get_stoichiometry(reaction_str, reaction_str)
+        rn_with_instances = self.reaction_met_instances(reaction_str, rn_with_ids, 'hmdb')
+        rn_info={
+            'hmdb': self.reaction_id,
+            'reaction_str': reaction_str,
+        }
+        external_links= reaction_soup.find('h4',text='External Links')
+        if external_links:
+            external_links=external_links.findNext('ol').findChildren('li')
+            for ext_link in external_links:
+                if 'kegg' in ext_link.text.lower():
+                    kegg_id= ext_link.text.split(':')[1].strip()
+                    rn_info['kegg']=kegg_id
 
-            if rn_with_instances: rn_info['reaction_with_instances'] = rn_with_instances
-            else:                 rn_info['rn_with_ids'] = [reaction_str, rn_with_ids, 'hmdb']
-            reaction_instance = Reaction(rn_info)
-            self.get_proteins_from_soup(reaction_soup)
-            return reaction_instance
+        if rn_with_instances: rn_info['reaction_with_instances'] = rn_with_instances
+        else:                 rn_info['rn_with_ids'] = [reaction_str, rn_with_ids, 'hmdb']
+        reaction_instance = Reaction(rn_info)
+        self.get_proteins_from_soup(reaction_soup)
+        return reaction_instance
 
     def get_proteins_from_soup(self,soup):
         protein_ids=soup.find_all(href=re.compile('/proteins/HMDBP\d+'))
@@ -164,17 +176,16 @@ class Reaction_Fetcher_HMDB(Reaction_Fetcher):
             if i == cpd_id: return True
         return False
 
-    def converge_reaction_global(self):
-        if self.convergence_args['proteins_list']:
-            self.converge_reaction_to_protein()
 
     def converge_reaction_rpg(self):
         #RP part of the CRPG pipeline
-        self.converge_reaction_global()
-
+        if self.convergence_args['proteins_list']:
+            self.converge_reaction_to_protein()
 
     def converge_reaction_to_protein(self):
         for protein_id in self.convergence_args['proteins_list']:
+            print(f'Linking from reaction {self.reaction_id} in {self.db} to protein {protein_id}')
+
             protein_instance = self.find_protein(query_id=protein_id,
                                                  extra_args={'protein_soup': self.convergence_args['protein_soup']},
                                                  )
@@ -183,7 +194,8 @@ class Reaction_Fetcher_HMDB(Reaction_Fetcher):
 
 
 if __name__ == '__main__':
-    r=Reaction_Fetcher_HMDB('14073').get_reaction()
+    r=Reaction_Fetcher_HMDB('1746',init_Fetcher=False)
+    r.find_compound_ID_HMDB('A phenyl acetate')
 
 
 

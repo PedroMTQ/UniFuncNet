@@ -149,25 +149,18 @@ class Gene_Fetcher_Biocyc(Gene_Fetcher):
                     if is_ec(p_id,4):
                         self.convergence_args['reactions_complete_ec'].append([p_id,self.convergence_args['reactions'][p_id]])
                     elif is_ec(p_id,3):
-                        self.convergence_args['reactions_incomplete_ec'].append([p_id,self.convergence_args['reactions'][p_id]])
+                        pass
                     else:
                         self.convergence_args['reactions_not_ec'].append([p_id,self.convergence_args['reactions'][p_id]])
 
 
 
 
-    def converge_gene_global(self):
-        if self.get_gene():
-            self.converge_gene_to_reaction_biocyc()
-            self.converge_gene_to_protein_biocyc_complete_ec()
-            self.converge_gene_to_protein_biocyc_incomplete_ec()
-            self.converge_gene_to_protein_biocyc_not_ec()
-
     def converge_gene_gpr(self):
         if self.get_gene():
             self.converge_gene_to_reaction_biocyc()
             self.converge_gene_to_protein_biocyc_complete_ec()
-            self.converge_gene_to_protein_biocyc_incomplete_ec_temp_Protein()
+            #self.converge_gene_to_protein_biocyc_incomplete_ec_temp_Protein()
             self.converge_gene_to_protein_biocyc_not_ec()
 
 
@@ -183,6 +176,8 @@ class Gene_Fetcher_Biocyc(Gene_Fetcher):
         else: protein_instance=None
         for r_id_str in self.convergence_args['reactions_list']:
             reaction_id, reaction_str = r_id_str
+            print(f'Linking from gene {self.gene_id} in {self.db} to reaction {reaction_id}')
+
             # convergence penalty will be lower because we want to connect the gene to the reaction as the protien is merely a placeholder
             reaction_instance = self.find_reaction(query_id=reaction_id,
                                                    extra_args={'reaction_str': reaction_str},
@@ -197,7 +192,10 @@ class Gene_Fetcher_Biocyc(Gene_Fetcher):
     # GP
     def converge_gene_to_protein_biocyc_complete_ec(self):
         for p in self.convergence_args['reactions_complete_ec']:
+
             p_id,reactions_list= p
+            print(f'Linking from gene {self.gene_id} in {self.db} to protein {p_id}')
+
             protein_instance = self.find_protein(query_id=p_id,
                                                  extra_args={'reactions_list': reactions_list},
                                                  )
@@ -210,6 +208,8 @@ class Gene_Fetcher_Biocyc(Gene_Fetcher):
         #this most likely wont happen in any pipeline, only if we want to populate the DB
         for p in self.convergence_args['reactions_incomplete_ec']:
             p_id,reactions_list= p
+            print(f'Linking from gene {self.gene_id} in {self.db} to protein {p_id}')
+
             protein_instance = self.find_protein(query_id=p_id,
                                                  extra_args={'reactions_list': reactions_list},
                                                  )
@@ -243,6 +243,8 @@ class Gene_Fetcher_Biocyc(Gene_Fetcher):
     def converge_gene_to_protein_biocyc_not_ec(self):
         for p in self.convergence_args['reactions_not_ec']:
             p_id,reactions_list= p
+            print(f'Linking from gene {self.gene_id} in {self.db} to protein {p_id}')
+
             protein_instance = self.find_protein(query_id=p_id,
                                                  extra_args={'reactions_list': reactions_list},
                                                  )

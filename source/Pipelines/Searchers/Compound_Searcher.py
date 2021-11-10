@@ -33,13 +33,13 @@ It does so until all available DBs have been visited.
 
 ########INFO GETTER
 class Compound_Searcher(Global_Searcher):
-    def __init__(self,memory_storage=None,search_direction=None,do_reaction_met_instances=False,db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
-        Global_Searcher.__init__(self,memory_storage,search_direction,do_reaction_met_instances,db_name=db_name,wanted_org_kegg_codes=wanted_org_kegg_codes,output_folder=output_folder,politeness_timer=politeness_timer)
+    def __init__(self,memory_storage=None,search_direction=None,db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
+        Global_Searcher.__init__(self,memory_storage,search_direction,db_name=db_name,wanted_org_kegg_codes=wanted_org_kegg_codes,output_folder=output_folder,politeness_timer=politeness_timer)
 
 
 
     def find_compound(self,db,query_id,already_found=set(),convergence_search=False):
-        if db in SCRAPPABLE_DBS and self.check_already_searched_memory(db,query_id):
+        if self.check_already_searched_memory(db,query_id):
             return self.get_compound_match(query_id,db)
         print('Finding compound',db,query_id)
         if db=='synonyms':
@@ -67,7 +67,7 @@ class Compound_Searcher(Global_Searcher):
             if fetcher_cpd:
                 if convergence_search:
                     # converge only occurs in the searchers- these are the global classes
-                    if self.search_direction:
+                    if self.is_valid_search_direction({'global','crpg','crp','cr'}):
                         fetcher.converge_compound_global()
                 return fetcher_cpd,fetcher
             else:
@@ -99,8 +99,7 @@ class Compound_Searcher(Global_Searcher):
             met_name = whole_met_name[1].lower()
             #####First match search#####
             search_by_name = self.get_compound_match(met_name, 'synonyms')
-            if rn == rn_with_ids:
-                search_by_name = self.run_searcher(met_name,'synonyms')
+
             if not search_by_name and rn != rn_with_ids:
                 if rn_with_ids:
                     whole_met_id = rn_with_ids[i]
@@ -163,20 +162,35 @@ class Compound_Searcher(Global_Searcher):
 
     def derivatives_kegg(self, compound):
         search = self.get_with_fetcher(compound,api_kegg=True,database='cpd')
-        if not search: return None
         res = []
         for i in search:
             i = i.split('\t')
-            kegg_id = i[0][4:]
-            fetcher_cpd,fetcher_inst=self.find_info('kegg',kegg_id)
-            if fetcher_inst:
-                if fetcher_cpd:
-                    res.append(fetcher_inst)
+            kegg_id = i[0].replace('cpd:','').strip()
+            synonyms= i[1].split(';')
+            synonyms=[i.strip() for i in synonyms]
+            for syn in synonyms:
+                if syn.lower()==compound:
+                    fetcher_cpd,fetcher_inst=self.find_info('kegg',kegg_id)
+                    if fetcher_inst:
+                        if fetcher_cpd:
+                            res.append(fetcher_inst)
+        search = self.get_with_fetcher(compound,api_kegg=True,database='compound',kegg_option='formula')
+        for i in search:
+            i = i.split('\t')
+            kegg_id = i[0].replace('cpd:','').strip()
+            synonyms= i[1].split(';')
+            synonyms=[i.strip() for i in synonyms]
+            for syn in synonyms:
+                if syn.lower()==compound:
+                    fetcher_cpd,fetcher_inst=self.find_info('kegg',kegg_id)
+                    if fetcher_inst:
+                        if fetcher_cpd:
+                            res.append(fetcher_inst)
         return res
 
 
 
-    def derivatives_HMDB_ids(self, compound,limit_mets=200,number_search_not_exact=1000):
+    def derivatives_HMDB_ids(self, compound,limit_mets=20,number_search_not_exact=200):
         url = 'http://www.hmdb.ca/unearth/q?query=' + compound + '&searcher=metabolites&button='
         webpage = self.get_with_fetcher(url)
         if not webpage: return None
@@ -228,6 +242,10 @@ class Compound_Searcher(Global_Searcher):
             # hmdb query doesn't work very well since there's some misinformation in synonyms, but this can fixed by making sure they match
             if fetcher_inst:
                 if fetcher_cpd:
+                    #first we try to find exact matches, if we find one we just return immediately, otherwise we keep adding to res to gather more info
+                    if self.find_match_synonyms([compound], fetcher_cpd.get_detail('synonyms'), equal=True):
+                        res=[fetcher_inst]
+                        return res
                     if self.find_match_synonyms([compound], fetcher_cpd.get_detail('synonyms'), equal=False):
                         res.append(fetcher_inst)
         if not res: return None
@@ -250,7 +268,7 @@ class Compound_Searcher(Global_Searcher):
             except: pass
             return [self.redirected_compound_page(current_url)]
         else:
-            return self.NOT_redirected_compound_page(page_source)
+            return self.NOT_redirected_compound_page(page_source,compound)
 
     def redirected_compound_page(self,current_url):
         temp_url=current_url.replace('&redirect=T','')
@@ -265,21 +283,25 @@ class Compound_Searcher(Global_Searcher):
 
 
 
-    def NOT_redirected_compound_page(self,webpage):
+    def NOT_redirected_compound_page(self,webpage,compound_str):
         res = []
         soup = BeautifulSoup(webpage, 'lxml')
         if soup.find_all(text='No exact matches were found.  Showing matches for '): return None
         search = soup.find_all('a', {'href': re.compile('/compound')})
         for i in search:
+            cpd_syn=i.text
             cpd_id=i['href'][re.search('META&id=', i['href']).span()[1]:]
+            if cpd_syn.lower()==compound_str.lower():
+                return [cpd_id]
             if cpd_id not in res: res.append(cpd_id)
         return res
 
-    def derivatives_biocyc(self, compound):
+    def derivatives_biocyc(self, compound,limit_mets=20):
         res = []
         der_ids = self.derivatives_biocyc_ids(compound)
         if not der_ids: return None
-        for compound_id in der_ids:
+        #some queries
+        for compound_id in der_ids[0:limit_mets]:
             fetcher_cpd,fetcher_inst= self.find_info('biocyc',compound_id)
             if fetcher_inst:
                 if fetcher_cpd:
@@ -326,12 +348,17 @@ class Compound_Searcher(Global_Searcher):
                 if derivatives:
                     fetcher_insts.extend(derivatives)
             compound_match=self.get_compound_match(search_cpd,'synonyms')
-            for fetcher in fetcher_insts:
-                fetcher_compound=fetcher.get_compound()
-                if fetcher_compound is compound_match and convergence_search:
-                    if self.search_direction:
-                        fetcher.converge_compound_global()
-            return compound_match
+            if compound_match:
+                passed_check=len(dbs_to_use)
+                for db in dbs_to_use:
+                    if compound_match.get_detail(db): passed_check-=1
+                for fetcher in fetcher_insts:
+                    fetcher_compound=fetcher.get_compound()
+                    if fetcher_compound is compound_match and convergence_search:
+                        if self.is_valid_search_direction({'global','crpg','crp','cr'}):
+                            fetcher.converge_compound_global()
+                if not passed_check:
+                    return compound_match
 
     #this will find a compound and retrieve information, based on the best match found accross several databases
     #works when user inputs a compound name
@@ -359,12 +386,13 @@ class Compound_Searcher(Global_Searcher):
         dbs_to_use=set([i for i in dbs_to_use if i not in dbs_to_exclude])
         if dbs_to_use:
             str_dbs_to_use=', '.join(dbs_to_use)
-            print(f'Searching for derivates in {str_dbs_to_use}')
-            found_cpd=self.all_derivatives(search_cpd,dbs_to_use,convergence_search=True)
+            print(f'Searching for derivates of {search_cpd} in {str_dbs_to_use}')
+            found_cpd=self.all_derivatives(search_cpd,dbs_to_use,convergence_search=convergence_search)
             if found_cpd: return found_cpd,None
             else:
-                print('Compound string ',search_cpd,' wasn\'t found anywhere so we just created a placeholder of this compound!')
-                return Compound({'synonyms':search_cpd}),None
+                #print('Compound string ',search_cpd,' wasn\'t found anywhere so we just created a placeholder of this compound!')
+                #return Compound({'synonyms':search_cpd}),None
+                return None,None
 
     def get_chebi_to_others(self,chebi_id):
         res={}
@@ -403,13 +431,13 @@ class Compound_Searcher(Global_Searcher):
         res= self.get_compound_match(bio_query,bio_db)
         already_found=self.add_to_args_to_search_synonyms(res,args_to_search)
         self.run_searcher_synonyms(args_to_search,already_found,convergence_search=convergence_search)
-        return self.get_compound_match(bio_query,bio_db)
-
+        res = self.get_compound_match(bio_query,bio_db)
+        if bio_db=='chebi' and res:
+            res.set_detail('chebi',bio_query)
 
 
 
     def run_searcher_ids(self,args_to_search,convergence_search=False):
-        print(f'Searching by IDs')
         temp_inst = None
         while args_to_search:
             current_arg = args_to_search.pop()
@@ -444,6 +472,8 @@ class Compound_Searcher(Global_Searcher):
                 if current_id and self.check_already_searched_memory(dict_input_key=db, dict_input_value=current_id):
                     already_found.add(db)
             all_syns = compound_instance.get_detail('synonyms',all_possible=True)
+            #longer names tend  to have fewer results
+            all_syns=sorted(all_syns, key=len,reverse=True)
             for syn in all_syns:
                 if syn and not self.check_already_searched_memory(dict_input_key='synonyms', dict_input_value=syn):
                     args_to_search.append(['synonyms',syn])
@@ -452,24 +482,25 @@ class Compound_Searcher(Global_Searcher):
     def run_searcher_synonyms(self,args_to_search,already_found,convergence_search=False):
         print(f'Searching by synonyms')
         while args_to_search:
-            current_arg = args_to_search.pop()
+            current_arg = args_to_search.pop(0)
             db_arg= current_arg[0]
             id_arg= current_arg[1]
             if isinstance(id_arg,str) or isinstance(id_arg,int): id_arg={id_arg}
             for s_id_arg in id_arg:
                 if s_id_arg and not self.check_already_searched_memory(dict_input_key=db_arg,dict_input_value=s_id_arg):
                     temp_inst,_ = self.find_compound(db_arg,s_id_arg,already_found=already_found,convergence_search=convergence_search)
+                    if temp_inst:
+                        syns=temp_inst.get_detail('synonyms',all_possible=True)
+                        #to avoid very long searches
+                        if id_arg.intersection(syns): return
                 self.add_to_already_tried_to_search(db_arg, s_id_arg)
                 #if temp_inst:   self.add_to_args_to_search_ids(temp_inst, args_to_search)
 
 if __name__ == '__main__':
     searcher = Compound_Searcher()
+    #searcher.derivatives_kegg('pi')
     #searcher.search_direction='global'
     #searcher.reset_db(delete_all=True,force_reset=True)
     #res=searcher.find_compound_string('quercetin')
     #print(res)
-    cpd=searcher.run_searcher('27531','chebi')
-    #cpd=searcher.run_searcher('C00389','kegg')
-    #cpd=searcher.run_searcher({'hmdb':'HMDB0003276'})
-    #print(searcher.derivatives_HMDB_ids('caffeine'))
-
+    searcher.run_searcher('C00080','kegg')

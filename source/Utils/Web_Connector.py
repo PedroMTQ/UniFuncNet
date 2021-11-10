@@ -258,7 +258,7 @@ class Web_Connector():
 #############REQUESTS##############
 ###################################
 
-    def api_KEGG(self,to_search, database=None, api_type='find'):
+    def api_KEGG(self,to_search, database=None, api_type='find',kegg_option=None):
         # kegg compound database= cpd
         # kegg reaction database= rn
         # kegg gene database= gn
@@ -269,20 +269,22 @@ class Web_Connector():
         if database:
             if to_search:
                 query = api_type + '/' + database + '/' + to_search
+                if kegg_option:
+                    query+='/'+kegg_option
             else:
                 query = api_type + '/' + database
         else:
             query = api_type + '/' + to_search
         url = 'http://rest.kegg.jp/' +query
         webpage = self.try_until_catch(url)
-        if not webpage: return None
+        if not webpage: return []
         soup = BeautifulSoup(webpage, 'lxml')
-        if not soup.contents: return None  # when search doesn't return anything
+        if not soup.contents: return []  # when search doesn't return anything
         result = soup.body.p
         if result:
             result = result.text.split('\n')
         else:
-            return None
+            return []
         return result[:-1]
 
 

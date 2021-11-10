@@ -59,7 +59,7 @@ class Compound_Fetcher_HMDB(Compound_Fetcher):
             i += 1
         # not interested in transporters for example
         correct_type,incorrect_type = self.remove_wrong_protein_type(table_dic, 'Enzyme')
-        return correct_type,incorrect_type
+        return correct_type
 
 
     def get_enzymes(self,soup):
@@ -135,7 +135,6 @@ class Compound_Fetcher_HMDB(Compound_Fetcher):
 
     def converge_compound_global(self):
         self.converge_compound_to_protein()
-        #self.converge_protein_to_rea ction()
 
 
 
@@ -146,10 +145,12 @@ class Compound_Fetcher_HMDB(Compound_Fetcher):
         self.convergence_args['proteins']=self.get_enzymes(self.convergence_args['soup'])
         if self.convergence_args['proteins']:
             for protein_id in self.convergence_args['proteins']:
-                self.find_protein(query_id=protein_id)
+                print(f'Linking from compound {self.compound_id} in {self.db} to protein {protein_id}')
+                self.find_protein(query_id=protein_id,extra_args={'cpd_id':self.compound_id})
         self.convergence_args['soup']=None
 
 if __name__ == '__main__':
-    c=Compound_Fetcher_HMDB('HMDB0000538')
+    c=Compound_Fetcher_HMDB('HMDB0000187')
+    c.get_compound().get_all_info()
     #c=Compound_Fetcher_HMDB('HMDB0005794')
     #print(c.get_compound())

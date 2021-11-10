@@ -26,6 +26,22 @@ SCRAPPABLE_DBS=['biocyc','kegg','hmdb']
 SCRAPPABLE_DBS.extend(['uniprot', 'chemspider', 'inchi_key'])
 SCRAPPABLE_DBS.extend(['uniprot', 'inchi_key'])
 
+VALID_DIRECTIONS=set([
+    'gp',
+    'gpr',
+    'gprc',
+    'pg',
+    'pr',
+    'prc',
+    'rpg',
+    'rp',
+    'rc',
+    'cr',
+    'crp',
+    'crpg',
+    'global',
+    '',
+                  ])
 
 if platform.startswith('win'):
     SPLITTER = '\\'
@@ -86,11 +102,7 @@ def is_ec(enz_id,required_level=3):
                 return True
     return False
 
-def clean_ec(original_ec ):
-    temp_ec = str(original_ec)
-    if '-' in temp_ec[-1]:
-        temp_ec = temp_ec[:-2]
-    return temp_ec
+
 
 def find_ecs(string_to_search, required_level=3):
     res = set()

@@ -68,6 +68,9 @@ class Compound_Fetcher_Chemspider(Compound_Fetcher):
         compound_instance = Compound(res)
         return compound_instance
 
+    def converge_compound_global(self):
+        pass
+
 
 if __name__ == '__main__':
     search= Compound_Fetcher_Chemspider('937')

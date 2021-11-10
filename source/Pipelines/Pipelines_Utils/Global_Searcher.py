@@ -18,7 +18,7 @@ from bs4 import BeautifulSoup
 #This is just the general class for the Searchers, instead of replicating code in the several searchers
 
 class Global_Searcher(Memory_Keeper):
-    def __init__(self,memory_storage=None,search_direction='global',do_reaction_met_instances=False,db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
+    def __init__(self,memory_storage=None,search_direction='global',db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
         """
         :param memory_storage: if one is given, memory location will be shared
         :param search_direction:
@@ -37,14 +37,12 @@ class Global_Searcher(Memory_Keeper):
         self.db_name=None
         #if we receive a memory storage, self should become that memory, otherwise we proceed as a simple Memory_Keeper instance
         if memory_storage:
-            self.do_reaction_met_instances=memory_storage.do_reaction_met_instances
             self.borrow_memory_lists(memory_storage)
             self.borrow_fetchers(memory_storage)
             self.memory_storage = memory_storage
             self.search_direction=memory_storage.search_direction
             self.borrow_searchers()
         else:
-            self.do_reaction_met_instances=do_reaction_met_instances
             self.setup_memory_lists()
             self.setup_fetchers()
             self.memory_storage=self
@@ -108,20 +106,26 @@ class Global_Searcher(Memory_Keeper):
         if self_searcher_type != 'Compound_Searcher':
             self.compound_searcher.search_direction=search_direction
 
+    def is_valid_search_direction(self,allowed_search_directions):
+        if allowed_search_directions.intersection(self.search_direction):
+            return True
+        else:
+            return False
 
-    def set_do_reaction_met_instances(self,do_reaction_met_instances):
+    def set_kegg_org_codes(self,kegg_org_codes):
         self_searcher_type= get_instance_type(self)
         if self_searcher_type!='Gene_Searcher':
-            self.gene_searcher.do_reaction_met_instances=do_reaction_met_instances
+            self.gene_searcher.wanted_org_kegg_codes=kegg_org_codes
 
         if self_searcher_type != 'Protein_Searcher':
-            self.protein_searcher.do_reaction_met_instances=do_reaction_met_instances
+            self.protein_searcher.wanted_org_kegg_codes=kegg_org_codes
 
         if self_searcher_type != 'Reaction_Searcher':
-            self.reaction_searcher.do_reaction_met_instances=do_reaction_met_instances
+            self.reaction_searcher.wanted_org_kegg_codes=kegg_org_codes
 
         if self_searcher_type != 'Compound_Searcher':
-            self.compound_searcher.do_reaction_met_instances=do_reaction_met_instances
+            self.compound_searcher.wanted_org_kegg_codes=kegg_org_codes
+
 
 
     def flush_memory(self):
@@ -158,7 +162,7 @@ class Global_Searcher(Memory_Keeper):
 
     #when we want to run the cpd separetely we run this afterwards
     def run_reaction_met_instances(self,match):
-        if self.do_reaction_met_instances:
+        if self.is_valid_search_direction({'gprc','prc','rc','cr','crp','crpg','global'}):
             rn_with_ids = match.get_detail('rn_with_ids')
             for rn_with_ids_str, rn_with_ids_ids, rn_with_ids_db in rn_with_ids:
                 rn_with_ids_ids=ast.literal_eval(rn_with_ids_ids)
@@ -183,7 +187,6 @@ class Global_Searcher(Memory_Keeper):
             from source.Pipelines.Searchers.Gene_Searcher import Gene_Searcher
             self.gene_searcher = Gene_Searcher(memory_storage=self,
                                                search_direction=self.search_direction,
-                                               do_reaction_met_instances=self.do_reaction_met_instances,
                                                db_name=self.db_name,
                                                output_folder=self.output_folder,
                                                politeness_timer=self.politeness_timer)
@@ -195,7 +198,6 @@ class Global_Searcher(Memory_Keeper):
             from source.Pipelines.Searchers.Protein_Searcher import Protein_Searcher
             self.protein_searcher = Protein_Searcher(memory_storage=self,
                                                      search_direction=self.search_direction,
-                                                     do_reaction_met_instances=self.do_reaction_met_instances,
                                                      db_name=self.db_name,
                                                      output_folder=self.output_folder,
                                                      politeness_timer=self.politeness_timer)
@@ -205,7 +207,6 @@ class Global_Searcher(Memory_Keeper):
             from source.Pipelines.Searchers.Reaction_Searcher import Reaction_Searcher
             self.reaction_searcher = Reaction_Searcher(memory_storage=self,
                                                        search_direction=self.search_direction,
-                                                       do_reaction_met_instances=self.do_reaction_met_instances,
                                                        db_name=self.db_name,
                                                        output_folder=self.output_folder,
                                                        politeness_timer=self.politeness_timer)
@@ -215,7 +216,6 @@ class Global_Searcher(Memory_Keeper):
             from source.Pipelines.Searchers.Compound_Searcher import Compound_Searcher
             self.compound_searcher = Compound_Searcher(memory_storage=self,
                                                        search_direction=self.search_direction,
-                                                       do_reaction_met_instances=self.do_reaction_met_instances,
                                                        db_name=self.db_name,
                                                        output_folder=self.output_folder,
                                                        politeness_timer=self.politeness_timer)
@@ -282,7 +282,7 @@ class Global_Searcher(Memory_Keeper):
         return self.compound_searcher.find_compound(db=db,query_id=query_id)
 
     def reaction_met_instances(self, rn, rn_with_ids, db):
-        if self.do_reaction_met_instances:
+        if self.is_valid_search_direction({'gprc','prc','rc','cr','crp','crpg','global'}):
             return self.compound_searcher.reaction_met_instances(rn,rn_with_ids,db)
         else: return None
 

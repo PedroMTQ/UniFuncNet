@@ -81,6 +81,8 @@ class Compound_Fetcher_KEGG(Compound_Fetcher):
         self.convergence_args['reactions']=self.get_reactions(self.convergence_args['soup'])
         if self.convergence_args['reactions']:
             for reaction_id in self.convergence_args['reactions']:
+                print(f'Linking from compound {self.compound_id} in {self.db} to reaction {reaction_id}')
+
                 self.find_reaction(query_id=reaction_id)
         self.convergence_args['soup']=None
 

@@ -5,8 +5,8 @@ from source.Fetchers.Reaction_Fetchers.Reaction_Fetcher_HMDB import Reaction_Fet
 from source.Fetchers.Reaction_Fetchers.Reaction_Fetcher_KEGG import Reaction_Fetcher_KEGG
 
 class Reaction_Searcher(Global_Searcher):
-    def __init__(self,  memory_storage=None,search_direction='',do_reaction_met_instances=False,db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
-        Global_Searcher.__init__(self,memory_storage,search_direction,do_reaction_met_instances,db_name=db_name,wanted_org_kegg_codes=wanted_org_kegg_codes,output_folder=output_folder,politeness_timer=politeness_timer)
+    def __init__(self,  memory_storage=None,search_direction='',db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
+        Global_Searcher.__init__(self,memory_storage,search_direction,db_name=db_name,wanted_org_kegg_codes=wanted_org_kegg_codes,output_folder=output_folder,politeness_timer=politeness_timer)
 
 
 
@@ -31,8 +31,8 @@ class Reaction_Searcher(Global_Searcher):
             fetcher_reaction=fetcher.get_reaction()
             if fetcher_reaction:
                 #converge only occurs in the searchers- these are the global classes
-                if  {'global'}.intersection(self.search_direction):     fetcher.converge_reaction_global()
-                elif {'rpg','rp'}.intersection(self.search_direction):  fetcher.converge_reaction_rpg()
+                if self.is_valid_search_direction({'global','rpg','rp','crp','crpg'}):
+                    fetcher.converge_reaction_rpg()
                 return fetcher_reaction,fetcher
             else:
                 return None, None
@@ -77,7 +77,7 @@ class Reaction_Searcher(Global_Searcher):
 
 
 if __name__ == '__main__':
-    searcher=Reaction_Searcher(search_direction='rp',do_reaction_met_instances=False)
+    searcher=Reaction_Searcher(search_direction={'rp'})
 
 
     #r1=searcher.run_searcher('R05188','kegg')
@@ -85,11 +85,10 @@ if __name__ == '__main__':
     #for cpd in r1.get_detail('reaction_with_instances'):
     #    cpd[1].get_all_info()
 
-    r1=searcher.run_searcher('R00091','kegg')
+    r1=searcher.run_searcher('ALCOHOL-DEHYDROG-RXN','biocyc')
     #r1.get_all_info()
     #for cpd in r1.get_detail('reaction_with_instances'):
     #    cpd[1].get_all_info()
-    searcher.output_results()
     #r1=searcher.find_reaction('biocyc','3.4.21.92-RXN')
     #r1=searcher.find_reaction('kegg','R01665')
 

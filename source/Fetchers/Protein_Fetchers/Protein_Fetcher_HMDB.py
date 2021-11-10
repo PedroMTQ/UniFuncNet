@@ -14,6 +14,8 @@ class Protein_Fetcher_HMDB(Protein_Fetcher):
         #args for getting protein
         if 'protein_soup' in extra_args: self.convergence_args['protein_soup']=extra_args['protein_soup']
         else: self.convergence_args['protein_soup']=[]
+        if 'cpd_id' in extra_args: self.convergence_args['cpd_id']=extra_args['cpd_id']
+        else: self.convergence_args['cpd_id']=None
         #args for convergence
         #PR
         self.convergence_args['reactions_list']=[]
@@ -27,7 +29,9 @@ class Protein_Fetcher_HMDB(Protein_Fetcher):
             if not webpage: return None
             protein_soup = BeautifulSoup(webpage, 'lxml')
             self.convergence_args['protein_soup']=protein_soup
-        enz_syns = [protein_soup.find('th', text=re.compile('Name')).findNext().text]
+        enz_syns = protein_soup.find('th', text=re.compile('Name'))
+        if enz_syns:
+            enz_syns=[enz_syns.findNext().text]
         wanted_enz_details=[#'General Function',
                             # 'Specific Function',
                              'UniProtKB/Swiss-Prot ID',
@@ -37,8 +41,12 @@ class Protein_Fetcher_HMDB(Protein_Fetcher):
                  ]
         details={}
         for i in wanted_enz_details:
-            wanted_detail= protein_soup.find('th', text=re.compile(i)).findNext().text
-            if 'Not Available' not in wanted_detail:
+            try:
+                wanted_detail= protein_soup.find('th', text=re.compile(i)).findNext().text
+                if 'Not Available' in wanted_detail: wanted_detail=None
+            except:
+                wanted_detail=None
+            if wanted_detail:
                 fixed_detail=wanted_detail.strip()
                 fixed_detail=fixed_detail.replace('\n',',')
                 if i!='Pathways':
@@ -63,9 +71,42 @@ class Protein_Fetcher_HMDB(Protein_Fetcher):
         self.get_reactions_from_soup(protein_soup)
         return protein_instance
 
+    def get_reactions_for_cpd(self,reactions_dict):
+        res=set()
+        for reaction_id in reactions_dict:
+            reaction_str=reactions_dict[reaction_id].replace('+',' + ').replace('=',' = ')
+            reaction_str = fix_html_sign(reaction_str)
+            for syn in self.convergence_args['main_cpd'].get_detail('synonyms',all_possible=True):
+                if syn in reaction_str:
+                    res.add(reaction_id)
+        return res
+
     def get_reactions_from_soup(self,soup):
         reactions_ids=soup.find_all(href=re.compile('/reactions/\d+'))
         self.convergence_args['reactions_list'] = [re.search('\d+', str(i)).group() for i in reactions_ids]
+
+
+    def get_reactions_from_soup_legacy(self,soup):
+        reactions_dict={}
+        reactions_box= soup.find('th',text=re.compile('Reactions'))
+        if reactions_box:
+            reactions_box=reactions_box.findNext()
+            for elements in reactions_box:
+                elements = str(elements).strip('\n').split('\n')
+                for element in elements:
+                    if element:
+                        if element.startswith('<td>') and element.endswith('</td>'):
+                            reaction_str=element.replace('</td>','').replace('<td>','')
+                        if element.startswith('<a class="btn '):
+                            reaction_id=re.search('/reactions/\d+',element)
+                            if reaction_id:
+                                reaction_id=reaction_id.group().split('/')[-1]
+                                reactions_dict[reaction_id]=reaction_str
+        #when coming from compound->protein
+        if self.convergence_args['main_cpd']:
+            self.convergence_args['reactions_list'] = self.get_reactions_for_cpd(reactions_dict)
+        else:
+            self.convergence_args['reactions_list'] = list(reactions_dict.keys())
 
     def converge_protein_global(self):
         self.converge_protein_to_gene()
@@ -79,6 +120,8 @@ class Protein_Fetcher_HMDB(Protein_Fetcher):
         self.converge_protein_to_gene()
 
     def converge_protein_to_gene(self):
+        print(f'Linking from protein {self.protein_id} in {self.db} to gene {self.protein_id}')
+
         gene_instance= self.find_gene(query_id=self.protein_id,
                                      extra_args={'gene_soup':self.convergence_args['protein_soup']},
                                       )
@@ -89,8 +132,10 @@ class Protein_Fetcher_HMDB(Protein_Fetcher):
     def converge_protein_to_reaction(self):
         #here all we do is fetch each reaction in the reactions_list
         for reaction_id in self.convergence_args['reactions_list']:
+            print(f'Linking from protein {self.protein_id} in {self.db} to reaction {reaction_id}')
+
             reaction_instance= self.find_reaction(query_id=reaction_id,
-                                                  extra_args={},
+                                                  extra_args={'cpd_id':self.convergence_args['cpd_id']},
                                                   )
             if reaction_instance:
                 self.get_protein().set_detail('reaction_instances',reaction_instance,converged_in='hmdb')
@@ -100,5 +145,15 @@ if __name__ == '__main__':
     from source.Biological_Components.Protein import Protein
     from source.Fetchers.Reaction_Fetchers.Reaction_Fetcher import *
     import re
-    protein=Protein_Fetcher_HMDB('HMDBP00609').get_protein()
-
+    cpd=Compound({
+        'biocyc':'SER',
+        'kegg':'C00065',
+        'hmdb':'HMDB0000187',
+        'chemspider':'5736',
+        'inchi_key':{'MTCFGRXMJLQNBG-REOHCLBHSA-N','MTCFGRXMJLQNBG-REOHCLBHSA-N'},
+        'bigg':'33717',
+        'synonyms':'l-serine',
+        'chebi':'17115',
+        'drugbank':'DB00133',
+    })
+    protein=Protein_Fetcher_HMDB('HMDBP00629',extra_args={'cpd_id':'HMDB0000187'})

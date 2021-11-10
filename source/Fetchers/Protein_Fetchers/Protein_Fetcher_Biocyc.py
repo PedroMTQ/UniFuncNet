@@ -32,10 +32,12 @@ class Protein_Fetcher_Biocyc(Protein_Fetcher):
         if genes:
             return self.get_protein_genes(genes,protein_names)
         else:
-            if is_ec(self.protein_id):
+            if is_ec(self.protein_id,4):
                 self.convergence_args['enzyme_ec']=self.protein_id
-                url = 'https://biocyc.org/META/NEW-IMAGE?type=EC-NUMBER&object=EC-' + clean_ec(self.protein_id)
+                url = f'https://biocyc.org/META/NEW-IMAGE?type=EC-NUMBER&object=EC- {self.protein_id}'
                 return self.get_protein_biocyc_ec_number(url)
+            elif is_ec(self.protein_id,3):
+                pass
             else:
                 url='https://biocyc.org/META/NEW-IMAGE?type=ENZYME&object='+self.protein_id
                 return self.get_protein_biocyc_enzyme(url)
@@ -268,6 +270,8 @@ class Protein_Fetcher_Biocyc(Protein_Fetcher):
     def converge_protein_to_reaction_biocyc(self):
         if self.convergence_args['reactions_list']:
             for reaction_id,reaction_str in self.convergence_args['reactions_list']:
+                print(f'Linking from protein {self.protein_id} in {self.db} to reaction {reaction_id}')
+
                 reaction_instance= self.find_reaction(reaction_id,
                                                       extra_args={'reaction_str':reaction_str},
                                                       )
@@ -280,6 +284,8 @@ class Protein_Fetcher_Biocyc(Protein_Fetcher):
             for prt in self.convergence_args['enzyme_ecs']:
                 prt_id=prt['protein_id']
                 protein_name=prt['protein_name']
+                print(f'Linking from protein {self.protein_id} in {self.db} to protein EC {prt_id}')
+
                 #this will be a protein with both protein and gene info
                 #exceptionally here we recursively call upon the class type
                 protein_instance  = Protein_Fetcher_Biocyc (protein_id=prt_id,
@@ -301,8 +307,9 @@ class Protein_Fetcher_Biocyc(Protein_Fetcher):
                 protein_id= prt_gene['protein_id']
                 protein_name= prt_gene['protein_name']
                 #this will be a protein with only genes info
-                protein_instance  = Protein_Fetcher_Biocyc (protein_id,extra_args={'protein_names':protein_name,
-                                                                        'genes':genes},
+                print(f'Linking from protein {self.protein_id} in {self.db} to genes {genes}')
+
+                protein_instance  = Protein_Fetcher_Biocyc (protein_id,extra_args={'protein_names':protein_name,'genes':genes},
                                                                         memory_storage=self.memory_storage,
                                                                         ).get_protein()
                 if is_ec(self.protein_id,4):

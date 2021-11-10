@@ -104,12 +104,12 @@ class Memory_Keeper():
         return fetcher
 
 
-    def get_with_fetcher(self,url,selenium=False,api_kegg=False,scripts=[],data=None,original_response=False,xpath=[],timer=1,ids_to_load=[],database=None, type_search='find'):
+    def get_with_fetcher(self,url,selenium=False,api_kegg=False,scripts=[],data=None,original_response=False,xpath=[],timer=1,ids_to_load=[],database=None, type_search='find',kegg_option=None):
         print(f'Connecting to {url}')
         if selenium:
             res= self.get_db_fetcher(url).get_driver_selenium(url, script=scripts,xpath=xpath,timer=timer,original_response=original_response,ids_to_load=ids_to_load)
         elif api_kegg:
-            res= self.get_db_fetcher('kegg').api_KEGG(url, database, type_search)
+            res= self.get_db_fetcher('kegg').api_KEGG(to_search=url, database=database, api_type=type_search,kegg_option=kegg_option)
         else:
             res= self.get_db_fetcher(url).try_until_catch(url,data=data,original_response=original_response)
             #sometimes the page wont open even though its working so we try to go there with selenium

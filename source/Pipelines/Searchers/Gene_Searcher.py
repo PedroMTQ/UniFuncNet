@@ -7,8 +7,8 @@ from source.Fetchers.Gene_Fetchers.Gene_Fetcher_KEGG import Gene_Fetcher_KEGG
 
 
 class Gene_Searcher(Global_Searcher):
-    def __init__(self,memory_storage=None,search_direction='',do_reaction_met_instances=False,db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
-        Global_Searcher.__init__(self,memory_storage,search_direction,do_reaction_met_instances=do_reaction_met_instances,
+    def __init__(self,memory_storage=None,search_direction='',db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
+        Global_Searcher.__init__(self,memory_storage,search_direction,
                                  db_name=db_name,wanted_org_kegg_codes=wanted_org_kegg_codes,output_folder=output_folder,politeness_timer=politeness_timer)
 
     #this is db specific
@@ -32,8 +32,8 @@ class Gene_Searcher(Global_Searcher):
             fetcher_gene=fetcher.get_gene()
             if fetcher_gene:
                 #converge only occurs in the searchers- these are the global classes
-                if {'global'}.intersection(self.search_direction):                 fetcher.converge_gene_global()
-                elif {'gpr','gp'}.intersection(self.search_direction):             fetcher.converge_gene_gpr()
+                if self.is_valid_search_direction({'gp','gpr','gprc','global'}):
+                    fetcher.converge_gene_gpr()
                 return fetcher_gene,fetcher
             else:
                 return None,None
@@ -145,7 +145,7 @@ class Gene_Searcher(Global_Searcher):
 
 
 if __name__ == '__main__':
-    searcher=Gene_Searcher(search_direction='',do_reaction_met_instances=True,wanted_org_kegg_codes=[])
+    searcher=Gene_Searcher(search_direction='')
     gene=searcher.run_searcher('hsa:3098','kegg')
     gene.get_all_info()
     print('#####')

@@ -26,8 +26,14 @@ class Reaction_Fetcher_Biocyc(Reaction_Fetcher):
                     res.append(r_id['xlink:href'][search_delimiter:])
         return res
 
+    def clean_ec(self,original_ec):
+        temp_ec = str(original_ec)
+        if '-' in temp_ec[-1]:
+            temp_ec = temp_ec[:-2]
+        return temp_ec
+
     def get_rn_str(self,enzyme_ec):
-        temp_ec=clean_ec(str(enzyme_ec))
+        temp_ec=self.clean_ec(str(enzyme_ec))
         webpage = self.get_with_fetcher('https://biocyc.org/META/NEW-IMAGE?type=EC-NUMBER&object=EC-'+temp_ec, selenium=True)
         if not webpage: return None
         soup = BeautifulSoup(webpage, 'lxml')
@@ -45,18 +51,21 @@ class Reaction_Fetcher_Biocyc(Reaction_Fetcher):
             start_recording=False
             reaction_str=None
             to_parse= webpage.split('\n')
+            protein_id=None
             for line in to_parse:
                 if start_recording:
                     line=line.split('\t')
                     if len(line)>1:
                         gene_id,gene_accession,gene_name,enzymatic_activity,evidence,organism = line
-                        self.convergence_args['genes'].append([enzymatic_activity, gene_id])
+                        self.convergence_args['genes'].append([protein_id,enzymatic_activity, gene_id])
                 if not start_recording:
                     if get_r_str:
                         reaction_str= line
                         reaction_str = fix_html_sign(reaction_str)
                         get_r_str=False
                     if line.strip() == self.reaction_id: get_r_str=True
+                    if 'EC-' in line:
+                        protein_id=line.replace('EC-','').strip()
                     if 'Gene ID' in line:
                         start_recording=True
             if reaction_str:
@@ -152,10 +161,9 @@ class Reaction_Fetcher_Biocyc(Reaction_Fetcher):
         rn_with_ids = self.reaction_IDs_biocyc(self.reaction_id)
         try:
             rn_with_ids,complete_l,len_sub = get_stoichiometry(reaction_str, rn_with_ids)
-            rn_with_instances = self.reaction_met_instances(reaction_str, rn_with_ids, 'biocyc')
         except:
             rn_with_ids, complete_l, len_sub  = get_stoichiometry(reaction_str, reaction_str)
-            rn_with_instances = self.reaction_met_instances(reaction_str, rn_with_ids, 'biocyc')
+        rn_with_instances = self.reaction_met_instances(reaction_str, rn_with_ids, 'biocyc')
 
         paragraphs = soup.find_all('p',class_='ecoparagraph')
         for i in paragraphs:
@@ -198,10 +206,6 @@ class Reaction_Fetcher_Biocyc(Reaction_Fetcher):
         if 'genes' not in self.convergence_args: self.convergence_args['genes'] = []
         if 'extra_rn_ids' not in self.convergence_args: self.convergence_args['extra_rn_ids']=[]
 
-    def converge_reaction_global(self):
-        self.converge_reaction_to_protein_ec_biocyc()
-        self.converge_reaction_to_protein_biocyc()
-        self.converge_reaction_to_genes_biocyc()
 
     def converge_reaction_rpg(self):
         #RP and RG part of the CRPG pipeline
@@ -209,11 +213,22 @@ class Reaction_Fetcher_Biocyc(Reaction_Fetcher):
         self.converge_reaction_to_protein_biocyc()
         self.converge_reaction_to_genes_biocyc()
 
+    def merge_enzyme_ec_genes(self):
+        self.enzyme_ec_to_gene={}
+        for enzyme_ec in self.convergence_args['enzyme_ecs']:
+            for gene in self.convergence_args['genes']:
+                protein_id,enzyme_names,gene_id= gene
+                if enzyme_ec==protein_id:
+                    if enzyme_ec not in self.enzyme_ec_to_gene: self.enzyme_ec_to_gene[enzyme_ec]=[]
+                    self.enzyme_ec_to_gene[enzyme_ec]
+
 
     #RP with enzyme ec
     def converge_reaction_to_protein_ec_biocyc(self):
         if self.convergence_args['enzyme_ecs']:
             for enzyme_ec in self.convergence_args['enzyme_ecs']:
+                print(f'Linking from reaction {self.reaction_id} in {self.db} to protein {enzyme_ec}')
+
                 protein_instance = self.find_protein(query_id=enzyme_ec)
                 if protein_instance:
                     self.get_reaction().set_detail('protein_instances',protein_instance,converged_in=self.db)
@@ -222,6 +237,8 @@ class Reaction_Fetcher_Biocyc(Reaction_Fetcher):
     def converge_reaction_to_protein_biocyc(self):
         if self.convergence_args['proteins']:
             for prt_id in self.convergence_args['proteins']:
+                print(f'Linking from reaction {self.reaction_id} in {self.db} to protein {prt_id}')
+
                 #this will be a protein with both protein and gene info
                 protein_instance  = self.find_protein (query_id=prt_id,
                                                        extra_args={},
@@ -233,12 +250,12 @@ class Reaction_Fetcher_Biocyc(Reaction_Fetcher):
     def converge_reaction_to_genes_biocyc(self):
         if self.convergence_args['genes']:
             for gene in self.convergence_args['genes']:
-                enzyme_names,gene_id= gene
+                protein_id,enzyme_names,gene_id= gene
+                print(f'Linking from reaction {self.reaction_id} in {self.db} to protein {protein_id} (gene {gene_id})')
+
                 #this will be a protein with only genes info
                 #convergence penalty will be lower because we want to connect the gene to the reaction as the protien is merely a placeholder
-                protein_instance  = self.find_protein (extra_args={'protein_names':enzyme_names,
-                                                                    'genes':[gene_id]},
-                                                       )
+                protein_instance  = self.find_protein(query_id=protein_id,extra_args={'protein_names':enzyme_names,'genes':[gene_id]})
                 if protein_instance:
                     self.reaction.set_detail('protein_instances',protein_instance,converged_in=self.db)
 

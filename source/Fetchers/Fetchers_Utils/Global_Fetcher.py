@@ -4,7 +4,7 @@ from source.Biological_Components.Gene import Gene
 from source.Biological_Components.Protein import Protein
 from source.Biological_Components.Reaction import Reaction
 from source.Biological_Components.Biological_Components_Utils.Unique_details import generate_details_dict,get_details_list,get_unique_details
-from source.Utils.util import strip_tags,number_of_nones_dict,get_instance_type,find_ecs,is_ec,clean_ec,find_path,regex_escape,fix_html_sign
+from source.Utils.util import strip_tags,number_of_nones_dict,get_instance_type,find_ecs,is_ec,find_path,regex_escape,fix_html_sign
 
 
 

@@ -67,14 +67,15 @@ class Gene_Fetcher_HMDB(Gene_Fetcher):
                               })
         return gene_instance
 
-    def converge_gene_global(self):
-        self.converge_gene_to_protein()
+
 
     def converge_gene_gpr(self):
         self.converge_gene_to_protein()
 
     def converge_gene_to_protein(self):
         #this function will merely send the gene soup to the protein fetcher
+        print(f'Linking from gene {self.gene_id} in {self.db} to protein {self.gene_id}')
+
         protein_instance = self.find_protein(query_id=self.gene_id,
                                              extra_args={'protein_soup': self.convergence_args['gene_soup']},
                                              )

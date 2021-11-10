@@ -11,18 +11,23 @@ from source.Utils.util import is_ec
 from types import GeneratorType as generator
 
 class Protein_Searcher(Global_Searcher):
-    def __init__(self,memory_storage=None,search_direction='',do_reaction_met_instances=False,db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
-        Global_Searcher.__init__(self,memory_storage,search_direction,do_reaction_met_instances=do_reaction_met_instances,
+    def __init__(self,memory_storage=None,search_direction='',db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
+        Global_Searcher.__init__(self,memory_storage,search_direction,
                                  db_name=db_name,wanted_org_kegg_codes=wanted_org_kegg_codes,output_folder=output_folder,politeness_timer=politeness_timer)
         self.original_searcher=get_instance_type(self)
 
     def find_protein(self,db,query_id=None,extra_args={}):
+        print(1,db,query_id,extra_args)
         if db in SCRAPPABLE_DBS:
             fetcher_protein,fetcher= self.find_info(db, query_id, extra_args)
             return fetcher_protein
 
     def select_fetcher(self,db,query_id,extra_args,init_Fetcher=True):
+        print(2,db,query_id,extra_args)
+
         if db in SCRAPPABLE_DBS and not self.check_already_searched_memory(db,query_id):
+            print(3,db, query_id, extra_args)
+
             if db == 'biocyc':        return    Protein_Fetcher_Biocyc(query_id,extra_args=extra_args,memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
             elif 'kegg' in db:        return    Protein_Fetcher_KEGG(query_id, extra_args=extra_args,memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
             elif db == 'hmdb':        return    Protein_Fetcher_HMDB(query_id, extra_args=extra_args,memory_storage= self.memory_storage,init_Fetcher=init_Fetcher)
@@ -37,9 +42,13 @@ class Protein_Searcher(Global_Searcher):
             fetcher_protein=fetcher.get_protein()
             if fetcher_protein:
                 #converge only occurs in the searchers- these are the global classes
-                if {'global'}.intersection(self.search_direction):          fetcher.converge_protein_global()
-                elif {'rpg','pg'}.intersection(self.search_direction):      fetcher.converge_protein_rpg()
-                elif {'gpr','pr'}.intersection(self.search_direction):      fetcher.converge_protein_gpr()
+                if self.is_valid_search_direction({'global'}):
+                    fetcher.converge_protein_global()
+                if self.is_valid_search_direction({'rpg','pg','crpg'}):
+                    fetcher.converge_protein_rpg()
+                if self.is_valid_search_direction({'gpr','pr','gprc','prc'}):
+                    fetcher.converge_protein_gpr()
+
                 return fetcher_protein,fetcher
             else:
                 return None, None
@@ -68,6 +77,7 @@ class Protein_Searcher(Global_Searcher):
         print(f'STARTING PROTEIN SEARCHER {bio_query} in {bio_db}')
         args_to_search=[]
         if bio_db=='enzyme_ec' or is_ec(bio_query):
+            if is_ec(bio_query,4):
                 args_to_search.append(['enzyme_ec', bio_query])
         else:
             args_to_search.append([bio_db,bio_query])
@@ -272,7 +282,7 @@ class Protein_Searcher(Global_Searcher):
                 kegg_id,ec= line.split('\t')
                 if kegg_id==gene_id:
                     ec=ec.split(':')[1]
-                    if is_ec(ec): res.append(ec)
+                    if is_ec(ec,4): res.append(ec)
             return res
 
     def get_ecs_from_uniprot_kegg(self,uniprot_id):
@@ -306,7 +316,7 @@ class Protein_Searcher(Global_Searcher):
 
 if __name__ == '__main__':
 
-    searcher=Protein_Searcher(search_direction='pr',do_reaction_met_instances=True,output_folder='/home/pedroq/PycharmProjects/DRAX/test/test2/testout')
+    searcher=Protein_Searcher(search_direction='pr',output_folder='/home/pedroq/PycharmProjects/DRAX/test/test2/testout')
     p1=searcher.run_searcher('1.1.1.178','biocyc')
     #p1.get_all_info()
     searcher.output_results()

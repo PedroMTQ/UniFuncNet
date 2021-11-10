@@ -41,8 +41,10 @@ class Compound_Fetcher_Biocyc(Compound_Fetcher):
         if  self.compound_id == 'E-':
             res['synonyms'] = ['electron', 'e-']
             return res
-
-        context = context[1]  # compound part
+        try:
+            context = context[1]  # compound part
+        except:
+            return None
         for i in context:
             if i.tag == 'cml':
                 for first_nest in i:
@@ -86,6 +88,7 @@ class Compound_Fetcher_Biocyc(Compound_Fetcher):
         xml = self.get_with_fetcher(url,original_response=True)
         if not xml: return None
         parsed_info= self.parse_biocyc_xml(xml)
+        if not parsed_info: return None
         if 'selenium.webdriver' in repr(xml): xml.quit()
         if number_of_nones_dict(parsed_info)==len(parsed_info): return None
         return Compound(parsed_info)
@@ -99,9 +102,10 @@ class Compound_Fetcher_Biocyc(Compound_Fetcher):
         self.convergence_args['reactions']=self.get_reactions()
         if self.convergence_args['reactions']:
             for reaction_id in self.convergence_args['reactions']:
+                print(f'Linking from compound {self.compound_id} in {self.db} to reaction {reaction_id}')
                 self.find_reaction(query_id=reaction_id)
 
 
 
 if __name__ == '__main__':
-    search= Compound_Fetcher_Biocyc('CPD-520')
+    search= Compound_Fetcher_Biocyc('META:6G-KESTOTETRAOSE')

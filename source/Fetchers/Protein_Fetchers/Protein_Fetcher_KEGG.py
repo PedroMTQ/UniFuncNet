@@ -83,6 +83,8 @@ class Protein_Fetcher_KEGG(Protein_Fetcher):
 
     def converge_protein_to_gene(self):
         for gene_id in self.convergence_args['genes_list']:
+            print(f'Linking from protein {self.protein_id} in {self.db} to gene {gene_id}')
+
             #so we dont do unnecessary queries for genes from organisms we dont want
             if self.get_wanted_org_kegg_codes():
                 org_code=gene_id.split(':')[0]
@@ -98,6 +100,8 @@ class Protein_Fetcher_KEGG(Protein_Fetcher):
 
     def converge_protein_to_reaction(self):
         for reaction_id in self.convergence_args['reactions_list']:
+            print(f'Linking from protein {self.protein_id} in {self.db} to reaction {reaction_id}')
+
             reaction_instance= self.find_reaction(query_id=reaction_id)
 
             if reaction_instance:

@@ -67,9 +67,6 @@ class Gene_Fetcher_KEGG(Gene_Fetcher):
                               'uniprot': uniprot_id}
         return Gene(res)
 
-    def converge_gene_global(self):
-        self.converge_gene_to_protein()
-
     def converge_gene_gpr(self):
         self.converge_gene_to_protein()
 
@@ -78,6 +75,8 @@ class Gene_Fetcher_KEGG(Gene_Fetcher):
             #this function will merely send the gene soup to the protein fetcher
             #the same gene can code different proteins
             for enzyme_ec in self.convergence_args['proteins_list']:
+                print(f'Linking from gene {self.gene_id} in {self.db} to protein {enzyme_ec}')
+
                 protein_instance = self.find_protein(query_id=enzyme_ec,
                                                      extra_args={},
                                                      )
