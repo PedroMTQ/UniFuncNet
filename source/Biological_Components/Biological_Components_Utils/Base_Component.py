@@ -79,6 +79,8 @@ class Base_Component():
                             line.append(f'{d_key}:{d}')
         return '\t'.join(sorted(line))
 
+
+
     def set_detail(self,detail_type,detail,converged_in=None):
         if detail is not None:
             if detail_type == 'reaction_with_instances':       self.set_reaction_with_instances(detail)

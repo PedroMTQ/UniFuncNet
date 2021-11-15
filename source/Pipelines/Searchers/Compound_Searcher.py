@@ -7,6 +7,7 @@ from source.Fetchers.Compound_Fetchers.Compound_Fetcher_KEGG import Compound_Fet
 from source.Fetchers.Compound_Fetchers.Compound_Fetcher_Chemspider import Compound_Fetcher_Chemspider
 from source.Fetchers.Compound_Fetchers.Compound_Fetcher_HMDB import Compound_Fetcher_HMDB
 from source.Utils.util import get_stoichiometry
+from source.Utils.CHEBI_SQLITE_Connector import CHEBI_SQLITE_Connector
 
 # External modules
 from urllib.parse import quote_plus
@@ -32,10 +33,11 @@ It does so until all available DBs have been visited.
 '''
 
 ########INFO GETTER
-class Compound_Searcher(Global_Searcher):
+class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
     def __init__(self,memory_storage=None,search_direction=None,db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
         Global_Searcher.__init__(self,memory_storage,search_direction,db_name=db_name,wanted_org_kegg_codes=wanted_org_kegg_codes,output_folder=output_folder,politeness_timer=politeness_timer)
-
+        CHEBI_SQLITE_Connector.__init__(self)
+        self.close_sql_connection()
 
 
     def find_compound(self,db,query_id,already_found=set(),convergence_search=False):
@@ -394,21 +396,6 @@ class Compound_Searcher(Global_Searcher):
                 #return Compound({'synonyms':search_cpd}),None
                 return None,None
 
-    def get_chebi_to_others(self,chebi_id):
-        res={}
-        outfile_path=f'{DRAX_FOLDER}chebi2others.tsv'
-        with open(outfile_path) as file:
-            line=file.readline()
-            while line:
-                line=line.strip('\n')
-                if line:
-                    current_chebi_id,db,db_id=line.split('\t')
-                    if current_chebi_id==chebi_id:
-                        if db not in res: res[db]=set()
-                        res[db].add(db_id)
-                line=file.readline()
-        return res
-
     def run_searcher(self,bio_query,bio_db,convergence_search=False):
         print(f'STARTING COMPOUND SEARCHER {bio_query} in {bio_db}')
         args_to_search=[]
@@ -419,7 +406,9 @@ class Compound_Searcher(Global_Searcher):
         if bio_db=='inchi_key':
             args_to_search.append(['inchi_key',bio_query])
         if bio_db=='chebi':
-            chebi_to_others=self.get_chebi_to_others(bio_query)
+            self.start_sqlite_cursor()
+            chebi_to_others=self.fetch_chebi_id_info(bio_query)
+            self.close_sql_connection()
             for chebi_db in chebi_to_others:
                 for chebi_db_id in chebi_to_others[chebi_db]:
                     args_to_search.append([chebi_db,chebi_db_id])
@@ -432,8 +421,7 @@ class Compound_Searcher(Global_Searcher):
         already_found=self.add_to_args_to_search_synonyms(res,args_to_search)
         self.run_searcher_synonyms(args_to_search,already_found,convergence_search=convergence_search)
         res = self.get_compound_match(bio_query,bio_db)
-        if bio_db=='chebi' and res:
-            res.set_detail('chebi',bio_query)
+
 
 
 

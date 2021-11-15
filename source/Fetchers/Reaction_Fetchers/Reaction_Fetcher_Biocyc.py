@@ -160,9 +160,12 @@ class Reaction_Fetcher_Biocyc(Reaction_Fetcher):
         #THIS MIGHT BE USEFUL FOR FASTER COMPOUND MATCHING
         rn_with_ids = self.reaction_IDs_biocyc(self.reaction_id)
         try:
-            rn_with_ids,complete_l,len_sub = get_stoichiometry(reaction_str, rn_with_ids)
+            rn_with_ids, complete_l, len_sub = get_stoichiometry(reaction_str, rn_with_ids)
         except:
-            rn_with_ids, complete_l, len_sub  = get_stoichiometry(reaction_str, reaction_str)
+            try:
+                rn_with_ids, complete_l, len_sub  = get_stoichiometry(reaction_str, reaction_str)
+            except:
+                return None
         rn_with_instances = self.reaction_met_instances(reaction_str, rn_with_ids, 'biocyc')
 
         paragraphs = soup.find_all('p',class_='ecoparagraph')
@@ -251,7 +254,11 @@ class Reaction_Fetcher_Biocyc(Reaction_Fetcher):
         if self.convergence_args['genes']:
             for gene in self.convergence_args['genes']:
                 protein_id,enzyme_names,gene_id= gene
-                print(f'Linking from reaction {self.reaction_id} in {self.db} to protein {protein_id} (gene {gene_id})')
+                if protein_id:
+                    print(f'Linking from reaction {self.reaction_id} in {self.db} to protein {protein_id} (gene {gene_id})')
+                else:
+                    print(f'Linking from reaction {self.reaction_id} in {self.db} gene {gene_id}')
+
 
                 #this will be a protein with only genes info
                 #convergence penalty will be lower because we want to connect the gene to the reaction as the protien is merely a placeholder

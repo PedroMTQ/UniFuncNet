@@ -168,6 +168,7 @@ class Memory_Keeper():
         else:
             bio_list=[]
         for bio_entity in bio_list:
+            print('bio_entity',id(bio_entity))
             if bio_db:
                 if bio_type=='proteins':        temp_bio_entity=Protein({bio_db:bio_query})
                 elif bio_type=='genes':         temp_bio_entity=Gene({bio_db:bio_query})

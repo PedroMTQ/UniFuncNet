@@ -14,6 +14,7 @@ from urllib.parse import quote_plus
 from contextlib import closing
 import urllib.request as request
 from shutil import copyfileobj
+from gzip import open as gzip_open
 
 from types import GeneratorType as generator
 from sys import platform
@@ -50,6 +51,7 @@ else:
 
 DRAX_FOLDER = os.path.abspath(os.path.dirname(__file__)).split(SPLITTER)[0:-2]
 DRAX_FOLDER = SPLITTER.join(DRAX_FOLDER) + SPLITTER
+RESOURCES_FOLDER=f'{DRAX_FOLDER}{SPLITTER}Resources{SPLITTER}'
 
 def set_scrappable_dbs(user_databases):
     if user_databases:
@@ -394,7 +396,6 @@ def score_match_possible_ids(possible_ids_1,possible_ids_2,match_c=1,mismatch_c=
     if the ids match we benefit the match, if they dont we add a minor penalty.
     The penalty is lower since we assume databases already have some curation, thus the amount of errors shouldnt be too high
     """
-
     if not possible_ids_1 or not possible_ids_2: return 0
     if isinstance(possible_ids_1,set) or isinstance(possible_ids_1,list):
         temp_possible_ids_1= {i:1 for i in possible_ids_1}
@@ -414,8 +415,7 @@ def score_match_possible_ids(possible_ids_1,possible_ids_2,match_c=1,mismatch_c=
         for j in temp_possible_ids_2:
             if i and j:
                 if i == j:
-                    if not is_ec(i):
-                        return match_c
+                    return match_c
     return mismatch_c
 
 def unite_possible_ids(self_instance,instance_2,detail_type):
@@ -516,6 +516,29 @@ def download_file_ftp(url, file_path):
         with open(file_path, 'wb') as f:
             copyfileobj(r, f)
 
+# this unzips to the same directory!
+def gunzip(source_filepath, dest_filepath=None, block_size=65536, remove_source=False, stdout_file=None):
+    if not dest_filepath:
+        dest_filepath = source_filepath.strip('.gz')
+    if os.path.isdir(dest_filepath):
+        file_name = source_filepath.split(SPLITTER)[-1].replace('.gz', '')
+        dest_filepath = add_slash(dest_filepath) + file_name
+    print('Gunzipping ', source_filepath, 'to', dest_filepath, flush=True, file=stdout_file)
+    with gzip_open(source_filepath, 'rb') as s_file, \
+            open(dest_filepath, 'wb') as d_file:
+        while True:
+            block = s_file.read(block_size)
+            if not block:
+                break
+            else:
+                d_file.write(block)
+        d_file.write(block)
+    if remove_source: os.remove(source_filepath)
+
+def add_slash(path_folder):
+    if not path_folder: return path_folder
+    if path_folder[-1] != SPLITTER: return path_folder + SPLITTER
+    return path_folder
 
 
 

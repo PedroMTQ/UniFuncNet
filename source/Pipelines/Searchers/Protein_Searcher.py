@@ -17,17 +17,12 @@ class Protein_Searcher(Global_Searcher):
         self.original_searcher=get_instance_type(self)
 
     def find_protein(self,db,query_id=None,extra_args={}):
-        print(1,db,query_id,extra_args)
         if db in SCRAPPABLE_DBS:
             fetcher_protein,fetcher= self.find_info(db, query_id, extra_args)
             return fetcher_protein
 
     def select_fetcher(self,db,query_id,extra_args,init_Fetcher=True):
-        print(2,db,query_id,extra_args)
-
-        if db in SCRAPPABLE_DBS and not self.check_already_searched_memory(db,query_id):
-            print(3,db, query_id, extra_args)
-
+        if db in SCRAPPABLE_DBS and (not self.check_already_searched_memory(db,query_id) or (db=='biocyc' and 'genes' in extra_args)):
             if db == 'biocyc':        return    Protein_Fetcher_Biocyc(query_id,extra_args=extra_args,memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
             elif 'kegg' in db:        return    Protein_Fetcher_KEGG(query_id, extra_args=extra_args,memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
             elif db == 'hmdb':        return    Protein_Fetcher_HMDB(query_id, extra_args=extra_args,memory_storage= self.memory_storage,init_Fetcher=init_Fetcher)

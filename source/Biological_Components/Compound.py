@@ -2,15 +2,21 @@
 from source.Utils.util import  unite_possible_ids,\
                             test_match_possible_ids,\
                             score_match_possible_ids
+
 from source.Biological_Components.Biological_Components_Utils.Base_Component import *
+from source.Utils.CHEBI_SQLITE_Connector import CHEBI_SQLITE_Connector
 
 # External modules
 import re
 
 
-class Compound(Base_Component):
+class Compound(Base_Component,CHEBI_SQLITE_Connector):
     def __init__(self, init_dictionary={}):
         Base_Component.__init__(self,init_dictionary)
+        CHEBI_SQLITE_Connector.__init__(self)
+        self.add_chebi_ids()
+        self.close_sql_connection()
+
 
     def __str__(self):
         res='Compound\n'
@@ -21,6 +27,13 @@ class Compound(Base_Component):
     def get_most_common_synonym(self):
         try:    return next(self.get_detail('synonyms'))
         except: return ''
+
+    def add_chebi_ids(self):
+        for chebi_id in self.get_detail('chebi',all_possible=True):
+            chebi_mapping=self.fetch_chebi_id_info(chebi_id)
+            for db in chebi_mapping:
+                self.set_detail(db,chebi_mapping[db],converged_in='chebi')
+
 
     ###MATCHING AND UNITING###
 
@@ -46,25 +59,34 @@ class Compound(Base_Component):
                     return True
         return False
 
+    def add_artificial_hmdb_ids(self, dict_hmdb):
+        # hmdb sometimes has ids with 0s in between, sometimes it doesnt. this can lead to discrepancies
+        # in total there should be 4 letter- HMDB followed
+        for current_id in dict(dict_hmdb):
+            fixed_id=None
+            if current_id.startswith('HMDB'):
+                zero_search = re.search('HMDB0+', current_id)
+                if zero_search:
+                    fixed_id = f'HMDB{current_id[zero_search.span()[1]:]}'
+            if fixed_id:
+                dict_hmdb[fixed_id]=dict_hmdb[current_id]
 
 
 
     def score_match_instances(self,instance_2):
         c=0
         for detail_type in  self.get_unique_details(append_to_list=['synonyms']):
-            c+=score_match_possible_ids(self.get_detail(detail_type,all_possible=True),instance_2.get_detail(detail_type,all_possible=True))
+            inst1_ids=self.get_detail(detail_type,all_possible=True)
+            inst2_ids=instance_2.get_detail(detail_type,all_possible=True)
+            if detail_type=='hmdb':
+                self.add_artificial_hmdb_ids(inst1_ids)
+                self.add_artificial_hmdb_ids(inst2_ids)
+            score=score_match_possible_ids(inst1_ids,inst2_ids)
+            c+=score
         return c
 
 
 
-
-
-    def is_match(self,detail_type,detail_id):
-        if not detail_id or not self.get_detail(detail_type): return False
-        if self.get_detail(detail_type):
-            if test_match_possible_ids(self.get_detail(detail_type),detail_id):
-                return True
-        else: return False
 
 
     def is_empty_metabolite(self):
@@ -75,6 +97,9 @@ class Compound(Base_Component):
         else:       return False
 
 
+
+
+
 def test_instance_creator(test_string='test'):
     d= {i:test_string for i in ['kegg','enzyme_ec']}
     p=Compound(d)
@@ -83,4 +108,6 @@ def test_instance_creator(test_string='test'):
 
 
 if __name__ == '__main__':
-    cpd=test_instance_creator()
+    #cpd=test_instance_creator()
+    cpd1=Compound({'chebi':'17719'})
+    cpd1.get_all_info()

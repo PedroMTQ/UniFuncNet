@@ -36,10 +36,7 @@ class Reaction(Base_Component):
     ###MATCHING AND UNITING###
 
 
-    def is_match (self,detail_type,detail_id):
-        if not detail_id or not self.get_detail(detail_type): return False
-        if self.get_detail(detail_type)==detail_id: return True
-        return False
+
 
     def is_match_reaction_instances(self, reaction_instance_2):
         rn_inst_1=[]

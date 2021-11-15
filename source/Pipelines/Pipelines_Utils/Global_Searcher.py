@@ -1,6 +1,6 @@
 import os.path
 
-from source.Utils.util import get_instance_type, check_if_any_none, number_of_nones_dict, unite_instance_list,number_of_nones_dict,find_path,SCRAPPABLE_DBS,download_file_ftp,DRAX_FOLDER
+from source.Utils.util import get_instance_type, check_if_any_none, number_of_nones_dict, unite_instance_list,number_of_nones_dict,find_path,SCRAPPABLE_DBS,download_file_ftp,DRAX_FOLDER,RESOURCES_FOLDER,gunzip
 from source.Pipelines.Pipelines_Utils.Memory_Keeper import *
 from source.Biological_Components.Compound import Compound
 from source.Biological_Components.Gene import Gene
@@ -49,48 +49,11 @@ class Global_Searcher(Memory_Keeper):
             #starting the fetcher for the corresponding main searcher instance
             self.setup_new_searchers()
             self.search_direction=search_direction
-        self.download_chebi_to_others()
+        if not os.path.exists(RESOURCES_FOLDER):
+            os.mkdir(RESOURCES_FOLDER)
 
 
-    def trim_chebi_accession(self,infile_path,outfile_path):
-        res=set()
-        with open(infile_path) as infile:
-            with open(outfile_path,'w+') as outfile:
-                line=infile.readline()
-                while line:
-                    line=line.strip('\n')
-                    #ID	COMPOUND_ID	SOURCE	TYPE	ACCESSION_NUMBER
-                    _,chebi_id,_,id_type,secondary_id= line.split('\t')
-                    outline=None
-                    if id_type=='KEGG COMPOUND':
-                        outline=f'{chebi_id}\tkegg\t{secondary_id}'
-                    elif id_type=='KEGG DRUG':
-                        outline=f'{chebi_id}\tkegg\t{secondary_id}'
-                    elif id_type=='KEGG DRUG accession':
-                        outline=f'{chebi_id}\tkegg\t{secondary_id}'
-                    elif id_type=='KEGG COMPOUND accession':
-                        outline=f'{chebi_id}\tkegg\t{secondary_id}'
-                    elif id_type=='MetaCyc accession':
-                        outline=f'{chebi_id}\tbiocyc\t{secondary_id}'
-                    elif id_type=='HMDB accession':
-                        outline=f'{chebi_id}\thmdb\t{secondary_id}'
-                    elif id_type=='Chemspider accession':
-                        outline=f'{chebi_id}\tchemspider\t{secondary_id}'
-                    else:
-                        res.add(id_type)
-                    if outline:
-                        outfile.write(f'{outline}\n')
 
-                    line=infile.readline()
-        os.remove(infile_path)
-
-    def download_chebi_to_others(self):
-        url='https://ftp.ebi.ac.uk/pub/databases/chebi/Flat_file_tab_delimited/database_accession.tsv'
-        infile_path=f'{DRAX_FOLDER}database_accession.tsv'
-        outfile_path=f'{DRAX_FOLDER}chebi2others.tsv'
-        if not os.path.exists(outfile_path):
-            download_file_ftp(url,infile_path)
-            self.trim_chebi_accession(infile_path,outfile_path)
 
     def set_search_direction(self,search_direction):
         self_searcher_type= get_instance_type(self)
@@ -327,6 +290,7 @@ class Global_Searcher(Memory_Keeper):
 
         with open(self.output_folder+'Compounds.tsv','w+') as outfile:
             for inst in self.get_compounds_all():
+                print('output',id(inst))
                 self.write_to_output_file(inst,outfile)
 
         with open(self.output_folder+'Reactions.tsv','w+') as outfile:
