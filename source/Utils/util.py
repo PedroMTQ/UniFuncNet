@@ -62,6 +62,15 @@ def set_scrappable_dbs(user_databases):
         return SCRAPPABLE_DBS
 
 
+def print_version(user,project):
+    import requests
+    response = requests.get(f"https://api.github.com/repos/{user}/{project}/releases/latest")
+    json=response.json()
+    if 'name' in json:
+        print(f'{project}\'s latest release is:',json['name'])
+    else:
+        print('No release available')
+
 class MLStripper(HTMLParser):
     def __init__(self):
         super().__init__()

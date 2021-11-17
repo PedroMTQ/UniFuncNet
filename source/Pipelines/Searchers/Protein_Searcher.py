@@ -29,6 +29,7 @@ class Protein_Searcher(Global_Searcher):
             else:                     return    Global_Fetcher()
 
 
+
     def find_info(self, db,query_id,extra_args={}):
         if not query_id: return None,None
         fetcher=self.select_fetcher(db=db,query_id=query_id,extra_args=extra_args)
@@ -43,12 +44,15 @@ class Protein_Searcher(Global_Searcher):
                     fetcher.converge_protein_rpg()
                 if self.is_valid_search_direction({'gpr','pr','gprc','prc'}):
                     fetcher.converge_protein_gpr()
-
                 return fetcher_protein,fetcher
             else:
                 return None, None
         else:
-            return None,None
+            if self.check_already_searched_memory(db, query_id):
+                print('Already searched', db, query_id)
+                return self.get_protein_match(bio_query=query_id, bio_db=db),None
+            else:
+                return None,None
 
 
     def run_searcher(self,bio_query,bio_db):

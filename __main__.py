@@ -1,44 +1,3 @@
-
-'''
-entry points:
-compound:
-synonyms
-brenda
-biocyc
-kegg
-chemspider
-inchi_key
-drugbank
-hmdb
-
-reaction:
-brenda
-biocyc
-kegg
-drugbank
-hmdb
-
-
-protein:
-enzyme_ec
-kegg
-biocyc
-brenda
-uniprot
-kegg_ko
-
-gene:
-kegg
-uniprot
-biocyc
-
-
-python DRAX/ gpr protein_search -i DRAX/test/test.tsv -o drax_test -db kegg -rm
-
-
-'''
-
-
 import argparse
 import sys
 import os
@@ -46,7 +5,7 @@ from datetime import datetime
 from sys import platform
 import uuid
 
-from source.Utils.util import SCRAPPABLE_DBS,set_scrappable_dbs,VALID_DIRECTIONS
+from source.Utils.util import SCRAPPABLE_DBS,set_scrappable_dbs,VALID_DIRECTIONS,print_version
 from source.Pipelines.Searchers.Gene_Searcher import  Gene_Searcher
 from source.Pipelines.Searchers.Protein_Searcher import  Protein_Searcher
 from source.Pipelines.Searchers.Compound_Searcher import  Compound_Searcher
@@ -143,28 +102,32 @@ def run_searcher(target_path,output_folder,politeness_timer):
             if line:
                 line_split=line.split('\t')
                 kegg_org_codes=[]
-                if len(line_split)==5:
-                    instance_type, search_direction, db_type, db_id,kegg_org_codes= line_split
+                if len(line_split)<4:
+                    print('Invalid input line')
+
                 else:
-                    instance_type, search_direction, db_type, db_id= line_split
+                    if len(line_split)==5:
+                        instance_type, search_direction, db_type, db_id,kegg_org_codes= line_split
+                    else:
+                        instance_type, search_direction, db_type, db_id= line_split
 
-                instance_type=instance_type.lower()
+                    instance_type=instance_type.lower()
 
-                if db_type.startswith('syn'): db_type='synonyms'
-                search_direction=[i.lower() for i in search_direction.split(',')]
-                search_direction=set(search_direction)
-                instance_type=instance_type.lower()
-                if instance_type=='gene':       searcher=gene_searcher
-                elif instance_type=='protein':  searcher=protein_searcher
-                elif instance_type=='compound': searcher=compound_searcher
-                elif instance_type=='reaction': searcher=reaction_searcher
+                    if db_type.startswith('syn'): db_type='synonyms'
+                    search_direction=[i.lower() for i in search_direction.split(',')]
+                    search_direction=set(search_direction)
+                    instance_type=instance_type.lower()
+                    if instance_type=='gene':       searcher=gene_searcher
+                    elif instance_type=='protein':  searcher=protein_searcher
+                    elif instance_type=='compound': searcher=compound_searcher
+                    elif instance_type=='reaction': searcher=reaction_searcher
 
-                set_search_direction([gene_searcher,protein_searcher,compound_searcher,reaction_searcher],search_direction)
-                set_kegg_org_codes([gene_searcher,protein_searcher,compound_searcher,reaction_searcher],kegg_org_codes)
-                if instance_type == 'compound':
-                    searcher.run_searcher(db_id,db_type,convergence_search=True)
-                else:
-                    searcher.run_searcher(db_id,db_type)
+                    set_search_direction([gene_searcher,protein_searcher,compound_searcher,reaction_searcher],search_direction)
+                    set_kegg_org_codes([gene_searcher,protein_searcher,compound_searcher,reaction_searcher],kegg_org_codes)
+                    if instance_type == 'compound':
+                        searcher.run_searcher(db_id,db_type,convergence_search=True)
+                    else:
+                        searcher.run_searcher(db_id,db_type)
                 print(f'{line}',file=check_list,flush=True)
             line=infile.readline()
         searcher.output_results()
@@ -176,6 +139,8 @@ if __name__ == '__main__':
         run_test()
     elif '--test_web' in sys.argv:
         run_test_web()
+    elif '--version' in sys.argv:
+        print_version('pedromtq','drax')
     else:
         search_directions_str='; '.join(VALID_DIRECTIONS)
         print('Executing command:\n', ' '.join(sys.argv))

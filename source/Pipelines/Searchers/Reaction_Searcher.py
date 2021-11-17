@@ -37,7 +37,11 @@ class Reaction_Searcher(Global_Searcher):
             else:
                 return None, None
         else:
-            return None,None
+            if self.check_already_searched_memory(db, query_id):
+                print('Already searched', db, query_id)
+                return self.get_reaction_match(bio_query=query_id, bio_db=db), None
+            else:
+                return None, None
 
     def run_searcher(self,bio_query,bio_db):
         print(f'STARTING REACTION SEARCHER {bio_query} in {bio_db}')

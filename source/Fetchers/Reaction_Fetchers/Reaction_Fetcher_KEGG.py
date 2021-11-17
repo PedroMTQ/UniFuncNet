@@ -102,7 +102,6 @@ class Reaction_Fetcher_KEGG(Reaction_Fetcher):
     def converge_reaction_to_protein(self):
         for enzyme_ec in self.convergence_args['proteins_list']:  # there may be several enzymes for the same reaction
             print(f'Linking from reaction {self.reaction_id} in {self.db} to protein {enzyme_ec}')
-
             protein_instance = self.find_protein(query_id=enzyme_ec)
             if protein_instance:
                 self.get_reaction().set_detail('protein_instances',protein_instance,converged_in=self.db)

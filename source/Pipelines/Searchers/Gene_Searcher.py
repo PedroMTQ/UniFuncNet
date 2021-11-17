@@ -38,7 +38,11 @@ class Gene_Searcher(Global_Searcher):
             else:
                 return None,None
         else:
-            return None,None
+            if self.check_already_searched_memory(db, query_id):
+                print('Already searched', db, query_id)
+                return self.get_gene_match(bio_query=query_id, bio_db=db), None
+            else:
+                return None, None
 
     def add_to_args_to_search(self,gene_instance_or_list,args_to_search):
         if not isinstance(gene_instance_or_list, list): gene_instance_or_list = [gene_instance_or_list]

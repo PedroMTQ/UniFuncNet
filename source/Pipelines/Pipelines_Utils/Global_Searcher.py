@@ -290,7 +290,6 @@ class Global_Searcher(Memory_Keeper):
 
         with open(self.output_folder+'Compounds.tsv','w+') as outfile:
             for inst in self.get_compounds_all():
-                print('output',id(inst))
                 self.write_to_output_file(inst,outfile)
 
         with open(self.output_folder+'Reactions.tsv','w+') as outfile:

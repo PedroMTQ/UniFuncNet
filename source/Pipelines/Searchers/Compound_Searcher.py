@@ -75,11 +75,40 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
             else:
                 return None, None
         else:
-            return None,None
+            if self.check_already_searched_memory(db, query_id):
+                print('Already searched', db, query_id)
+                return self.get_compound_match(bio_query=query_id, bio_db=db), None
+            else:
+                return None, None
 
 
 ######Retrieval of compounds for reactions#######
 
+    def get_compound_reaction_met_instances(self,db,met_id, met_name):
+        #####First memory search#####
+        match = self.get_compound_match(met_name, 'synonyms')
+        if match: return match
+
+        #####Second memory search#####
+        match = self.get_compound_match(met_id, db)
+        if match: return match
+        #####Web query search##### --> if not found in memory
+        if met_id:
+            print(f'Will now search for {met_id} in {db}')
+            self.run_searcher(met_id, db)
+            #####Third memory search#####
+            match = self.get_compound_match(met_id, db)
+        else:
+            print(f'Will now search for {met_name}')
+            self.run_searcher(met_name, 'synonyms')
+            #####Third memory search#####
+            match = self.get_compound_match(met_name, 'synonyms')
+
+        if match: return match
+        match = Compound({db: met_id, 'synonyms': [met_name]})
+        print('POSSIBLE BROKEN LINK HERE', db, met_id, met_name)
+        self.add_compound(match)
+        return match
 
     def reaction_met_instances(self, rn, rn_with_ids, db):
         """
@@ -96,68 +125,24 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
         for i in range(len(rn)):
             if i<len_sub: side='left'
             else: side='right'
-            met_id, met_name, match, temp_met = None, None, None, None
+            met_id, met_name= None, None
             whole_met_name = rn[i]
             met_name = whole_met_name[1].lower()
-            #####First match search#####
-            search_by_name = self.get_compound_match(met_name, 'synonyms')
 
-            if not search_by_name and rn != rn_with_ids:
-                if rn_with_ids:
-                    whole_met_id = rn_with_ids[i]
-                    met_id = whole_met_id[1]
-                if met_id:
-                    search_by_id = self.get_compound_match(met_id, db)
-                else:
-                    search_by_id = None
-                if not search_by_id:
-                    if met_id:
-                        # This is the last resource for finding matches, it will get all the information and try to match with that
-                        print('Will now search for ' + db + ' ' + met_id)
-                        temp_met = self.run_searcher(met_id,db)
-                    else:
-                        # sometimes reactions dont have an id, when this happens we search by name (should be rare as searching by name is less precise)
-                        temp_met = self.run_searcher(met_name,'synonyms')
-                    if temp_met: print('Had to search for compound ' + met_name + ' but found it!')
-                    #####Third match search######
-                    match = self.get_compound_match(temp_met)
-                    if match and match is not temp_met:
-                        match.unite_instances(temp_met)
-                else:
-                    match = search_by_id
-                    if not match.get_detail(db):
-                        found_met,_ = self.find_info(db, met_id)
-                        if found_met:
-                            match.unite_instances(found_met)
-                    match.set_detail(db, met_id)
-                    if db != 'synonyms': match.set_detail('synonyms', met_name)
-            else:
-                # some reactions wont have ids, when that happens
-                if not search_by_name:
-                    pass
-                match = search_by_name
-                if met_id:
-                    if not match.get_detail(db):
-                        found_met,_ = self.find_info(db, met_id)
-                        if found_met:
-                            match.unite_instances(found_met)
-                    match.set_detail(db, met_id)
-                    if db != 'synonyms': match.set_detail('synonyms', met_name)
+            if rn != rn_with_ids and rn_with_ids:
+                whole_met_id = rn_with_ids[i]
+                met_id = whole_met_id[1]
 
-            # if the metabolite has not been seen before
-            if match:
-                rn_with_instances[side].append([whole_met_name[0], match])
-            elif not match and temp_met:
-                rn_with_instances[side].append([whole_met_name[0], temp_met])
-                if temp_met:
-                    if not temp_met.is_empty_metabolite(): self.add_compound(temp_met)
-            else:
-                #last case scenario whent he db has broken links e.g. kegg G13127
-                temp_met = Compound({db: met_id, 'synonyms': [met_name]})
-                rn_with_instances[side].append([whole_met_name[0], temp_met])
-                self.add_compound(temp_met)
-                print('POSSIBLE BROKEN LINK HERE')
+            match=self.get_compound_reaction_met_instances(db,met_id, met_name)
 
+
+            if not match.get_detail(db):
+                found_met, _ = self.find_info(db, met_id)
+                if found_met:
+                    match.unite_instances(found_met)
+            match.set_detail(db, met_id)
+            if db != 'synonyms': match.set_detail('synonyms', met_name)
+            rn_with_instances[side].append([whole_met_name[0], match])
         return rn_with_instances
 
     #############Getting all derivatives#############
@@ -421,6 +406,7 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
         already_found=self.add_to_args_to_search_synonyms(res,args_to_search)
         self.run_searcher_synonyms(args_to_search,already_found,convergence_search=convergence_search)
         res = self.get_compound_match(bio_query,bio_db)
+        return res
 
 
 
@@ -468,7 +454,6 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
         return already_found
 
     def run_searcher_synonyms(self,args_to_search,already_found,convergence_search=False):
-        print(f'Searching by synonyms')
         while args_to_search:
             current_arg = args_to_search.pop(0)
             db_arg= current_arg[0]
