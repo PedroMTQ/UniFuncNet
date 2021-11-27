@@ -109,5 +109,5 @@ def test_instance_creator(test_string='test'):
 
 if __name__ == '__main__':
     #cpd=test_instance_creator()
-    cpd1=Compound({'chebi':'17968'})
+    cpd1=Compound({'chebi':'141550'})
     cpd1.get_all_info()

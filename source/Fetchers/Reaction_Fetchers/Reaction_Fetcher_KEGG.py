@@ -69,6 +69,20 @@ class Reaction_Fetcher_KEGG(Reaction_Fetcher):
             if i[1] == kegg_id: return True
         return False
 
+    def parse_other_dbs(self,other_dbs):
+        res={}
+        for line in other_dbs:
+            db_type,db_id=line.split(' : ')
+            db_id=db_id.strip()
+            db_type=db_type.strip(':')
+            if db_type=='RHEA':
+                db_type='rhea'
+            else: db_type=None
+            if db_type:
+                if db_type not in res: res[db_type]=set()
+                res[db_type].add(db_id)
+        return res
+
     # End goal function for kegg
     def get_reactions_KEGG(self):
 
@@ -79,6 +93,8 @@ class Reaction_Fetcher_KEGG(Reaction_Fetcher):
                 enzyme_ec = self.rn_enzyme(rn_soup)
                 if enzyme_ec:
                     self.convergence_args['proteins_list'] = [i for i in enzyme_ec.split() if not i.endswith('-')]
+                other_dbs=self.textbox_KEGG(rn_soup, 'Other DBs', to_split=True)
+                other_dbs=self.parse_other_dbs(other_dbs)
                 orthology = self.textbox_KEGG(rn_soup, 'Orthology', to_split=True)
                 if orthology: orthology = [i.split(' : ')[0] for i in orthology]
                 res = {
@@ -87,6 +103,9 @@ class Reaction_Fetcher_KEGG(Reaction_Fetcher):
                     'pathways':  rn_info['pathways'],
                     'kegg_ko':  orthology,
                 }
+                for db in other_dbs:
+                    if db not in res: res[db]=set()
+                    res[db].update(other_dbs[db])
                 if rn_info['rn_instances']: res['reaction_with_instances'] = rn_info['rn_instances']
                 else:                       res['rn_with_ids'] = [rn_info['rn'], rn_info['rn_comp_id'], 'kegg']
                 return Reaction(res)
@@ -107,6 +126,6 @@ class Reaction_Fetcher_KEGG(Reaction_Fetcher):
                 self.get_reaction().set_detail('protein_instances',protein_instance,converged_in=self.db)
 
 if __name__ == '__main__':
-    rn_search=Reaction_Fetcher_KEGG('R00674')
+    rn_search=Reaction_Fetcher_KEGG('R02938')
     r=rn_search.get_reaction()
     print(r)

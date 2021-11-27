@@ -62,7 +62,9 @@ class Compound_Fetcher_Chemspider(Compound_Fetcher):
                 if dbs_to_look_for[db] == 'chebi':
                     chebi_search = re.search('CHEBI:', db_id)
                     if chebi_search: db_id = db_id[chebi_search.span()[1]:]
-                res[dbs_to_look_for[db]] = db_id
+                    else: db_id=None
+                if db_id:
+                    res[dbs_to_look_for[db]] = db_id
         res=self.remove_unwanted_info(res)
         if number_of_nones_dict(res)==len(res): return None
         compound_instance = Compound(res)
@@ -73,4 +75,4 @@ class Compound_Fetcher_Chemspider(Compound_Fetcher):
 
 
 if __name__ == '__main__':
-    search= Compound_Fetcher_Chemspider('937')
+    search= Compound_Fetcher_Chemspider('83157')

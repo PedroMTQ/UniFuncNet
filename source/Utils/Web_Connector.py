@@ -376,9 +376,9 @@ class Web_Connector():
                     driver.quit()
                     raise ConnectionError
                 #for biocyc
-                if '#tab=showAll' in url:
+                if 'tab=showAll' in url:
                     WebDriverWait(driver, self.hard_js_load_delay).until_not(EC.text_to_be_present_in_element((By.ID, 'showAll'),'Loading...'))
-                if '#tab=RXNS' in url:
+                if 'tab=RXNS' in url:
                     WebDriverWait(driver, self.hard_js_load_delay).until_not(EC.text_to_be_present_in_element((By.ID, 'RXNS'),'Loading...'))
                 req_end = time.time()
                 self.dynamic_politeness_timer(req_start, req_end,c)

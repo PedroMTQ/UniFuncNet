@@ -470,10 +470,10 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
                 #if temp_inst:   self.add_to_args_to_search_ids(temp_inst, args_to_search)
 
 if __name__ == '__main__':
-    searcher = Compound_Searcher()
+    searcher = Compound_Searcher(search_direction={''})
     #searcher.derivatives_kegg('pi')
     #searcher.search_direction='global'
     #searcher.reset_db(delete_all=True,force_reset=True)
     #res=searcher.find_compound_string('quercetin')
     #print(res)
-    searcher.run_searcher('C00080','kegg')
+    r1=searcher.run_searcher('C01902','kegg')

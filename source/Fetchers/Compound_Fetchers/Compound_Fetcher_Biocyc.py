@@ -100,6 +100,7 @@ class Compound_Fetcher_Biocyc(Compound_Fetcher):
     #RP with enzyme ec
     def converge_compound_to_reaction(self):
         self.convergence_args['reactions']=self.get_reactions()
+
         if self.convergence_args['reactions']:
             for reaction_id in self.convergence_args['reactions']:
                 print(f'Linking from compound {self.compound_id} in {self.db} to reaction {reaction_id}')

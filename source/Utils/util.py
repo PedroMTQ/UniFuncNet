@@ -23,7 +23,7 @@ from sys import platform
 # inchi='InChI=1S/C15H12N2O2/c16-15(18)17-11-7-3-1-5-9(11)13-14(19-13)10-6-2-4-8-12(10)17/h1-8,13-14H,(H2,16,18)'
 # r=requests.post('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchi/cids/JSON/',data={'inchi':inchi})
 
-SCRAPPABLE_DBS=['biocyc','kegg','hmdb']
+SCRAPPABLE_DBS=['biocyc','kegg','hmdb','rhea']
 SCRAPPABLE_DBS.extend(['uniprot', 'chemspider', 'inchi_key'])
 SCRAPPABLE_DBS.extend(['uniprot', 'inchi_key'])
 
@@ -51,7 +51,7 @@ else:
 
 DRAX_FOLDER = os.path.abspath(os.path.dirname(__file__)).split(SPLITTER)[0:-2]
 DRAX_FOLDER = SPLITTER.join(DRAX_FOLDER) + SPLITTER
-RESOURCES_FOLDER=f'{DRAX_FOLDER}{SPLITTER}Resources{SPLITTER}'
+RESOURCES_FOLDER=f'{DRAX_FOLDER}Resources{SPLITTER}'
 
 def set_scrappable_dbs(user_databases):
     if user_databases:
@@ -548,7 +548,6 @@ def add_slash(path_folder):
     if not path_folder: return path_folder
     if path_folder[-1] != SPLITTER: return path_folder + SPLITTER
     return path_folder
-
 
 
 if __name__ == '__main__':

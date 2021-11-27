@@ -75,7 +75,7 @@ class Reaction(Base_Component):
         if list_has_common_items(self.get_strs_reaction(), instance_2.get_strs_reaction()):
             c+=2
         for unique_detail in self.get_unique_details(remove_from_list=['reaction_with_instances','reaction_str']):
-            c+= score_match_possible_ids(self.get_detail(unique_detail), instance_2.get_detail(unique_detail))
+            c+= score_match_possible_ids(self.get_detail(unique_detail,all_possible=True), instance_2.get_detail(unique_detail,all_possible=True))
         return c
 
 

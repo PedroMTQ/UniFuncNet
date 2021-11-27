@@ -5,6 +5,7 @@ from source.Biological_Components.Protein import Protein
 from source.Fetchers.Protein_Fetchers.Protein_Fetcher_Biocyc import Protein_Fetcher_Biocyc
 from source.Fetchers.Protein_Fetchers.Protein_Fetcher_KEGG import Protein_Fetcher_KEGG
 from source.Fetchers.Protein_Fetchers.Protein_Fetcher_HMDB import Protein_Fetcher_HMDB
+from source.Fetchers.Protein_Fetchers.Protein_Fetcher_Rhea import Protein_Fetcher_Rhea
 from source.Utils.util import is_ec
 
 
@@ -16,6 +17,7 @@ class Protein_Searcher(Global_Searcher):
                                  db_name=db_name,wanted_org_kegg_codes=wanted_org_kegg_codes,output_folder=output_folder,politeness_timer=politeness_timer)
         self.original_searcher=get_instance_type(self)
 
+
     def find_protein(self,db,query_id=None,extra_args={}):
         if db in SCRAPPABLE_DBS:
             fetcher_protein,fetcher= self.find_info(db, query_id, extra_args)
@@ -26,6 +28,7 @@ class Protein_Searcher(Global_Searcher):
             if db == 'biocyc':        return    Protein_Fetcher_Biocyc(query_id,extra_args=extra_args,memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
             elif 'kegg' in db:        return    Protein_Fetcher_KEGG(query_id, extra_args=extra_args,memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
             elif db == 'hmdb':        return    Protein_Fetcher_HMDB(query_id, extra_args=extra_args,memory_storage= self.memory_storage,init_Fetcher=init_Fetcher)
+            elif db == 'rhea':        return    Protein_Fetcher_Rhea(query_id, extra_args=extra_args,memory_storage= self.memory_storage,init_Fetcher=init_Fetcher)
             else:                     return    Global_Fetcher()
 
 
@@ -315,7 +318,6 @@ class Protein_Searcher(Global_Searcher):
 
 if __name__ == '__main__':
 
-    searcher=Protein_Searcher(search_direction='pr',output_folder='/home/pedroq/PycharmProjects/DRAX/test/test2/testout')
-    p1=searcher.run_searcher('1.1.1.178','biocyc')
+    searcher=Protein_Searcher(search_direction='pr')
+    p1=searcher.run_searcher('3.5.1.50','biocyc')
     #p1.get_all_info()
-    searcher.output_results()

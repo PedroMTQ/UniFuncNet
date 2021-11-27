@@ -3,6 +3,8 @@ from source.Pipelines.Pipelines_Utils.Global_Searcher import *
 from source.Fetchers.Reaction_Fetchers.Reaction_Fetcher_Biocyc import Reaction_Fetcher_Biocyc
 from source.Fetchers.Reaction_Fetchers.Reaction_Fetcher_HMDB import Reaction_Fetcher_HMDB
 from source.Fetchers.Reaction_Fetchers.Reaction_Fetcher_KEGG import Reaction_Fetcher_KEGG
+from source.Fetchers.Reaction_Fetchers.Reaction_Fetcher_Rhea import Reaction_Fetcher_Rhea
+
 
 class Reaction_Searcher(Global_Searcher):
     def __init__(self,  memory_storage=None,search_direction='',db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
@@ -21,6 +23,7 @@ class Reaction_Searcher(Global_Searcher):
             if db == 'biocyc':        return  Reaction_Fetcher_Biocyc(query_id, extra_args=extra_args, memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
             elif 'kegg' in db:        return  Reaction_Fetcher_KEGG(query_id, extra_args=extra_args, memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
             elif db == 'hmdb':        return  Reaction_Fetcher_HMDB(query_id, extra_args=extra_args, memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
+            elif db == 'rhea':        return  Reaction_Fetcher_Rhea(query_id, extra_args=extra_args, memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
             else:                     return  Global_Fetcher()
 
     def find_info(self, db, query_id, extra_args={}):
@@ -44,7 +47,6 @@ class Reaction_Searcher(Global_Searcher):
                 return None, None
 
     def run_searcher(self,bio_query,bio_db):
-        print(f'STARTING REACTION SEARCHER {bio_query} in {bio_db}')
         args_to_search=[[bio_db, bio_query]]
         temp_inst=None
         while args_to_search:
@@ -77,6 +79,10 @@ class Reaction_Searcher(Global_Searcher):
                 if id_to_add and not self.check_already_searched_memory(dict_input_key='hmdb',dict_input_value=id_to_add):
                     args_to_search.append(['hmdb', id_to_add])
 
+                id_to_add = reaction_instance.get_detail('rhea')
+                if id_to_add and not self.check_already_searched_memory(dict_input_key='rhea',dict_input_value=id_to_add):
+                    args_to_search.append(['rhea', id_to_add])
+
 
 
 
@@ -89,7 +95,7 @@ if __name__ == '__main__':
     #for cpd in r1.get_detail('reaction_with_instances'):
     #    cpd[1].get_all_info()
 
-    r1=searcher.run_searcher('ALCOHOL-DEHYDROG-RXN','biocyc')
+    r1=searcher.run_searcher('10000','rhea')
     #r1.get_all_info()
     #for cpd in r1.get_detail('reaction_with_instances'):
     #    cpd[1].get_all_info()

@@ -294,6 +294,8 @@ class Global_Searcher(Memory_Keeper):
 
         with open(self.output_folder+'Reactions.tsv','w+') as outfile:
             for inst in self.get_reactions_all():
+                print(repr(inst))
+
                 self.write_to_output_file(inst,outfile)
 
 
