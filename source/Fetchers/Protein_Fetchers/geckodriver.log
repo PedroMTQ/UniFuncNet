@@ -1,9 +1,0 @@
-1636466821634	mozrunner::runner	INFO	Running command: "/usr/bin/firefox" "-marionette" "--headless" "--log-level=3" "-foreground" "-no-remote" "-profile" "/tmp/rust_mozprofile.Io4ztF8kRXq1"
-*** You are running in headless mode.
-1636466821850	Marionette	INFO	Marionette enabled
-[GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
-console.warn: SearchSettings: "get: No settings file exists, new profile?" (new NotFoundError("Could not open the file at /tmp/rust_mozprofile.Io4ztF8kRXq1/search.json.mozlz4", (void 0)))
-1636466822541	Marionette	INFO	Listening on port 44841
-1636466822644	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
-1636466823875	Marionette	INFO	Stopped listening on port 44841
-console.warn: services.settings: main/partitioning-exempt-urls sync interrupted by shutdown
