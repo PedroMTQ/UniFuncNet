@@ -56,6 +56,6 @@ if __name__ == '__main__':
     import re
     #p0=Protein_Fetcher_Rhea('2.3.1.15')
     p0=Protein_Fetcher_Rhea('2.3.1.15')
-    print(p0.get_protein().get_all_info())
+    print(p0.get_protein().get_details_list())
     #p0.converge_protein_gpr()
     #p1=Protein_Fetcher_KEGG('1.14.14.73').get_protein()

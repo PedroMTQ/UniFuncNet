@@ -32,14 +32,8 @@ def get_details_list(bio_instances,remove_from_list=[],append_to_list=[]):
             details.remove(v)
     for v in append_to_list:
         details.add(v)
-    scrappable_dbs =list(SCRAPPABLE_DBS)
 
-    for db in scrappable_dbs:
-        if db in details:
-            details.remove(db)
-    for db in details:
-        scrappable_dbs.append(db)
-    return scrappable_dbs
+    return details
 
 
 def get_unique_details(bio_instance=None,bio_instance_type=None,remove_from_list=[],append_to_list=[]):

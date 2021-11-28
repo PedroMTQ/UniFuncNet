@@ -7,8 +7,8 @@ from source.Fetchers.Reaction_Fetchers.Reaction_Fetcher_Rhea import Reaction_Fet
 
 
 class Reaction_Searcher(Global_Searcher):
-    def __init__(self,  memory_storage=None,search_direction='',db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
-        Global_Searcher.__init__(self,memory_storage,search_direction,db_name=db_name,wanted_org_kegg_codes=wanted_org_kegg_codes,output_folder=output_folder,politeness_timer=politeness_timer)
+    def __init__(self,  memory_storage=None,search_mode='',db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
+        Global_Searcher.__init__(self,memory_storage,search_mode,db_name=db_name,wanted_org_kegg_codes=wanted_org_kegg_codes,output_folder=output_folder,politeness_timer=politeness_timer)
 
 
 
@@ -34,7 +34,7 @@ class Reaction_Searcher(Global_Searcher):
             fetcher_reaction=fetcher.get_reaction()
             if fetcher_reaction:
                 #converge only occurs in the searchers- these are the global classes
-                if self.is_valid_search_direction({'global','rpg','rp','crp','crpg'}):
+                if self.is_valid_search_mode({'global','rpg','rp','crp','crpg'}):
                     fetcher.converge_reaction_rpg()
                 return fetcher_reaction,fetcher
             else:
@@ -87,7 +87,7 @@ class Reaction_Searcher(Global_Searcher):
 
 
 if __name__ == '__main__':
-    searcher=Reaction_Searcher(search_direction={'rp'})
+    searcher=Reaction_Searcher(search_mode={'rp'})
 
 
     #r1=searcher.run_searcher('R05188','kegg')

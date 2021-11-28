@@ -26,7 +26,7 @@ def run_test():
     output_folder = os.getcwd() + SPLITTER + 'DRAX_OUTPUT_' + datetime_str + SPLITTER
     os.mkdir(output_folder)
     print(f'No output folder provided! Saving data to: {output_folder}')
-    searcher = Protein_Searcher(search_direction={'gpr'}, output_folder=output_folder,do_reaction_met_instances=True)
+    searcher = Protein_Searcher(search_mode={'gpr'}, output_folder=output_folder,do_reaction_met_instances=True)
     searcher.run_searcher('1.1.1.178', 'enzyme_ec')
     searcher.output_results()
 
@@ -53,9 +53,9 @@ def run_test_browser_drivers():
         print('Did not manage to connect using selenium! Did you download the drivers?')
         raise Exception
 
-def set_search_direction(searchers_list,search_direction):
+def set_search_mode(searchers_list,search_mode):
     for searcher in searchers_list:
-        searcher.set_search_direction(search_direction)
+        searcher.set_search_mode(search_mode)
 
 def set_kegg_org_codes(searchers_list,kegg_org_codes):
     for searcher in searchers_list:
@@ -70,14 +70,14 @@ def check_validity_input(target_path):
                 line_split=line.split('\t')
                 kegg_org_codes=[]
                 if len(line_split)==5:
-                    instance_type, search_direction, db_type, db_id,kegg_org_codes= line_split
+                    instance_type, search_mode, db_type, db_id,kegg_org_codes= line_split
                 else:
-                    instance_type, search_direction, db_type, db_id= line_split
+                    instance_type, search_mode, db_type, db_id= line_split
 
 
-                search_direction=[i.lower() for i in search_direction.split(',')]
-                search_direction=set(search_direction)
-                if search_direction.difference(VALID_DIRECTIONS):
+                search_mode=[i.lower() for i in search_mode.split(',')]
+                search_mode=set(search_mode)
+                if search_mode.difference(VALID_DIRECTIONS):
                     print(f'Invalid search direction, please fix this line:\n{line}')
                     raise Exception
                 instance_type=instance_type.lower()
@@ -94,7 +94,7 @@ def run_searcher(target_path,output_folder,politeness_timer):
     protein_searcher= gene_searcher.protein_searcher
     compound_searcher= gene_searcher.compound_searcher
     reaction_searcher= gene_searcher.reaction_searcher
-    check_list=open(f'{output_folder}finished.txt','w+')
+    check_list=open(f'{output_folder}finished.tsv','w+')
     with open(target_path) as infile:
         line=infile.readline()
         while line:
@@ -107,22 +107,22 @@ def run_searcher(target_path,output_folder,politeness_timer):
 
                 else:
                     if len(line_split)==5:
-                        instance_type, search_direction, db_type, db_id,kegg_org_codes= line_split
+                        instance_type, search_mode, db_type, db_id,kegg_org_codes= line_split
                     else:
-                        instance_type, search_direction, db_type, db_id= line_split
+                        instance_type, search_mode, db_type, db_id= line_split
 
                     instance_type=instance_type.lower()
 
                     if db_type.startswith('syn'): db_type='synonyms'
-                    search_direction=[i.lower() for i in search_direction.split(',')]
-                    search_direction=set(search_direction)
+                    search_mode=[i.lower() for i in search_mode.split(',')]
+                    search_mode=set(search_mode)
                     instance_type=instance_type.lower()
                     if instance_type=='gene':       searcher=gene_searcher
                     elif instance_type=='protein':  searcher=protein_searcher
                     elif instance_type=='compound': searcher=compound_searcher
                     elif instance_type=='reaction': searcher=reaction_searcher
 
-                    set_search_direction([gene_searcher,protein_searcher,compound_searcher,reaction_searcher],search_direction)
+                    set_search_mode([gene_searcher,protein_searcher,compound_searcher,reaction_searcher],search_mode)
                     set_kegg_org_codes([gene_searcher,protein_searcher,compound_searcher,reaction_searcher],kegg_org_codes)
                     if instance_type == 'compound':
                         searcher.run_searcher(db_id,db_type,convergence_search=True)
@@ -142,14 +142,14 @@ if __name__ == '__main__':
     elif '--version' in sys.argv:
         print_version('pedromtq','drax')
     else:
-        search_directions_str='; '.join(VALID_DIRECTIONS)
+        search_modes_str='; '.join(VALID_DIRECTIONS)
         print('Executing command:\n', ' '.join(sys.argv))
         parser = argparse.ArgumentParser(description='____________  ___  __   __\n'+
                                                         '|  _  \ ___ \/ _ \ \ \ / /\n'+
                                                         '| | | | |_/ / /_\ \ \ V / \n'+
                                                         '| | | |    /|  _  | /   \ \n'+
                                                         '| |/ /| |\ \| | | |/ /^\ \\\n'+
-                                                        f'|___/ \_| \_\_| |_/\/   \/, a biological database scraper.\nThese are the valid search directions:{search_directions_str}',
+                                                        f'|___/ \_| \_\_| |_/\/   \/, a biological database scraper.\nThese are the valid search directions:{search_modes_str}',
                                          formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('-i', '--input_path', help='[required]\tTSV file path with a list of identifiers.')
         parser.add_argument('-o', '--output_folder', help='[required]\tOutput folder path for the information collected from the different sources')

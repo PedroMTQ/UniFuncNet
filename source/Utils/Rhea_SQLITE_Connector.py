@@ -48,31 +48,6 @@ class Rhea_SQLITE_Connector():
                 if url.endswith('.gz'):
                     gunzip(compressed_file,remove_source=True)
 
-    def resolve_instances_rhea(self, reaction_dict,proteins_list):
-        self.resolve_exceptions_rhea(reaction_dict)
-        if reaction_dict:
-            reaction_instance = Reaction(reaction_dict)
-            protein_instances=[]
-            for i in proteins_list:
-                if 'enzyme_ec' not in self.memory_dict: self.memory_dict['enzyme_ec']={}
-                if i not in self.memory_dict['enzyme_ec']:
-                    self.memory_dict['enzyme_ec'][i]=Protein({'enzyme_ec':i})
-                protein_instances.append(self.memory_dict['enzyme_ec'][i])
-            reaction_instance.set_detail('protein_instances',protein_instances,converged_in='rhea')
-            self.save_instance_neo4j(reaction_instance)
-            reaction_instance.get_all_info()
-
-    def resolve_exceptions_rhea(self,reaction_dict):
-        if 'kegg' in reaction_dict:
-            if reaction_dict['kegg']=='R00086':
-                if reaction_dict['rhea']!='13065':
-                    reaction_dict['kegg'].remove('R00086')
-            elif reaction_dict['kegg']=='R03748':
-                if reaction_dict['rhea']!='13329':
-                    reaction_dict['kegg'].remove('R03748')
-        if reaction_dict['rhea']!='58156':
-            reaction_dict=None
-
     def parse_rhea2xrefs(self,rhea2xrefs_path):
         print('Parsing rhea2xrefs')
         rhea2ids={}
@@ -155,6 +130,14 @@ class Rhea_SQLITE_Connector():
                 line=file.readline()
         return res
 
+    def generate_alt_ids_yielder(self,rhea_masters):
+        for master_id in rhea_masters:
+            left_id, right_id, bidirectional_id= rhea_masters[master_id]
+            yield left_id,master_id
+            yield right_id,master_id
+            yield bidirectional_id,master_id
+
+
     def generate_components_yielder(self,rhea2ids,rhea2uniprot,rhea_reactions,rhea_masters):
         '''
         rhea2ids -> protein (enzyme_ec and uniprot) and reaction(biocyc, kegg)
@@ -196,6 +179,9 @@ class Rhea_SQLITE_Connector():
 
         rhea_yielder= self.generate_components_yielder(rhea2ids,rhea2uniprot,rhea_reactions,rhea_masters)
         self.store_rheadb(rhea_yielder)
+
+        rhea_yielder= self.generate_alt_ids_yielder(rhea_masters)
+        self.store_alt_ids(rhea_yielder)
         for i in [rhea_reactions_path,rhea2uniprot_path,rhea2xrefs_path,rhea_directions_path]:
             os.remove(i)
 
@@ -203,10 +189,10 @@ class Rhea_SQLITE_Connector():
     def create_sql_table(self):
         '''
         reaction table
-        rhea id| ids| str| cpd chebi ids
+        rhea id| ids| str | cpd chebi ids
 
-        protein table
-        rhea id | enzyme ec | uniprot
+        alt_ids table
+        rhea alt id | master id
         '''
         if os.path.exists(self.db_file):
             os.remove(self.db_file)
@@ -222,6 +208,10 @@ class Rhea_SQLITE_Connector():
                             f'EQUATIONSTR TEXT,' \
                             f'EQUATIONCHEBI  TEXT )'
         self.cursor.execute(create_reaction_table_command)
+        create_alt_table_command = f'CREATE TABLE RHEAALTIDS (' \
+                            f'ALTID INTEGER,' \
+                            f'MASTERID  INTEGER )'
+        self.cursor.execute(create_alt_table_command)
         self.sqlite_connection.commit()
         self.scrape_rhea()
 
@@ -237,10 +227,17 @@ class Rhea_SQLITE_Connector():
                 temp=[]
         yield temp
 
+    def store_alt_ids(self,rhea_yielder):
+        generator_insert = self.generate_inserts(rhea_yielder)
+        for table_chunk in generator_insert:
+            insert_command = f'INSERT INTO RHEAALTIDS (ALTID, MASTERID) values (?,?)'
+            self.cursor.executemany(insert_command, table_chunk)
+        self.sqlite_connection.commit()
+
     def store_rheadb(self,rhea_yielder):
         generator_insert = self.generate_inserts(rhea_yielder)
         for table_chunk in generator_insert:
-            insert_command = f'INSERT INTO RHEAREACTIONS (RHEA, ALTIDS, BIOCYC, KEGG, ENZYMEEC, UNIPROT, EQUATIONSTR, EQUATIONCHEBI) values (?,?,?,?,?,?,?,?)'
+            insert_command = f'INSERT INTO RHEAREACTIONS (RHEA,ALTIDS, BIOCYC, KEGG, ENZYMEEC, UNIPROT, EQUATIONSTR, EQUATIONCHEBI) values (?,?,?,?,?,?,?,?)'
             self.cursor.executemany(insert_command, table_chunk)
         self.sqlite_connection.commit()
 
@@ -248,12 +245,16 @@ class Rhea_SQLITE_Connector():
         res={}
         try:    rhea_id=int(rhea_id)
         except: return res
-        fetch_command = f"SELECT RHEA,ALTIDS, BIOCYC, KEGG, ENZYMEEC, UNIPROT, EQUATIONSTR, EQUATIONCHEBI FROM RHEAREACTIONS WHERE RHEA = {rhea_id}"
-        try:
-            res_fetch=self.cursor.execute(fetch_command).fetchone()
-        except: return res
+        fetch_master_id=f'SELECT ALTID, MASTERID FROM RHEAALTIDS WHERE ALTID="{rhea_id}"'
+        res_fetch=self.cursor.execute(fetch_master_id).fetchone()
+        if res_fetch:
+            alt_id,master_id=res_fetch
+        else:
+            master_id=rhea_id
+        fetch_command = f'SELECT RHEA, ALTIDS, BIOCYC, KEGG, ENZYMEEC, UNIPROT, EQUATIONSTR, EQUATIONCHEBI FROM RHEAREACTIONS WHERE RHEA = "{master_id}"'
+        res_fetch=self.cursor.execute(fetch_command).fetchone()
         if not res_fetch: return res
-        rhea_id,alt_ids,biocyc_ids,kegg_ids,enzyme_ec_ids,uniprot_ids,reaction_str,chebi_equation = res_fetch
+        master_id,alt_ids,biocyc_ids,kegg_ids,enzyme_ec_ids,uniprot_ids,reaction_str,chebi_equation = res_fetch
         res['alt_ids']=[i for i in alt_ids.split(',') if i]
         res['biocyc']=[i for i in biocyc_ids.split(',') if i]
         res['kegg']=[i for i in kegg_ids.split(',') if i]
@@ -287,8 +288,11 @@ if __name__ == '__main__':
     s=Rhea_SQLITE_Connector()
     r=s.fetch_rhea_id_info('10000')
     print(r)
+    #this is an alternative id for 10000
+    r=s.fetch_rhea_id_info('10001')
+    print(r)
     #r=s.fetch_rhea_id_info('11210000')
     #print(r)
-    r=s.fetch_rhea_from_id('enzyme_ec','3.5.1.50')
-    print(r)
+    #r=s.fetch_rhea_from_id('enzyme_ec','3.5.1.50')
+    #print(r)
 

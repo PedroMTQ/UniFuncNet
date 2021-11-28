@@ -34,8 +34,8 @@ It does so until all available DBs have been visited.
 
 ########INFO GETTER
 class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
-    def __init__(self,memory_storage=None,search_direction=None,db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
-        Global_Searcher.__init__(self,memory_storage,search_direction,db_name=db_name,wanted_org_kegg_codes=wanted_org_kegg_codes,output_folder=output_folder,politeness_timer=politeness_timer)
+    def __init__(self,memory_storage=None,search_mode=None,db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
+        Global_Searcher.__init__(self,memory_storage,search_mode,db_name=db_name,wanted_org_kegg_codes=wanted_org_kegg_codes,output_folder=output_folder,politeness_timer=politeness_timer)
         CHEBI_SQLITE_Connector.__init__(self)
         self.close_sql_connection()
 
@@ -69,7 +69,7 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
             if fetcher_cpd:
                 if convergence_search:
                     # converge only occurs in the searchers- these are the global classes
-                    if self.is_valid_search_direction({'global','crpg','crp','cr'}):
+                    if self.is_valid_search_mode({'global','crpg','crp','cr'}):
                         fetcher.converge_compound_global()
                 return fetcher_cpd,fetcher
             else:
@@ -342,7 +342,7 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
                 for fetcher in fetcher_insts:
                     fetcher_compound=fetcher.get_compound()
                     if fetcher_compound is compound_match and convergence_search:
-                        if self.is_valid_search_direction({'global','crpg','crp','cr'}):
+                        if self.is_valid_search_mode({'global','crpg','crp','cr'}):
                             fetcher.converge_compound_global()
                 if not passed_check:
                     return compound_match
@@ -470,9 +470,9 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
                 #if temp_inst:   self.add_to_args_to_search_ids(temp_inst, args_to_search)
 
 if __name__ == '__main__':
-    searcher = Compound_Searcher(search_direction={''})
+    searcher = Compound_Searcher(search_mode={''})
     #searcher.derivatives_kegg('pi')
-    #searcher.search_direction='global'
+    #searcher.search_mode='global'
     #searcher.reset_db(delete_all=True,force_reset=True)
     #res=searcher.find_compound_string('quercetin')
     #print(res)

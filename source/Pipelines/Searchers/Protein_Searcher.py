@@ -12,8 +12,8 @@ from source.Utils.util import is_ec
 from types import GeneratorType as generator
 
 class Protein_Searcher(Global_Searcher):
-    def __init__(self,memory_storage=None,search_direction='',db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
-        Global_Searcher.__init__(self,memory_storage,search_direction,
+    def __init__(self,memory_storage=None,search_mode='',db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
+        Global_Searcher.__init__(self,memory_storage,search_mode,
                                  db_name=db_name,wanted_org_kegg_codes=wanted_org_kegg_codes,output_folder=output_folder,politeness_timer=politeness_timer)
         self.original_searcher=get_instance_type(self)
 
@@ -41,11 +41,11 @@ class Protein_Searcher(Global_Searcher):
             fetcher_protein=fetcher.get_protein()
             if fetcher_protein:
                 #converge only occurs in the searchers- these are the global classes
-                if self.is_valid_search_direction({'global'}):
+                if self.is_valid_search_mode({'global'}):
                     fetcher.converge_protein_global()
-                if self.is_valid_search_direction({'rpg','pg','crpg'}):
+                if self.is_valid_search_mode({'rpg','pg','crpg'}):
                     fetcher.converge_protein_rpg()
-                if self.is_valid_search_direction({'gpr','pr','gprc','prc'}):
+                if self.is_valid_search_mode({'gpr','pr','gprc','prc'}):
                     fetcher.converge_protein_gpr()
                 return fetcher_protein,fetcher
             else:
@@ -318,6 +318,6 @@ class Protein_Searcher(Global_Searcher):
 
 if __name__ == '__main__':
 
-    searcher=Protein_Searcher(search_direction='pr')
+    searcher=Protein_Searcher(search_mode='pr')
     p1=searcher.run_searcher('3.5.1.50','biocyc')
     #p1.get_all_info()

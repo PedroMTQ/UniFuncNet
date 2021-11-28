@@ -27,10 +27,12 @@ class Base_Component():
         return get_unique_details(bio_instance=self,remove_from_list=remove_from_list,append_to_list=append_to_list)
 
     def get_details_list(self,extra_instances=[],remove_from_list=[],append_to_list=[]):
+        bio_instances=[]
         if not isinstance(extra_instances, list):
             extra_instances=[extra_instances]
-        extra_instances.append(self)
-        return get_details_list(bio_instances=extra_instances,remove_from_list=remove_from_list,append_to_list=append_to_list)
+        bio_instances.append(self)
+        bio_instances.extend(extra_instances)
+        return get_details_list(bio_instances=bio_instances,remove_from_list=remove_from_list,append_to_list=append_to_list)
 
     def generate_details_dict(self):
         return generate_details_dict(bio_instance=self)
@@ -55,9 +57,7 @@ class Base_Component():
 
     def export_all_info(self):
         line=[]
-        for d_key in self.get_details_list(remove_from_list=[ 'internal_id',
-                                                             'compound_instances',
-                                                             ]):
+        for d_key in self.get_details_list(remove_from_list=[ 'internal_id',]):
             if d_key=='reaction_with_instances':
                 reaction_compounds=self.get_reaction_internal_id()
                 line.append(f'reaction_compounds:{reaction_compounds}')
@@ -78,6 +78,42 @@ class Base_Component():
                         else:
                             line.append(f'{d_key}:{d}')
         return '\t'.join(sorted(line))
+
+    def export_graph_edges(self):
+        lines=[]
+        internal_id=self.internal_id
+        self_initial=get_instance_type(self).lower()[0]
+        for d_key in self.get_details_list(remove_from_list=[ 'internal_id',
+                                                             ]):
+            if d_key=='reaction_with_instances':
+                reaction_with_instances=self.get_detail('reaction_with_instances')
+                for substrate in reaction_with_instances['left']:
+                    detail_internal_id = substrate[1].internal_id
+                    edge = [detail_internal_id, internal_id, 'c'+self_initial]
+                    edge = [str(i) for i in edge]
+                    edge = '\t'.join(edge)
+                    lines.append(edge)
+                for product in reaction_with_instances['right']:
+                    detail_internal_id = product[1].internal_id
+                    edge = [internal_id,detail_internal_id , self_initial+'c']
+                    edge = [str(i) for i in edge]
+                    edge = '\t'.join(edge)
+                    lines.append(edge)
+
+            elif d_key in ['protein_instances',
+                           'reaction_instances',
+                           'gene_instances',]:
+                detail_initial=d_key[0]
+                details=self.get_detail(d_key, all_possible=True)
+                if details:
+                    for d in details:
+                        detail_internal_id=d.internal_id
+                        edge=[internal_id,detail_internal_id,self_initial+detail_initial]
+                        edge=[str(i) for i in edge ]
+                        edge='\t'.join(edge)
+                        lines.append(edge)
+
+        return '\n'.join(lines)+'\n'
 
 
 

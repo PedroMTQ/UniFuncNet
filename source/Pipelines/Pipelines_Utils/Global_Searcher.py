@@ -18,10 +18,10 @@ from bs4 import BeautifulSoup
 #This is just the general class for the Searchers, instead of replicating code in the several searchers
 
 class Global_Searcher(Memory_Keeper):
-    def __init__(self,memory_storage=None,search_direction='global',db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
+    def __init__(self,memory_storage=None,search_mode='global',db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
         """
         :param memory_storage: if one is given, memory location will be shared
-        :param search_direction:
+        :param search_mode:
         types of convergence:
             'gpr'
             'rpg'
@@ -32,7 +32,7 @@ class Global_Searcher(Memory_Keeper):
         self.output_folder=output_folder
         Memory_Keeper.__init__(self,db_name=db_name,politeness_timer=politeness_timer)
         self.original_searcher=get_instance_type(self)
-        self.search_direction=search_direction
+        self.search_mode=search_mode
         self.wanted_org_kegg_codes=wanted_org_kegg_codes
         self.db_name=None
         #if we receive a memory storage, self should become that memory, otherwise we proceed as a simple Memory_Keeper instance
@@ -40,7 +40,7 @@ class Global_Searcher(Memory_Keeper):
             self.borrow_memory_lists(memory_storage)
             self.borrow_fetchers(memory_storage)
             self.memory_storage = memory_storage
-            self.search_direction=memory_storage.search_direction
+            self.search_mode=memory_storage.search_mode
             self.borrow_searchers()
         else:
             self.setup_memory_lists()
@@ -48,29 +48,29 @@ class Global_Searcher(Memory_Keeper):
             self.memory_storage=self
             #starting the fetcher for the corresponding main searcher instance
             self.setup_new_searchers()
-            self.search_direction=search_direction
+            self.search_mode=search_mode
         if not os.path.exists(RESOURCES_FOLDER):
             os.mkdir(RESOURCES_FOLDER)
 
 
 
 
-    def set_search_direction(self,search_direction):
+    def set_search_mode(self,search_mode):
         self_searcher_type= get_instance_type(self)
         if self_searcher_type!='Gene_Searcher':
-            self.gene_searcher.search_direction=search_direction
+            self.gene_searcher.search_mode=search_mode
 
         if self_searcher_type != 'Protein_Searcher':
-            self.protein_searcher.search_direction=search_direction
+            self.protein_searcher.search_mode=search_mode
 
         if self_searcher_type != 'Reaction_Searcher':
-            self.reaction_searcher.search_direction=search_direction
+            self.reaction_searcher.search_mode=search_mode
 
         if self_searcher_type != 'Compound_Searcher':
-            self.compound_searcher.search_direction=search_direction
+            self.compound_searcher.search_mode=search_mode
 
-    def is_valid_search_direction(self,allowed_search_directions):
-        if allowed_search_directions.intersection(self.search_direction):
+    def is_valid_search_mode(self,allowed_search_modes):
+        if allowed_search_modes.intersection(self.search_mode):
             return True
         else:
             return False
@@ -125,7 +125,7 @@ class Global_Searcher(Memory_Keeper):
 
     #when we want to run the cpd separetely we run this afterwards
     def run_reaction_met_instances(self,match):
-        if self.is_valid_search_direction({'gprc','prc','rc','cr','crp','crpg','global'}):
+        if self.is_valid_search_mode({'gprc','prc','rc','cr','crp','crpg','global'}):
             rn_with_ids = match.get_detail('rn_with_ids')
             for rn_with_ids_str, rn_with_ids_ids, rn_with_ids_db in rn_with_ids:
                 rn_with_ids_ids=ast.literal_eval(rn_with_ids_ids)
@@ -149,7 +149,7 @@ class Global_Searcher(Memory_Keeper):
         if self_searcher_type!='Gene_Searcher':
             from source.Pipelines.Searchers.Gene_Searcher import Gene_Searcher
             self.gene_searcher = Gene_Searcher(memory_storage=self,
-                                               search_direction=self.search_direction,
+                                               search_mode=self.search_mode,
                                                db_name=self.db_name,
                                                output_folder=self.output_folder,
                                                politeness_timer=self.politeness_timer)
@@ -160,7 +160,7 @@ class Global_Searcher(Memory_Keeper):
         if self_searcher_type != 'Protein_Searcher':
             from source.Pipelines.Searchers.Protein_Searcher import Protein_Searcher
             self.protein_searcher = Protein_Searcher(memory_storage=self,
-                                                     search_direction=self.search_direction,
+                                                     search_mode=self.search_mode,
                                                      db_name=self.db_name,
                                                      output_folder=self.output_folder,
                                                      politeness_timer=self.politeness_timer)
@@ -169,7 +169,7 @@ class Global_Searcher(Memory_Keeper):
         if self_searcher_type != 'Reaction_Searcher':
             from source.Pipelines.Searchers.Reaction_Searcher import Reaction_Searcher
             self.reaction_searcher = Reaction_Searcher(memory_storage=self,
-                                                       search_direction=self.search_direction,
+                                                       search_mode=self.search_mode,
                                                        db_name=self.db_name,
                                                        output_folder=self.output_folder,
                                                        politeness_timer=self.politeness_timer)
@@ -178,7 +178,7 @@ class Global_Searcher(Memory_Keeper):
         if self_searcher_type != 'Compound_Searcher':
             from source.Pipelines.Searchers.Compound_Searcher import Compound_Searcher
             self.compound_searcher = Compound_Searcher(memory_storage=self,
-                                                       search_direction=self.search_direction,
+                                                       search_mode=self.search_mode,
                                                        db_name=self.db_name,
                                                        output_folder=self.output_folder,
                                                        politeness_timer=self.politeness_timer)
@@ -245,7 +245,7 @@ class Global_Searcher(Memory_Keeper):
         return self.compound_searcher.find_compound(db=db,query_id=query_id)
 
     def reaction_met_instances(self, rn, rn_with_ids, db):
-        if self.is_valid_search_direction({'gprc','prc','rc','cr','crp','crpg','global'}):
+        if self.is_valid_search_mode({'gprc','prc','rc','cr','crp','crpg','global'}):
             return self.compound_searcher.reaction_met_instances(rn,rn_with_ids,db)
         else: return None
 
@@ -287,18 +287,34 @@ class Global_Searcher(Memory_Keeper):
         with open(self.output_folder+'Proteins.tsv','w+') as outfile:
             for inst in self.get_proteins_all():
                 self.write_to_output_file(inst,outfile)
-
         with open(self.output_folder+'Compounds.tsv','w+') as outfile:
             for inst in self.get_compounds_all():
                 self.write_to_output_file(inst,outfile)
-
         with open(self.output_folder+'Reactions.tsv','w+') as outfile:
             for inst in self.get_reactions_all():
-                print(repr(inst))
-
                 self.write_to_output_file(inst,outfile)
+        self.export_graph()
 
 
+    def export_graph(self):
+        print('Exporting graph.tsv')
+        with open(self.output_folder + 'Graph.tsv', 'w+') as outfile:
+            outfile.write('SOURCE\tTARGET\tINTERACTION\n')
+            for gene in self.get_genes_all():
+                edges=gene.export_graph_edges()
+                outfile.write(edges)
+
+            for protein in self.get_proteins_all():
+                edges=protein.export_graph_edges()
+                outfile.write(edges)
+
+            for compound in self.get_compounds_all():
+                edges=compound.export_graph_edges()
+                outfile.write(edges)
+            for reaction in self.get_reactions_all():
+
+                edges=reaction.export_graph_edges()
+                outfile.write(edges)
 
 
 if __name__ == '__main__':
