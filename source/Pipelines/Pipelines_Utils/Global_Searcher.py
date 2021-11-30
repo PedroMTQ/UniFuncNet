@@ -298,8 +298,8 @@ class Global_Searcher(Memory_Keeper):
 
     def export_graph(self):
         print('Exporting graph.tsv')
-        with open(self.output_folder + 'Graph.tsv', 'w+') as outfile:
-            outfile.write('SOURCE\tTARGET\tINTERACTION\n')
+        with open(self.output_folder + 'Graph.sif', 'w+') as outfile:
+            outfile.write('SOURCE\tINTERACTION\tTARGET\n')
             for gene in self.get_genes_all():
                 edges=gene.export_graph_edges()
                 outfile.write(edges)

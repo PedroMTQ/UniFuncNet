@@ -37,7 +37,9 @@ class Compound_Fetcher_Biocyc(Compound_Fetcher):
         res['biocyc'] = self.compound_id
         if 'selenium' in str(type(xml)):content=xml.page_source
         else: content=xml.content
-        context = celementTree.fromstring(content)
+        try:
+            context = celementTree.fromstring(content)
+        except: return None
         if  self.compound_id == 'E-':
             res['synonyms'] = ['electron', 'e-']
             return res

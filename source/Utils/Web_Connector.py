@@ -340,6 +340,8 @@ class Web_Connector():
                     else:                 return req.text
                 else:
                     c+=1
+                    if req.status_code==429:
+                        time.sleep(self.politeness_timer)
                     if not self.omit_errors():
                         self.print_status_code(req.status_code)
             #previous status are the most common, but there can be exceptions

@@ -6,6 +6,7 @@ from source.Fetchers.Compound_Fetchers.Compound_Fetcher_Biocyc import Compound_F
 from source.Fetchers.Compound_Fetchers.Compound_Fetcher_KEGG import Compound_Fetcher_KEGG
 from source.Fetchers.Compound_Fetchers.Compound_Fetcher_Chemspider import Compound_Fetcher_Chemspider
 from source.Fetchers.Compound_Fetchers.Compound_Fetcher_HMDB import Compound_Fetcher_HMDB
+from source.Fetchers.Compound_Fetchers.Compound_Fetcher_Rhea import Compound_Fetcher_Rhea
 from source.Utils.util import get_stoichiometry
 from source.Utils.CHEBI_SQLITE_Connector import CHEBI_SQLITE_Connector
 
@@ -43,8 +44,8 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
     def find_compound(self,db,query_id,already_found=set(),convergence_search=False):
         if self.check_already_searched_memory(db,query_id):
             return self.get_compound_match(query_id,db)
-        print('Finding compound',db,query_id)
         if db=='synonyms':
+            print('Finding compound', db, query_id)
             return self.find_compound_string(query_id,already_found,convergence_search=convergence_search)
         else:
             return self.find_info(db,query_id,convergence_search=convergence_search)
@@ -52,10 +53,13 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
 
     def select_fetcher(self,db,query_id,init_Fetcher=True):
         if db in SCRAPPABLE_DBS and not self.check_already_searched_memory(db,query_id):
+            print('Finding compound', db, query_id)
+
             if db == 'biocyc':          return  Compound_Fetcher_Biocyc(query_id, memory_storage=self.memory_storage)
             elif db == 'kegg':          return  Compound_Fetcher_KEGG(query_id, memory_storage=self.memory_storage)
             elif db == 'chemspider':    return  Compound_Fetcher_Chemspider(query_id, memory_storage=self.memory_storage)
             elif db == 'hmdb':          return  Compound_Fetcher_HMDB(query_id, memory_storage=self.memory_storage)
+            elif db == 'rhea':          return  Compound_Fetcher_Rhea(query_id, memory_storage=self.memory_storage)
             elif db == 'inchi_key' and 'chemspider' in SCRAPPABLE_DBS:     return  Compound_Fetcher_Chemspider(query_id, memory_storage=self.memory_storage,search_by_inchi_key=True)
             else:                       return  Global_Fetcher()
 
@@ -391,6 +395,8 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
         if bio_db=='inchi_key':
             args_to_search.append(['inchi_key',bio_query])
         if bio_db=='chebi':
+            args_to_search.append(['rhea', bio_query])
+
             self.start_sqlite_cursor()
             chebi_to_others=self.fetch_chebi_id_info(bio_query)
             self.close_sql_connection()

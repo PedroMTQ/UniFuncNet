@@ -60,7 +60,8 @@ class Base_Component():
         for d_key in self.get_details_list(remove_from_list=[ 'internal_id',]):
             if d_key=='reaction_with_instances':
                 reaction_compounds=self.get_reaction_internal_id()
-                line.append(f'reaction_compounds:{reaction_compounds}')
+                if reaction_compounds:
+                    line.append(f'reaction_compounds:{reaction_compounds}')
             elif d_key in ['protein_instances',
                            'reaction_instances',
                            'gene_instances',]:
@@ -89,13 +90,13 @@ class Base_Component():
                 reaction_with_instances=self.get_detail('reaction_with_instances')
                 for substrate in reaction_with_instances['left']:
                     detail_internal_id = substrate[1].internal_id
-                    edge = [detail_internal_id, internal_id, 'c'+self_initial]
+                    edge = [detail_internal_id, 'c'+self_initial, internal_id]
                     edge = [str(i) for i in edge]
                     edge = '\t'.join(edge)
                     lines.append(edge)
                 for product in reaction_with_instances['right']:
                     detail_internal_id = product[1].internal_id
-                    edge = [internal_id,detail_internal_id , self_initial+'c']
+                    edge = [internal_id,self_initial+'c',detail_internal_id ]
                     edge = [str(i) for i in edge]
                     edge = '\t'.join(edge)
                     lines.append(edge)
@@ -208,6 +209,7 @@ class Base_Component():
 # Setting information
 # Databases IDs are actually instances of class Counter, which will define a compound's ID as the most frequent one from  a list of redundant IDs
     def set_id(self, db, id_to_add, count=1):
+        id_to_add=str(id_to_add)
         if not db.endswith('_id'):          db_str = db + '_id'
         else:                               db_str = db
         if db_str not in self.identifiers:

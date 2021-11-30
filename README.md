@@ -40,17 +40,17 @@ Data collection is possible for multiple databases:
 - KEGG
 - HMDB
 - Biocyc
+- Rhea
 
 To avoid overloading these database websites, a 10 seconds pause between requests was added.
 
 DRAX accepts the following parameters:
 
 
-    python DRAX search_direction search_type -i input_path -o output_folder -rm -db db1,db2
+    python DRAX -i input_path -o output_folder -db kegg,rhea,biocyc,hmdb -pt 10
 
     Mandatory arguments: --input_path / -i
     Optional arguments:  --output_folder / -o
-                         --reaction_metabolites / -rm
                          --databases / -db
 
 
@@ -58,7 +58,6 @@ Where each parameter corresponds to the following:
 
 - `input_path` - the input tsv file path. 
 - `output_folder` - the output folder where the spreadsheets are stored
-- `reaction_metabolites` - searches for data on each reaction's compound, which improves reaction matching across different databases
 - `databases ` - databases that DRAX can search in, by default HMDB,Biocyc, and KEGG
 - `politeness_timer` - time (seconds) between requests. Default is 10. Please be careful not to overleaf the corresponding databases, you might get blocked from doing future requests.
 
@@ -67,7 +66,7 @@ Where each parameter corresponds to the following:
 
 
 
-Data is  retrieved according to the information provided, for example, if the user provides the KEGG gene ID hsa:150763, then, given that the gpr search direction is used, DRAX would fetch information on this gene, the KEGG protein entries connected to this gene (i.e., 2.3.1.15) and by extent the reactions these protein(s) catalyze (i.e., R00851,R02617,R09380).
+Data is  retrieved according to the information provided, for example, if the user provides the KEGG gene ID hsa:150763, then, given that the gpr search mode is used, DRAX would fetch information on this gene, the KEGG protein entries connected to this gene (i.e., 2.3.1.15) and by extent the reactions these protein(s) catalyze (i.e., R00851,R02617,R09380).
 
 
 - `search_type` - starting point of the search, if the user aims to provide IDs for proteins, then it would be `protein_search`, and the same for the other types of biological instances
@@ -77,7 +76,7 @@ Data is  retrieved according to the information provided, for example, if the us
 
 The input file should be a tab separated file that looks something like this:
  
-  | Component  | Search direction | ID type | ID |
+  | Component  | search mode | ID type | ID |
   | ---  | ---  | --- | --- |
   | gene |  | biocyc  | HS08548  |
   | gene | gp | hmdb  | HMDBP00087  |
@@ -92,6 +91,7 @@ The input file should be a tab separated file that looks something like this:
   | reaction |  | biocyc  | PROTOHEMEFERROCHELAT-RXN   |
   | reaction | rp | hmdb  | 14073   |
   | reaction |  | kegg  | R02887   |
+  | reaction |  | rhea  | 10000   |
   | compound | global | biocyc    | CPD-520   |
   | compound |  | chebi    | 27531   |
   | compound |  | chemspider    | 937   |
@@ -104,9 +104,24 @@ I've tried to make this example tsv extensive but some caveats remain:
 
 - the first column corresponds to the component type you provided the ID for
 
-- the second column the search direction, i.e., direction of the search, `global` for searching in both directions, `na` for searching only the provided IDs, without connecting to other instances, `rpg` for searching from reaction->protein->gene, and `pg`, `gpr`, `pr`,`gp`. **Keep in mind you can use multiple search directions**, e.g., `rp,pr`. This is especially useful if you want to map compounds to reactions and proteins (web crawling for kegg and biocyc can be only `rp`, but hmdb needs both `rp,pr`).
+- the second column the search mode, i.e., direction of the search, `global` for searching in both directions, and, for example, `rpg` for searching from reaction->protein->gene. You can also search only for the data associated with your input IDs without actually searching for connections by leaving this value blank. **Keep in mind you can use multiple search modes**, e.g., `rp,pr`, but this may result in redundant searches. At the moment these are all the valid directions of search:
+  - 'gp'
+  - 'gpr'
+  - 'gprc'
+  - 'pg'
+  - 'pr'
+  - 'prc'
+  - 'rpg'
+  - 'rp'
+  - 'rc'
+  - 'cr'
+  - 'crp'
+  - 'crpg'
+  - 'global'
+  - ''
 
-- keep in mind DRAX will always try to use all available IDs to search for more information. That is, if you start with a certain ID (e.g., kegg ID), if DRAX finds searchable information for the other databases (in this case biocyc and hmdb) then it will also collect data from those databases. This applies to different components as well, e.g., DRAX starts with gene IDs from kegg, then finds the corresponding proteins for these genes in hmdb and biocyc; DRAX (if the search direction is set to `gp,pg`) will then also find information on genes for these two additional databases.
+
+- keep in mind DRAX will always try to use all available IDs to search for more information. That is, if you start with a certain ID (e.g., kegg ID), if DRAX finds searchable information for the other databases (in this case biocyc and hmdb) then it will also collect data from those databases. This applies to different components as well, e.g., DRAX starts with gene IDs from kegg, then finds the corresponding proteins for these genes in hmdb and biocyc; DRAX (if the search mode is set to `gp,pg`) will then also find information on genes for these two additional databases.
 
 - Some type of IDs (i.e., `enzyme_ec` and `uniprot`) can be matched with multiple databases. `synonyms` and `chebi` can also be used to query multiple databases. For example, for the line `protein | pr | uniprot | P19367`, DRAX will try to match this Uniprot ID with all the databases
 
@@ -120,6 +135,7 @@ Several IDs are allowed per biological instance:
     - Biocyc (e.g., "RXN66-521")
     - KEGG (e.g., "R02848")
     - HMDB (e.g., "14073")
+    - Rhea (e.g., "10000")
     
 - Protein:
     - enzyme EC number (e.g., "2.7.1.1")
@@ -146,10 +162,10 @@ Several IDs are allowed per biological instance:
 
 ### Output
 
-DRAX outputs 4 tsv files: `Compounds.tsv`,`Reactions.tsv`,`Proteins.tsv`,`Genes.tsv`
-Each file contains multiple instances (e.g., compound) with a tab-separated list of identifiers or other relevant information.
+DRAX outputs 5 tsv files: `Compounds.tsv`,`Reactions.tsv`,`Proteins.tsv`,`Genes.tsv`, and `Graph.tsv`
+Each of the first 4 files contain multiple instances (e.g., compound) with a tab-separated list of identifiers or other relevant information.
 Specifically, all instances contain an `internal_id` which can be used for graph-based approaches cross-linking (e.g., `manuscript.py`), and often a list of identifiers and synonyms.
-In the case of reactions, proteins and genes, cross-linking is available in the form of `<instance>_connected`. For example, if the user searches for all reactions of a set of proteins, then the retrieved proteins would have a list of `reactions_connected:<reaction internal_id>` depicting which reactions this protein is connected to. The same would apply for other search directions or search starting points.
+In the case of reactions, proteins and genes, cross-linking is available in the form of `<instance>_connected`. For example, if the user searches for all reactions of a set of proteins, then the retrieved proteins would have a list of `reactions_connected:<reaction internal_id>` depicting which reactions this protein is connected to. The same would apply for other search modes or search starting points.
 Reactions also contain the list of compounds involved in this reaction, e.g.: `reaction_compounds:<C1> + <C2> <=> <C3> + <C4> + <C5>` where `CX` corresponds to a compound's `internal_id`.
 
 Using the example above as an example (with input the enzyme EC 2.7.8.26), the output for each instance would look somewhat like:
@@ -163,15 +179,18 @@ Using the example above as an example (with input the enzyme EC 2.7.8.26), the o
 As can be seen, the protein (i.e., `internal_id:270`) shown above is connected to the reaction `25550` which in turn is described as the following interaction between compounds: 10310 + 6731 => 21252 + 24415 + 8385. These compounds are then listed in the `Compounds.tsv` as shown above. For visualization purposess only a small transcript is shown above.
 
 
-### On search directions
+The `Graph.tsv` file contains edges between nodes (i.e. components). For example since the protein with the internal id 270 is connected to the reaction with the internal id 25550, then there will be an edge between the **source** node 270 and the **target** node 25550. The third column in this file contains the type of interaction, which in this case would be from protein to reaction, i.e., **pr**.
 
-The search direction  `na` removes any type of extra search besides the initial IDs provided, meaning that if the user provides the KEGG gene ID hsa:150763, we would still search for it (and retrieve gene-related data) but we would not search for its respective proteins.
 
-The search direction `global` is an extensive search, where we can search in both directions (i.e. g->p->r and r->p->g), meaning that if the user provides the KEGG gene ID hsa:150763 we would retrieve the respective proteins 2.3.1.15, but we would then also search for all the gene IDs for the protein 2.3.1.15 (e.g., hsa:150763, ptr:107971389, csab:103215676). The same would apply to the protein and reaction search.
+### On search modes
+
+The search mode  `na` removes any type of extra search besides the initial IDs provided, meaning that if the user provides the KEGG gene ID hsa:150763, we would still search for it (and retrieve gene-related data) but we would not search for its respective proteins.
+
+The search mode `global` is an extensive search, where we can search in both directions (i.e. g->p->r and r->p->g), meaning that if the user provides the KEGG gene ID hsa:150763 we would retrieve the respective proteins 2.3.1.15, but we would then also search for all the gene IDs for the protein 2.3.1.15 (e.g., hsa:150763, ptr:107971389, csab:103215676). The same would apply to the protein and reaction search.
 
 Should the user provide a compound name (e.g. "water") the compound search may also retrieve related compounds (since DRAX uses the each website's search bar to retrieve the most likely compound entry). However, if an ID is provided, DRAX will first search for the ID, if information is not found, then the synonyms are used as a search method.
 This also applies to when the option `reaction_metabolites` is enabled and the reaction does not contain any compound ID, in that case the reaction string (e.g. "sn-Glycerol 3-phosphate + Acyl-CoA <=> 1-Acyl-sn-glycerol 3-phosphate + CoA") is parsed  and its compounds are searched using the method previously described.
-DRAX can also search for information connected to compounds (i.e., reactions) by enabling the required search directions `rp,pr`
+DRAX can also search for information connected to compounds (i.e., reactions) by enabling the required search modes `rp,pr`
 
 
 # License and copyright

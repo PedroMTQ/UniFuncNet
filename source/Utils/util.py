@@ -333,7 +333,7 @@ def get_id_or_str(rn_cpd):
 # transforms list of compound ids into a string with the stoichiometry and the compound ids`
 def l_rn_ids_to_str(rn, rn_ids,without_stoichiometry=False):
     res = ''
-    if not rn_ids: return 'N_A'
+    if not rn_ids: return None
     rn_ids = any_nones_to_na(rn_ids)
     sign = find_sign(rn).group()
     temp = rn.split(sign)

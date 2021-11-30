@@ -272,9 +272,7 @@ class Rhea_SQLITE_Connector():
         elif id_type in ['biocyc','kegg','uniprot']: id_type_sql=id_type.upper()
         if not id_type_sql or not input_id: return res
         fetch_command = f"SELECT RHEA,ALTIDS FROM RHEAREACTIONS WHERE {id_type_sql} = '{input_id}'"
-        try:
-            res_fetch=self.cursor.execute(fetch_command).fetchall()
-        except: return res
+        res_fetch=self.cursor.execute(fetch_command).fetchall()
         if not res_fetch: return res
         for rhea_id,alt_ids in res_fetch:
             alt_ids = alt_ids.split(',')
@@ -282,15 +280,31 @@ class Rhea_SQLITE_Connector():
             res.append(alt_ids)
         return rhea_id
 
+    def find_reactions_chebi(self,chebi_id):
+        res=set()
+        try:    chebi_id=int(chebi_id)
+        except: return res
+        fetch_command = f'SELECT RHEA, ALTIDS, BIOCYC, KEGG, ENZYMEEC, UNIPROT, EQUATIONSTR, EQUATIONCHEBI FROM RHEAREACTIONS WHERE EQUATIONCHEBI LIKE "%{chebi_id}%"'
+        res_fetch=self.cursor.execute(fetch_command).fetchall()
+        for master_id,alt_ids,biocyc_ids,kegg_ids,enzyme_ec_ids,uniprot_ids,reaction_str,chebi_equation in res_fetch:
+            all_chebi=re.findall('\d+',chebi_equation)
+            all_chebi=[int(i) for i in all_chebi]
+            if chebi_id in all_chebi:
+               res.add(master_id)
+        return res
+
 
 
 if __name__ == '__main__':
     s=Rhea_SQLITE_Connector()
+
+    r=s.find_reactions_chebi('16459')
+    print(f'found {len(r)} for this id')
     r=s.fetch_rhea_id_info('10000')
     print(r)
     #this is an alternative id for 10000
-    r=s.fetch_rhea_id_info('10001')
-    print(r)
+    #r=s.fetch_rhea_id_info('10001')
+    #print(r)
     #r=s.fetch_rhea_id_info('11210000')
     #print(r)
     #r=s.fetch_rhea_from_id('enzyme_ec','3.5.1.50')

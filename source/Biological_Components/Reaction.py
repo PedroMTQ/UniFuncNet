@@ -31,7 +31,9 @@ class Reaction(Base_Component):
                     compound_id = str(compound.internal_id)
                 else: compound_id=str(compound)
                 res.append([stoi,compound_id])
-        return l_rn_ids_to_str(self.get_reaction(),res,without_stoichiometry=True)
+        try:
+            return l_rn_ids_to_str(self.get_reaction(),res,without_stoichiometry=True)
+        except: return None
 
     ###MATCHING AND UNITING###
 
