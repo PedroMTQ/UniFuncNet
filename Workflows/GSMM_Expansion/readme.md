@@ -27,5 +27,6 @@ The `output_folder` will be the directory where this workflow outputs its analys
 - `workflow_output` - the expanded networks in `.sif` format, each network has 4 columns, `SOURCE`,`INTERACTION`,`TARGET`, and`EXPANSION`. The `SOURCE` and `TARGET` nodes can either be the IDs from the original network or the `internal_id`s from DRAX. The `INTERACTION` column describes the type of connection (either `cr` for a `compound->reaction` edge or `rc` for `reaction->compound` edge). The `EXPANSION` column marks (1/0) whether the current edge came from the original CarveMe model (`0`), or if it was added during the expansion (`1`). **The network expansion only add edges if they are somehow connected to the original network**.
 - `console.out` - console output
 
-You can also add the variable `database` and choose which database you want to collect data from. By default, all the databases are used (i.e., kegg,rhea,biocyc,hmdb).
+The variable `database` can be used to choose which database you want to collect data from. By default, all the databases are used (i.e., kegg,rhea,biocyc,hmdb).
 
+You can additionally add `-nc` or `--non_connected` when running this workflow. Without `-nc` the resulting `.sif` networks will only contain the additional edges that connect to compounds in the original network; if including `-nc` all edges are added.
