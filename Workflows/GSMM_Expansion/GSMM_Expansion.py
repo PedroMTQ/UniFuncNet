@@ -44,7 +44,7 @@ RESOURCES_FOLDER=f'{DRAX_FOLDER}Resources{SPLITTER}'
 
 
 class GSMM_expansion():
-    def __init__(self,input_folder,output_folder,database):
+    def __init__(self,input_folder,output_folder,database,only_add_connected=True):
         if not input_folder.endswith('/'):input_folder+='/'
         self.input_folder=input_folder
         if not output_folder.endswith('/'):output_folder+='/'
@@ -56,6 +56,8 @@ class GSMM_expansion():
         self.mantis_output = f'{self.output_folder}mantis_output{SPLITTER}'
         self.workflow_output = f'{self.output_folder}workflow_output{SPLITTER}'
         self.workflow_console_out = f'{self.output_folder}console.out'
+        self.output_report = f'{self.workflow_output}Report.txt'
+        if os.path.exists(self.output_report): os.remove(self.output_report)
 
         self.mantis_env='mantis_env'
         self.carveme_env='carveme_env'
@@ -65,9 +67,6 @@ class GSMM_expansion():
         self.compounds_match={'searched':set(),'matched':{}}
         #only expand network if some of the nodes are connected to the initial gsmm
         self.only_add_connected=True
-
-
-
         self.database=database
         for p in [self.output_folder,self.carveme_models,self.drax_output,self.mantis_output,self.workflow_output]:
             Path(p).mkdir(parents=True, exist_ok=True)
@@ -75,7 +74,7 @@ class GSMM_expansion():
 
     ###### parsing model
 
-    def extract_model_ids_proteins_and_reactions(self,model_file):
+    def extract_model_ids_proteins_and_reactions(self,model_file,verbose=True):
         '''
         listOfSpecies = compounds
         listOfReactions = reactions
@@ -113,10 +112,7 @@ class GSMM_expansion():
                     elif db_type=='bigg.reaction' or db_type=='seed.reaction' or db_type=='metanetx.reaction' or db_type=='SBO':
                         identifier = None
                     else:
-                        print(db_type)
                         identifier=None
-                        #raise Exception
-                        #print(identifier)
                     self.db_type_model_pr.add(db_type)
                     if identifier:
                         if db_type not in res[reaction_id]:
@@ -130,20 +126,26 @@ class GSMM_expansion():
         for reaction_id in res:
             if 'reactome_reaction' in res[reaction_id] and 'enzyme_ec' not in res[reaction_id]  and 'kegg_reaction' not in res[reaction_id]  and 'rhea_reaction' not in res[reaction_id]  and 'biocyc_reaction' not in res[reaction_id]:
                 c+=1
-        print(f'excluding {c} reactions due to it only having reactome ids')
+
         all_ids = {}
         for reaction_id in res:
             for id_type in res[reaction_id]:
                 if id_type not in all_ids: all_ids[id_type] = set()
                 all_ids[id_type].update(res[reaction_id][id_type])
+        if verbose:
+            with open(self.output_report,'a+') as file:
+                outline = f'####################################################################################################\nPre-processing {model_file}\n####################################################################################################\n'
+                file.write(outline)
+                outline=f'Excluding {c} reactions due to it only having reactome ids\n'
+                file.write(outline)
+                outline=f'This model has a total of {len(res)} reactions, '\
+                      f'{len([i for i in res if "kegg_reaction" in res[i]])} of these with a KEGG ID, '\
+                      f'{len([i for i in res if "enzyme_ec" in res[i]])} of these with an enzyme EC ID, '\
+                      f'{len([i for i in res if "rhea_reaction" in res[i]])} of these with a Rhea ID, '\
+                      f'{len([i for i in res if "biocyc_reaction" in res[i]])} of these with a Biocyc ID, and '\
+                      f'{len([i for i in res if "reactome_reaction" in res[i]])} of these with a Reactome ID.\n'
+                file.write(outline)
 
-        print(f'This model has a total of {len(res)} reactions, '
-              f'{len([i for i in res if "kegg_reaction" in res[i]])} of these with a KEGG ID, '
-              f'{len([i for i in res if "enzyme_ec" in res[i]])} of these with an enzyme EC ID, '
-              f'{len([i for i in res if "rhea_reaction" in res[i]])} of these with a Rhea ID, '
-              f'{len([i for i in res if "biocyc_reaction" in res[i]])} of these with a Biocyc ID, and '
-              f'{len([i for i in res if "reactome_reaction" in res[i]])} of these with a Reactome ID.'
-              f'')
         return all_ids
 
     def extract_model_ids_compounds(self,model_file):
@@ -176,7 +178,9 @@ class GSMM_expansion():
         for i in res:
             if res[i]:
                 compound_dict[i] = res[i]
-        print(f'This model has a total of {len(res)} compounds, with {len(res)-len(compound_dict)} not having any metadata to search with DRAX')
+        with open(self.output_report,'a+') as file:
+            outline=f'This model has a total of {len(res)} compounds, with {len(res)-len(compound_dict)} not having any metadata to search with DRAX'
+            file.write(outline)
         return compound_dict
 
 
@@ -212,9 +216,11 @@ class GSMM_expansion():
                         res[id_type].add(annot)
             else:
                 res[id_type] = mantis_ids[id_type]
-        print('IDs unique to Mantis:')
-        for id_type in res:
-            print(id_type, len(res[id_type]))
+        with open(self.output_report,'a+') as file:
+            outline='Number of IDs unique to Mantis:\n'
+            for id_type in res:
+                outline+=f'{id_type}:{len(res[id_type])}\n'
+            file.write(outline)
         return res
 
     def merge_ids_to_run(self,ids_to_run_list):
@@ -226,6 +232,7 @@ class GSMM_expansion():
         return res
 
     def compile_input_drax(self):
+        print('Compiling DRAX input tsv')
         drax_ids=[]
         for model in os.listdir(self.carveme_models):
             if model.endswith('.xml'):
@@ -248,7 +255,6 @@ class GSMM_expansion():
     ###### network analysis
 
     def create_network_model(self,dict_reactions):
-        print('Model network')
         G = nx.DiGraph()
         for reaction_id in dict_reactions:
             for r in dict_reactions[reaction_id]['reactants']:
@@ -261,7 +267,6 @@ class GSMM_expansion():
     def create_network_drax(self,reactions_dict):
         compounds_match=self.compounds_match['matched']
 
-        print('DRAX network')
         G = nx.DiGraph()
 
         for reaction_id in reactions_dict:
@@ -292,7 +297,6 @@ class GSMM_expansion():
     def create_network_expanded(self,reactions_model, reactions_drax):
         compounds_match=self.compounds_match['matched']
 
-        print('Expanded network')
         G = nx.DiGraph()
         for reaction_id in reactions_model:
             for r in reactions_model[reaction_id]['reactants']:
@@ -385,11 +389,11 @@ class GSMM_expansion():
         for dead in dead_end2:
             if dead not in dead_end1:
                 new_dead_ends.add(dead)
-
-        print('Original dead end metabolites', len(dead_end1))
-        print('Expanded dead end metabolites', len(dead_end2))
-        print('New dead end metabolites', len(new_dead_ends))
-        print('Newly connected metabolites', len(connected))
+        with open(self.output_report,'a+') as file:
+            outline=f'Original network dead end metabolites: {len(dead_end1)}\n' \
+                    f'Expanded network end metabolites: {len(new_dead_ends)}\n'\
+                    f'Newly connected end metabolites: {len(connected)}\n'
+            file.write(outline)
 
     def evaluate_network(self,graph, evaluation_function):
         dead_end,n_nodes=self.check_dead_end_metabolites(graph)
@@ -420,7 +424,9 @@ class GSMM_expansion():
 
         n_reactions = len([n for n in graph.nodes() if n.startswith('R_')])
         percentage_reactions_largest_component = 100 * max(size_subnetworks_reactions.keys()) / n_reactions
-        print('% reactions largest component', percentage_reactions_largest_component)
+        with open(self.output_report,'a+') as file:
+            outline=f'Percentage of reactions in largest component: {percentage_reactions_largest_component} %'
+            file.write(outline)
 
     ###### merge networks
 
@@ -603,6 +609,7 @@ class GSMM_expansion():
                 file.write(f'{db}_ref_folder=NA\n')
 
     def run_carveme(self):
+        print('Running CarveMe')
         activate_carveme_env = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.carveme_env}'
         process = subprocess.run(activate_carveme_env, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if process.stderr:
@@ -624,6 +631,7 @@ class GSMM_expansion():
                     print(f'Model already exists {model_out_path}')
 
     def run_mantis_setup(self):
+        print('Checking Mantis setup')
         mantis_folder=f'{RESOURCES_FOLDER}mantis{SPLITTER}'
         if not os.listdir(mantis_folder):
             Path(mantis_folder).mkdir(parents=True, exist_ok=True)
@@ -662,6 +670,7 @@ class GSMM_expansion():
         return res
 
     def run_mantis(self):
+        print('Running Mantis')
         mantis_folder=f'{RESOURCES_FOLDER}mantis{SPLITTER}'
         n_input=self.create_mantis_input()
         if n_input:
@@ -669,9 +678,14 @@ class GSMM_expansion():
             subprocess.run(mantis_setup_command,shell=True)
 
     def run_drax(self):
+        print('Running DRAX')
         self.create_mantis_input()
         if not os.listdir(self.drax_output):
-            mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && python {DRAX_FOLDER} -i {self.drax_input} -o {self.drax_output}'
+            if self.database:
+                mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && python {DRAX_FOLDER} -i {self.drax_input} -o {self.drax_output} -db {self.database}'
+            else:
+                mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && python {DRAX_FOLDER} -i {self.drax_input} -o {self.drax_output}'
+
             subprocess.run(mantis_setup_command,shell=True)
         else:
             print(f'We found files in {self.mantis_output}, so DRAX will not run again')
@@ -686,26 +700,44 @@ class GSMM_expansion():
         '''
         model_reactions = self.read_model(model_file)
 
-        model_ids = self.extract_model_ids_proteins_and_reactions(model_file)
+        model_ids = self.extract_model_ids_proteins_and_reactions(model_file,verbose=False)
         compounds_drax = self.read_drax_tsv(drax_output + '/Compounds.tsv')
         self.match_compounds_drax_model(model_file, compounds_drax)
         compounds_match=self.compounds_match['matched']
         proteins_drax = self.read_drax_tsv(drax_output + '/Proteins.tsv')
-        #print('All proteins found by drax', len(proteins_drax))
-        # now we remove proteins without a reaction
-        proteins_drax = self.remove_proteins_without_reaction(proteins_drax)
-        #print('All proteins with a reaction', len(proteins_drax))
-        proteins_drax = self.remove_proteins_drax_in_model(model_ids, proteins_drax)
-        #print('All proteins absent in the model', len(proteins_drax))
-        reactions_drax = self.read_drax_tsv(drax_output + '/Reactions.tsv')
-        #print('All reactions found by drax', len(reactions_drax))
-        reactions_drax = self.remove_reactions_without_proteins_in_drax(proteins_drax, reactions_drax)
-        #print('All reactions with proteins in drax', len(reactions_drax))
-        reactions_drax = self.remove_reactions_drax_in_model_ids(model_ids, reactions_drax)
-        #print('All reactions absent in the model (IDs)', len(reactions_drax))
-        reactions_drax = self.remove_reactions_drax_in_model_cpds(model_file, reactions_drax)
-        #print('All reactions absent in the model (compound matching)', len(reactions_drax))
-        print(f'DRAX can potentially add {len(reactions_drax)} new reactions to the model')
+        with open(self.output_report,'a+') as file:
+
+            outline=f'All proteins found by DRAX: {len(proteins_drax)}\n'
+            file.write(outline)
+
+            # now we remove proteins without a reaction
+            proteins_drax = self.remove_proteins_without_reaction(proteins_drax)
+            outline=f'All proteins connected to a reaction: {len(proteins_drax)}\n'
+            file.write(outline)
+
+            proteins_drax = self.remove_proteins_drax_in_model(model_ids, proteins_drax)
+            outline=f'All proteins absent in the model: {len(proteins_drax)}\n'
+            file.write(outline)
+
+            reactions_drax = self.read_drax_tsv(drax_output + '/Reactions.tsv')
+            outline=f'All reactions found by DRAX: {len(reactions_drax)}\n'
+            file.write(outline)
+
+            reactions_drax = self.remove_reactions_without_proteins_in_drax(proteins_drax, reactions_drax)
+            outline=f'All reactions connected to proteins with DRAX: {len(reactions_drax)}\n'
+            file.write(outline)
+
+            reactions_drax = self.remove_reactions_drax_in_model_ids(model_ids, reactions_drax)
+            outline=f'All reactions absent in the model (ID matching): {len(reactions_drax)}\n'
+            file.write(outline)
+
+            reactions_drax = self.remove_reactions_drax_in_model_cpds(model_file, reactions_drax)
+            outline=f'All reactions absent in the model (compound matching): {len(reactions_drax)}\n'
+            file.write(outline)
+
+
+            outline=f'DRAX can potentially add {len(reactions_drax)} new reactions to the model\n'
+            file.write(outline)
 
         model_network = self.create_network_model(model_reactions)
         #self.evaluate_network(model_network, nx.weakly_connected_components)
@@ -748,15 +780,18 @@ class GSMM_expansion():
                 file.write(line)
 
     def output_results(self):
+        print('Outputting results')
         for model in os.listdir(self.carveme_models):
-            print(f'####################################################################################################\nStarting analysis of {model}\n####################################################################################################')
             model_path=f'{self.carveme_models}{model}'
-            output_sif=f'{self.workflow_output}{model}'.replace('.xml','.sif')
+            output_sif=f'{model}'.replace('.xml','.sif')
+            output_sif_path=f'{self.workflow_output}{model}'.replace('.xml','.sif')
             if output_sif not in os.listdir(self.workflow_output):
+                with open(self.output_report, 'a+') as file:
+                    outline = f'####################################################################################################\nStarting analysis of {model}\n####################################################################################################\n'
+                    file.write(outline)
                 model_network,expanded_network=self.read_output_drax(model_path,self.drax_output)
                 model_edges,expanded_edges=self.get_all_nodes(model_network,expanded_network)
-                print(len(model_edges),len(expanded_edges))
-                self.output_graph(output_sif,model_edges,expanded_edges)
+                self.output_graph(output_sif_path,model_edges,expanded_edges)
 
     def workflow(self):
         self.run_mantis_setup()
@@ -770,18 +805,22 @@ class GSMM_expansion():
 
 if __name__ == '__main__':
     #if True:
-    #    GSMM_expansion(input_folder='/home/pedroq/Desktop/test_expansion/samples', output_folder='/home/pedroq/Desktop/test_expansion/out',database=None)
+    #    GSMM_expansion(input_folder='/home/pedroq/Desktop/test_expansion/samples', output_folder='/home/pedroq/Desktop/test_expansion/out')
     #else:
-    print('Executing command:\n', ' '.join(sys.argv))
-    parser = argparse.ArgumentParser(description='This workflow suggests new connections for Carveme metabolic models\n',formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-i', '--input_samples', help='[required]\tInput folder with protein sequences fastas')
-    parser.add_argument('-o', '--output_folder', help='[required]\tOutput directory')
-    parser.add_argument('-db','--database', help='[optional]\tDatabases to be used in DRAX')
-    args = parser.parse_args()
-    input_folder = args.input_folder
-    output_folder = args.output_folder
-    database = args.database
-    if input_folder and output_folder:
-        GSMM_expansion(input_folder=input_folder,output_folder=output_folder,database=database)
-    else:
-        print('Missing input and output folders')
+        print('Executing command:\n', ' '.join(sys.argv))
+        parser = argparse.ArgumentParser(description='This workflow suggests new connections for Carveme metabolic models\n',formatter_class=argparse.RawTextHelpFormatter)
+        parser.add_argument('-i', '--input_folder', help='[required]\tInput folder with protein sequences fastas')
+        parser.add_argument('-o', '--output_folder', help='[required]\tOutput directory')
+        parser.add_argument('-db','--database', help='[optional]\tDatabases to be used in DRAX')
+        parser.add_argument('-nc','--non_connected', action='store_true', help='[optional]\tExpand network with nodes that are not connected to the original network (this is off by default)')
+        args = parser.parse_args()
+        input_folder = args.input_folder
+        output_folder = args.output_folder
+        database = args.database
+        non_connected = args.non_connected
+        if non_connected: only_add_connected=False
+        else: only_add_connected=True
+        if input_folder and output_folder:
+            GSMM_expansion(input_folder=input_folder,output_folder=output_folder,database=database,only_add_connected=only_add_connected)
+        else:
+            print('Missing input and output folders')

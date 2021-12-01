@@ -1,7 +1,7 @@
 # Running the GSMM_Expansion workflow
 
 
-##Required installation
+## Required installation
 
 To run this workflow you need to install CarveMe. Unfortunately, this can't be handled automatically since you need to download CPLEX manually.
 Regardless, please follow the instructions found [here](https://carveme.readthedocs.io/en/latest/installation.html) to install CarveMe.
@@ -13,7 +13,7 @@ Please also make sure that when you install drax, you leave the environment with
 
 You need `networkx` to run this analysis; to install it run `conda install -c anaconda networkx` 
 
-##Executing workflow
+## Executing workflow
 
 To execute this workflow simply do `python GSMM_Expansion.py -i input_folder -o output_folder -db kegg,rhea,biocyc,hmdb`
 

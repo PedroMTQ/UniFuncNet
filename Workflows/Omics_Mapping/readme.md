@@ -1,11 +1,11 @@
 # Running the Omics_Mapping workflow
 
 
-##Required installation
+## Required installation
 
 Please also make sure that when you install drax, you leave the environment with the default name: `drax_env`
 
-##Executing workflow
+## Executing workflow
 
 To execute this workflow simply do `python Omics_Mapping.py -i input_folder -o output_folder -met metabolites.tsv -db kegg,rhea,biocyc,hmdb`.
 
