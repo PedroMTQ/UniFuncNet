@@ -1,27 +1,3 @@
-'''
-download genome
-we chose bio17 since it was less fragmented
-https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3497503/
-https://www.ncbi.nlm.nih.gov/nuccore/AMPG00000000
-
-
-annotate with mantis
-build model
-check connectivity model
-extract ids from model
-extract ids from mantis annotation
-run drax on ids not in model -> this will accelerate scraping but not restrict model evaluation
-
-
-
-
-
-DRAX command:
-python DRAX/ pr protein_search -t drax.tsv -o drax_manuscript -db kegg -rm
-python DRAX/ pr protein_search -t drax.tsv -o drax_manuscript -rm
-
-
-'''
 import networkx as nx
 import sys
 import argparse
@@ -44,7 +20,7 @@ RESOURCES_FOLDER=f'{DRAX_FOLDER}Resources{SPLITTER}'
 
 
 class GSMM_expansion():
-    def __init__(self,input_folder,output_folder,database,only_add_connected=True):
+    def __init__(self,input_folder,output_folder,database=None,only_connected=False):
         if not input_folder.endswith('/'):input_folder+='/'
         self.input_folder=input_folder
         if not output_folder.endswith('/'):output_folder+='/'
@@ -63,10 +39,9 @@ class GSMM_expansion():
         self.carveme_env='carveme_env'
         self.drax_env='drax_env'
         self.conda_prefix = self.get_conda_prefix()
-
         self.compounds_match={'searched':set(),'matched':{}}
         #only expand network if some of the nodes are connected to the initial gsmm
-        self.only_add_connected=True
+        self.only_connected=only_connected
         self.database=database
         for p in [self.output_folder,self.carveme_models,self.drax_output,self.mantis_output,self.workflow_output]:
             Path(p).mkdir(parents=True, exist_ok=True)
@@ -179,7 +154,7 @@ class GSMM_expansion():
             if res[i]:
                 compound_dict[i] = res[i]
         with open(self.output_report,'a+') as file:
-            outline=f'This model has a total of {len(res)} compounds, with {len(res)-len(compound_dict)} not having any metadata to search with DRAX'
+            outline=f'This model has a total of {len(res)} compounds, with {len(res)-len(compound_dict)} not having any metadata to search with DRAX\n'
             file.write(outline)
         return compound_dict
 
@@ -270,7 +245,7 @@ class GSMM_expansion():
         G = nx.DiGraph()
 
         for reaction_id in reactions_dict:
-            drax_reaction_id = f'R_{reaction_id}'
+            drax_reaction_id = f'RD_{reaction_id}'
             reaction_cpds = reactions_dict[reaction_id]['reaction_compounds']
             if ' => ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' => ', ' <=> ')
             if ' <= ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' <= ', ' <=> ')
@@ -296,7 +271,7 @@ class GSMM_expansion():
 
     def create_network_expanded(self,reactions_model, reactions_drax):
         compounds_match=self.compounds_match['matched']
-
+        rejected_reactions=0
         G = nx.DiGraph()
         for reaction_id in reactions_model:
             for r in reactions_model[reaction_id]['reactants']:
@@ -305,13 +280,13 @@ class GSMM_expansion():
                 G.add_edge(reaction_id, p)
 
         for reaction_id in reactions_drax:
-            drax_reaction_id = f'R_{reaction_id}'
+            drax_reaction_id = f'RD_{reaction_id}'
             reaction_cpds = reactions_drax[reaction_id]['reaction_compounds']
             if ' => ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' => ', ' <=> ')
             if ' <= ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' <= ', ' <=> ')
             drax_reactants, drax_products = reaction_cpds.split('<=>')
             drax_reactants, drax_products = [j.strip() for j in drax_reactants.split('+')], [j.strip() for j in drax_products.split('+')]
-            if not self.only_add_connected:
+            if not self.only_connected:
                 connected=True
             else:
                 connected = False
@@ -335,20 +310,21 @@ class GSMM_expansion():
                     G.add_edge(r, drax_reaction_id)
                 for p in product:
                     G.add_edge(drax_reaction_id, p)
+            else:
+                rejected_reactions+=1
 
-
-        return G
+        return G,rejected_reactions
 
     def check_dead_end_metabolites(self,graph):
         products = set()
         reactants = set()
         for n1, n2 in graph.edges():
             # reaction -> product
-            if n1.startswith('R_') and not n2.endswith('_e'):
+            if (n1.startswith('R_') or n1.startswith('RD_')) and not n2.endswith('_e'):
                 products.add(n2)
         for n1, n2 in graph.edges():
             # reactant -> reaction
-            if n2.startswith('R_') and not n1.endswith('_e'):
+            if (n2.startswith('R_') or n2.startswith('RD_')) and not n1.endswith('_e'):
                 reactants.add(n1)
         transported = set()
         for n1, n2 in graph.edges():
@@ -367,7 +343,7 @@ class GSMM_expansion():
             if not n1.endswith('_e'):
                 if reactant not in products:
                     res.add(reactant)
-        all_metabolites = set([n for n in graph.nodes() if not n.startswith('R_') and not n.endswith('_e')])
+        all_metabolites = set([n for n in graph.nodes() if not n.startswith('R_') and not n.startswith('RD_') and not n.endswith('_e')])
         #print('Dead end metabolites', len(res))
         #print('Transported metabolites', len(transported))
         return res,len(all_metabolites)
@@ -412,8 +388,8 @@ class GSMM_expansion():
             elif node.endswith('_c'):
                 cytosol += 1
         for subnet in subnetworks:
-            nodes = [n for n in graph.subgraph(subnet).nodes() if not n.startswith('R_')]
-            reactions = [n for n in graph.subgraph(subnet).nodes() if n.startswith('R_')]
+            nodes = [n for n in graph.subgraph(subnet).nodes() if not n.startswith('R_') and not n.startswith('RD_')]
+            reactions = [n for n in graph.subgraph(subnet).nodes() if n.startswith('R_') or n.startswith('RD_')]
             size_subnet_nodes = len(nodes)
             if size_subnet_nodes not in size_subnetworks_nodes: size_subnetworks_nodes[size_subnet_nodes] = 0
             size_subnetworks_nodes[size_subnet_nodes] += 1
@@ -422,7 +398,7 @@ class GSMM_expansion():
                 size_subnet_reactions] = 0
             size_subnetworks_reactions[size_subnet_reactions] += 1
 
-        n_reactions = len([n for n in graph.nodes() if n.startswith('R_')])
+        n_reactions = len([n for n in graph.nodes() if n.startswith('R_') or n.startswith('RD_')])
         percentage_reactions_largest_component = 100 * max(size_subnetworks_reactions.keys()) / n_reactions
         with open(self.output_report,'a+') as file:
             outline=f'Percentage of reactions in largest component: {percentage_reactions_largest_component} %'
@@ -450,6 +426,21 @@ class GSMM_expansion():
                 line = file.readline()
         return res
 
+    def subset_drax_proteins(self,proteins_drax,mantis_annotations_tsv):
+        res={}
+        mantis_annotations=self.extract_mantis_ids(mantis_annotations_tsv)
+        for protein_id in proteins_drax:
+            protein_info=proteins_drax[protein_id]
+            passed=False
+            if 'kegg_ko' in protein_info and 'kegg_ko' in mantis_annotations:
+                if protein_info['kegg_ko'].intersection(mantis_annotations['kegg_ko']):
+                    passed=True
+                elif protein_info['enzyme_ec'].intersection(mantis_annotations['enzyme_ec']):
+                    passed=True
+                if passed:
+                    res[protein_id]=protein_info
+        return res
+
     def remove_proteins_without_reaction(self,proteins_dict):
         res = {}
         for i in proteins_dict:
@@ -460,7 +451,6 @@ class GSMM_expansion():
     def remove_proteins_drax_in_model(self,model_ids, proteins_dict):
         '''
         since mantis annotations sometimes only had KOs, we now check whether we already had the respective ECs in the model
-
         '''
         res = {}
         for i in proteins_dict:
@@ -693,30 +683,33 @@ class GSMM_expansion():
     ###### main workflow
 
 
-    def read_output_drax(self,model_file, drax_output):
+    def read_output_drax(self,model_file, drax_output,mantis_annotations_tsv):
         '''
         now we have information from drax where we used the extra mantis annotations as seed
         first we need to match the identifiers from drax/Proteins to the model ids, and exclude those, since it might be that we didn't find a match before due to the ids being different
         '''
         model_reactions = self.read_model(model_file)
-
         model_ids = self.extract_model_ids_proteins_and_reactions(model_file,verbose=False)
         compounds_drax = self.read_drax_tsv(drax_output + '/Compounds.tsv')
         self.match_compounds_drax_model(model_file, compounds_drax)
         compounds_match=self.compounds_match['matched']
-        proteins_drax = self.read_drax_tsv(drax_output + '/Proteins.tsv')
         with open(self.output_report,'a+') as file:
 
+            proteins_drax = self.read_drax_tsv(drax_output + '/Proteins.tsv')
             outline=f'All proteins found by DRAX: {len(proteins_drax)}\n'
+            file.write(outline)
+
+            proteins_drax=self.subset_drax_proteins(proteins_drax,mantis_annotations_tsv)
+            outline=f'All proteins in sample found by DRAX: {len(proteins_drax)}\n'
             file.write(outline)
 
             # now we remove proteins without a reaction
             proteins_drax = self.remove_proteins_without_reaction(proteins_drax)
-            outline=f'All proteins connected to a reaction: {len(proteins_drax)}\n'
+            outline=f'All proteins in sample connected to a reaction: {len(proteins_drax)}\n'
             file.write(outline)
 
             proteins_drax = self.remove_proteins_drax_in_model(model_ids, proteins_drax)
-            outline=f'All proteins absent in the model: {len(proteins_drax)}\n'
+            outline=f'All proteins in sample absent in the model: {len(proteins_drax)}\n'
             file.write(outline)
 
             reactions_drax = self.read_drax_tsv(drax_output + '/Reactions.tsv')
@@ -724,27 +717,31 @@ class GSMM_expansion():
             file.write(outline)
 
             reactions_drax = self.remove_reactions_without_proteins_in_drax(proteins_drax, reactions_drax)
-            outline=f'All reactions connected to proteins with DRAX: {len(reactions_drax)}\n'
+            outline=f'All reactions connected to proteins in sample: {len(reactions_drax)}\n'
             file.write(outline)
 
             reactions_drax = self.remove_reactions_drax_in_model_ids(model_ids, reactions_drax)
-            outline=f'All reactions absent in the model (ID matching): {len(reactions_drax)}\n'
+            outline=f'All reactions in sample absent in the model (ID matching): {len(reactions_drax)}\n'
             file.write(outline)
 
             reactions_drax = self.remove_reactions_drax_in_model_cpds(model_file, reactions_drax)
-            outline=f'All reactions absent in the model (compound matching): {len(reactions_drax)}\n'
+            outline=f'All reactions in sample absent in the model (compound matching): {len(reactions_drax)}\n'
             file.write(outline)
 
 
             outline=f'DRAX can potentially add {len(reactions_drax)} new reactions to the model\n'
             file.write(outline)
 
-        model_network = self.create_network_model(model_reactions)
-        #self.evaluate_network(model_network, nx.weakly_connected_components)
+            model_network = self.create_network_model(model_reactions)
+            #self.evaluate_network(model_network, nx.weakly_connected_components)
 
-        expanded_network = self.create_network_expanded(model_reactions, reactions_drax)
+            expanded_network,rejected_reactions = self.create_network_expanded(model_reactions, reactions_drax)
+            outline = f'We rejected {rejected_reactions} reactions since there were not connected to the model so we only added {len(reactions_drax)-rejected_reactions} reactions\n'
+            file.write(outline)
+
         #self.evaluate_network(expanded_network, nx.weakly_connected_components)
         self.compare_dead_end_metabolites(model_network, expanded_network)
+
         return  model_network,expanded_network
 
     def get_all_nodes(self,model_network,expanded_network):
@@ -752,19 +749,20 @@ class GSMM_expansion():
         expanded_edges=set()
         for edge in model_network.edges:
             n1,n2=edge
-            if n1.startswith('R_'): n1_type='r'
+            if n1.startswith('R_') or n1.startswith('RD_'): n1_type='r'
             else: n1_type='c'
-            if n2.startswith('R_'): n2_type='r'
+            if n2.startswith('R_') or n2.startswith('RD_'): n2_type='r'
             else: n2_type='c'
             edge_str=f'{n1}\t{n1_type}{n2_type}\t{n2}'
             model_edges.add(edge_str)
         for edge in expanded_network.edges:
             n1,n2=edge
-            if n1.startswith('R_'): n1_type='r'
+            if n1.startswith('R_') or n1.startswith('RD_'): n1_type='r'
             else: n1_type='c'
-            if n2.startswith('R_'): n2_type='r'
+            if n2.startswith('R_') or n2.startswith('RD_'): n2_type='r'
             else: n2_type='c'
             edge_str=f'{n1}\t{n1_type}{n2_type}\t{n2}'
+            edge_str=edge_str.replace('RD_','')
             if edge_str not in model_edges:
                 expanded_edges.add(edge_str)
         return model_edges,expanded_edges
@@ -783,13 +781,15 @@ class GSMM_expansion():
         print('Outputting results')
         for model in os.listdir(self.carveme_models):
             model_path=f'{self.carveme_models}{model}'
-            output_sif=f'{model}'.replace('.xml','.sif')
+            model_name=model.replace('.xml','')
+            output_sif=f'{model_name}.sif'
             output_sif_path=f'{self.workflow_output}{model}'.replace('.xml','.sif')
+            mantis_annotations_tsv = f'{self.mantis_output}{model_name}{SPLITTER}consensus_annotation.tsv'
             if output_sif not in os.listdir(self.workflow_output):
                 with open(self.output_report, 'a+') as file:
                     outline = f'####################################################################################################\nStarting analysis of {model}\n####################################################################################################\n'
                     file.write(outline)
-                model_network,expanded_network=self.read_output_drax(model_path,self.drax_output)
+                model_network,expanded_network=self.read_output_drax(model_path,self.drax_output,mantis_annotations_tsv)
                 model_edges,expanded_edges=self.get_all_nodes(model_network,expanded_network)
                 self.output_graph(output_sif_path,model_edges,expanded_edges)
 
@@ -805,22 +805,21 @@ class GSMM_expansion():
 
 if __name__ == '__main__':
     #if True:
-    #    GSMM_expansion(input_folder='/home/pedroq/Desktop/test_expansion/samples', output_folder='/home/pedroq/Desktop/test_expansion/out')
+    #    GSMM_expansion(input_folder='/home/pedroq/Desktop/test_expansion/samples', output_folder='/home/pedroq/Desktop/test_expansion/out',only_connected=True)
     #else:
         print('Executing command:\n', ' '.join(sys.argv))
         parser = argparse.ArgumentParser(description='This workflow suggests new connections for Carveme metabolic models\n',formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('-i', '--input_folder', help='[required]\tInput folder with protein sequences fastas')
         parser.add_argument('-o', '--output_folder', help='[required]\tOutput directory')
         parser.add_argument('-db','--database', help='[optional]\tDatabases to be used in DRAX')
-        parser.add_argument('-nc','--non_connected', action='store_true', help='[optional]\tExpand network with nodes that are not connected to the original network (this is off by default)')
+        parser.add_argument('-oc','--only_connected', action='store_true', help='[optional]\tExpand network with nodes that are not connected to the original network (this is off by default)')
         args = parser.parse_args()
         input_folder = args.input_folder
         output_folder = args.output_folder
         database = args.database
-        non_connected = args.non_connected
-        if non_connected: only_add_connected=False
-        else: only_add_connected=True
+        only_connected = args.only_connected
+
         if input_folder and output_folder:
-            GSMM_expansion(input_folder=input_folder,output_folder=output_folder,database=database,only_add_connected=only_add_connected)
+            GSMM_expansion(input_folder=input_folder,output_folder=output_folder,database=database,only_connected=only_connected)
         else:
             print('Missing input and output folders')

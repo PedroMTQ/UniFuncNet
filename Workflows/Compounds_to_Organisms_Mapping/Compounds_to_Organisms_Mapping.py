@@ -16,31 +16,7 @@ RESOURCES_FOLDER=f'{DRAX_FOLDER}Resources{SPLITTER}'
 
 
 
-
-
-
-
-
-
-
-
-s1='/home/pedroq/Desktop/Manuscripts/benchmark_drax/omics_mapping/mantis_output/eschrichia_coli/consensus_annotation.tsv'
-s2='/home/pedroq/Desktop/Manuscripts/benchmark_drax/omics_mapping/mantis_output/klebsiella_pneumoniae/consensus_annotation.tsv'
-s3='/home/pedroq/Desktop/Manuscripts/benchmark_drax/omics_mapping/mantis_output/pseudomonas_aeruginosa/consensus_annotation.tsv'
-s4='/home/pedroq/Desktop/Manuscripts/benchmark_drax/omics_mapping/mantis_output/staphylococcus_aureus/consensus_annotation.tsv'
-organisms_annotations=[s1,s2,s3,s4]
-
-tsv_file='/home/pedroq/Desktop/Manuscripts/benchmark_drax/omics_mapping/drax.tsv'
-metabolomics_file='/home/pedroq/Desktop/Manuscripts/benchmark_drax/omics_mapping/m_mtbls497_metabolite_profiling_mass_spectrometry_v2_maf(1).tsv'
-
-
-
-
-chebi_ids='/home/pedroq/Desktop/Manuscripts/benchmark_drax/omics_mapping/output_all_chebi/'
-#chebi_ids='/home/pedroq/Desktop/Manuscripts/benchmark_drax/omics_mapping/output_all_syns/'
-#main(chebi_ids,metabolomics_file,organisms_annotations)
-
-class Omics_Mapping():
+class Compounds_to_Organisms_Mapping():
 
     def __init__(self,input_samples,metabolites,output_folder,database=None):
             if not input_samples.endswith('/'):input_samples+='/'
@@ -243,14 +219,16 @@ class Omics_Mapping():
     def get_mapped_proteins(self,linked_reactions, reactions_info):
         res = {}
         unconnected = set()
+        total_proteins_connected=set()
         for reaction_id in linked_reactions:
             if 'proteins_connected' in reactions_info[reaction_id]:
                 proteins_connected = set(reactions_info[reaction_id]['proteins_connected'])
                 res[reaction_id]=proteins_connected
+                total_proteins_connected.update(proteins_connected)
             else:
                 unconnected.add(reaction_id)
         with open(self.output_report,'a+') as file:
-            outline=f'DRAX managed to link {len(res)} reactions to specific proteins, but failed to do so for {len(unconnected)} reactions.\n'
+            outline=f'DRAX managed to link {len(res)} reactions to {len(total_proteins_connected)} proteins, but failed to do so for {len(unconnected)} reactions.\n'
             file.write(outline)
         return res
 
@@ -313,6 +291,7 @@ class Omics_Mapping():
         return res
 
     def get_organisms_to_metabolites(self,mapped_organisms, mapping, metabolites, linked_reactions, reactions_info):
+        counter={}
         with open(self.output_report,'a+') as file:
             for organism in mapped_organisms:
                 organisms_protein_ids = mapped_organisms[organism]['protein_ids']
@@ -327,9 +306,16 @@ class Omics_Mapping():
                     for cpd_id in reaction_cpds:
                         if cpd_id in mapping:
                             metabolites_info = mapping[cpd_id]
-                            outline=f'The sample {organism} was linked to the metabolites line: {", ".join(metabolites_info)}\n'
-                            file.write(outline)
+                            metline=", ".join(metabolites_info)
+                            if organism not in counter: counter[organism]={}
+                            if metline not in counter[organism]: counter[organism][metline]=0
+                            counter[organism][metline]+=1
+
                             #print(organism, reaction_id,cpd_id,metabolites_info)
+            for organism in counter:
+                for metline in counter[organism]:
+                    outline = f'The sample {organism} was linked {counter[organism][metline]} times to the metabolites line:{metline} \n'
+                    file.write(outline)
 
     def output_graph(self,linked_reactions,linked_proteins,mapped_organisms):
         output_sif = f'{self.workflow_output}Graph.sif'
@@ -389,9 +375,9 @@ class Omics_Mapping():
         self.output_results()
 
 if __name__ == '__main__':
-    if True:
-        Omics_Mapping(input_samples='/home/pedroq/Desktop/test_mapping/samples/', metabolites='/home/pedroq/Desktop/test_mapping/metabolites.tsv',output_folder='/home/pedroq/Desktop/test_mapping/out',database=None)
-    else:
+    #if True:
+    #    Compounds_to_Organisms_Mapping(input_samples='/home/pedroq/Desktop/test_mapping/samples/', metabolites='/home/pedroq/Desktop/test_mapping/metabolites.tsv',output_folder='/home/pedroq/Desktop/test_mapping/out',database=None)
+    #else:
         print('Executing command:\n', ' '.join(sys.argv))
         parser = argparse.ArgumentParser(description='This workflow suggests new connections for Carveme metabolic models\n',formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('-i','--input_samples', help='[required]\tInput folder with protein sequences fastas')
@@ -404,6 +390,6 @@ if __name__ == '__main__':
         output_folder = args.output_folder
         database = args.database
         if input_folder and output_folder:
-            Omics_Mapping(input_folder=input_folder,metabolites=metabolites,output_folder=output_folder,database=database)
+            Compounds_to_Organisms_Mapping(input_folder=input_folder,metabolites=metabolites,output_folder=output_folder,database=database)
         else:
             print('Missing input and output folders')
