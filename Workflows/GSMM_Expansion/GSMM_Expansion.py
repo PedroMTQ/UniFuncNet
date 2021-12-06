@@ -35,6 +35,7 @@ class GSMM_expansion():
         self.output_report = f'{self.workflow_output}Report.txt'
         if os.path.exists(self.output_report): os.remove(self.output_report)
 
+        self.unwanted_mantis_dbs=['nog','ncbi','tcdb']
         self.mantis_env='mantis_env'
         self.carveme_env='carveme_env'
         self.drax_env='drax_env'
@@ -366,12 +367,12 @@ class GSMM_expansion():
             if dead not in dead_end1:
                 new_dead_ends.add(dead)
         with open(self.output_report,'a+') as file:
-            outline=f'Original network dead end metabolites: {len(dead_end1)}\n' \
-                    f'Expanded network end metabolites: {len(new_dead_ends)}\n'\
-                    f'Newly connected end metabolites: {len(connected)}\n'
+            outline=f'Original network dead end metabolites: {len(dead_end1)} ({round(100*len(dead_end1)/len(graph1.nodes),3)}%)\n' \
+                    f'Expanded network end metabolites: {len(new_dead_ends)} ({round(100*len(dead_end1)/len(graph2.nodes),3)}%)\n'\
+                    f'Newly connected end metabolites: {len(connected)} ({round(100*len(connected)/len(graph1.nodes),3)}%)\n'
             file.write(outline)
 
-    def evaluate_network(self,graph, evaluation_function):
+    def evaluate_network(self,graph, evaluation_function,network_name):
         dead_end,n_nodes=self.check_dead_end_metabolites(graph)
 
         subnetworks = sorted(evaluation_function(graph), key=len, reverse=True)
@@ -401,7 +402,7 @@ class GSMM_expansion():
         n_reactions = len([n for n in graph.nodes() if n.startswith('R_') or n.startswith('RD_')])
         percentage_reactions_largest_component = 100 * max(size_subnetworks_reactions.keys()) / n_reactions
         with open(self.output_report,'a+') as file:
-            outline=f'Percentage of reactions in largest component: {percentage_reactions_largest_component} %'
+            outline=f'Percentage of reactions in {network_name} network in largest component: {percentage_reactions_largest_component}%\n'
             file.write(outline)
 
     ###### merge networks
@@ -590,12 +591,17 @@ class GSMM_expansion():
     def get_conda_prefix(self):
         current_prefix = str(subprocess.run('echo $CONDA_PREFIX', shell=True, stdout=subprocess.PIPE).stdout)
         current_prefix = current_prefix.split("'")[1].strip('\\n')
-        base_prefix = current_prefix[:re.search('envs/', current_prefix).span()[0]]
+        try:
+            base_prefix = current_prefix[:re.search('envs/', current_prefix).span()[0]]
+        except:
+            base_prefix=f'{current_prefix}{SPLITTER}'
+
+
         return base_prefix
 
     def create_mantis_config(self,mantis_folder):
         with open(f'{mantis_folder}MANTIS.config','w+') as file:
-            for db in ['nog','ncbi','tcdb']:
+            for db in self.unwanted_mantis_dbs:
                 file.write(f'{db}_ref_folder=NA\n')
 
     def run_carveme(self):
@@ -623,8 +629,8 @@ class GSMM_expansion():
     def run_mantis_setup(self):
         print('Checking Mantis setup')
         mantis_folder=f'{RESOURCES_FOLDER}mantis{SPLITTER}'
+        Path(mantis_folder).mkdir(parents=True, exist_ok=True)
         if not os.listdir(mantis_folder):
-            Path(mantis_folder).mkdir(parents=True, exist_ok=True)
             mantis_url = 'https://github.com/PedroMTQ/mantis.git'
             with open(self.workflow_console_out, 'a+') as file:
                 subprocess.run(f'git clone {mantis_url} {mantis_folder}',shell=True, stdout=file,stderr=file)
@@ -733,13 +739,12 @@ class GSMM_expansion():
             file.write(outline)
 
             model_network = self.create_network_model(model_reactions)
-            #self.evaluate_network(model_network, nx.weakly_connected_components)
+            self.evaluate_network(model_network, nx.weakly_connected_components,'baseline')
 
             expanded_network,rejected_reactions = self.create_network_expanded(model_reactions, reactions_drax)
             outline = f'We rejected {rejected_reactions} reactions since there were not connected to the model so we only added {len(reactions_drax)-rejected_reactions} reactions\n'
             file.write(outline)
-
-        #self.evaluate_network(expanded_network, nx.weakly_connected_components)
+            self.evaluate_network(expanded_network, nx.weakly_connected_components,'expanded')
         self.compare_dead_end_metabolites(model_network, expanded_network)
 
         return  model_network,expanded_network
@@ -804,9 +809,9 @@ class GSMM_expansion():
 
 
 if __name__ == '__main__':
-    #if True:
-    #    GSMM_expansion(input_folder='/home/pedroq/Desktop/test_expansion/samples', output_folder='/home/pedroq/Desktop/test_expansion/out',only_connected=True)
-    #else:
+    if True:
+        GSMM_expansion(input_folder='/home/pedroq/Desktop/test_expansion/samples', output_folder='/home/pedroq/Desktop/test_expansion/out',only_connected=False)
+    else:
         print('Executing command:\n', ' '.join(sys.argv))
         parser = argparse.ArgumentParser(description='This workflow suggests new connections for Carveme metabolic models\n',formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('-i', '--input_folder', help='[required]\tInput folder with protein sequences fastas')

@@ -1,11 +1,12 @@
 import re
-from sys import platform
+import sys
 import os
 import subprocess
 from pathlib import Path
+import argparse
 
 
-if platform.startswith('win'):
+if sys.platform.startswith('win'):
     SPLITTER = '\\'
 else:
     SPLITTER = '/'
@@ -25,6 +26,7 @@ class Compounds_to_Organisms_Mapping():
             self.output_folder=output_folder
             self.metabolites=metabolites
 
+            self.unwanted_mantis_dbs = ['nog', 'ncbi', 'tcdb']
             self.mantis_env='mantis_env'
             self.drax_env='drax_env'
 
@@ -34,7 +36,8 @@ class Compounds_to_Organisms_Mapping():
             self.mantis_output = f'{self.output_folder}mantis_output{SPLITTER}'
             self.workflow_output = f'{self.output_folder}workflow_output{SPLITTER}'
             self.workflow_console_out = f'{self.output_folder}console.out'
-            self.output_report = f'{self.workflow_output}Report.txt'
+            self.output_report = f'{self.workflow_output}Report.tsv'
+            self.report={}
 
             self.conda_prefix = self.get_conda_prefix()
             self.database=database
@@ -47,37 +50,44 @@ class Compounds_to_Organisms_Mapping():
     def get_conda_prefix(self):
         current_prefix = str(subprocess.run('echo $CONDA_PREFIX', shell=True, stdout=subprocess.PIPE).stdout)
         current_prefix = current_prefix.split("'")[1].strip('\\n')
-        base_prefix = current_prefix[:re.search('envs/', current_prefix).span()[0]]
+        try:
+            base_prefix = current_prefix[:re.search('envs/', current_prefix).span()[0]]
+        except:
+            base_prefix=f'{current_prefix}{SPLITTER}'
         return base_prefix
 
     def create_mantis_config(self,mantis_folder):
         with open(f'{mantis_folder}MANTIS.config','w+') as file:
-            for db in ['nog','ncbi','tcdb']:
+            for db in self.unwanted_mantis_dbs:
                 file.write(f'{db}_ref_folder=NA\n')
 
     def run_mantis_setup(self):
         mantis_folder=f'{RESOURCES_FOLDER}mantis{SPLITTER}'
+        Path(mantis_folder).mkdir(parents=True, exist_ok=True)
         if not os.listdir(mantis_folder):
-            Path(mantis_folder).mkdir(parents=True, exist_ok=True)
             mantis_url = 'https://github.com/PedroMTQ/mantis.git'
-            with open(self.workflow_console_out, 'a+') as file:
-                subprocess.run(f'git clone {mantis_url} {mantis_folder}',shell=True, stdout=file,stderr=file)
+            #with open(self.workflow_console_out, 'a+') as file:
+            #    subprocess.run(f'git clone {mantis_url} {mantis_folder}',shell=True, stdout=file,stderr=file)
+            subprocess.run(f'git clone {mantis_url} {mantis_folder}',shell=True)
         activate_mantis_env = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env}'
         process = subprocess.run(activate_mantis_env, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if process.stderr:
             print('Could not find mantis_env environment, creating environment')
             conda_create_env_command = f'conda env create -f {mantis_folder}mantis_env.yml'
-            with open(self.workflow_console_out, 'a+') as file:
-                subprocess.run(conda_create_env_command, shell=True,stdout=file,stderr=file)
+            #with open(self.workflow_console_out, 'a+') as file:
+            #    subprocess.run(conda_create_env_command, shell=True,stdout=file,stderr=file)
+            subprocess.run(conda_create_env_command, shell=True)
         else:
             pass
         self.create_mantis_config(mantis_folder)
         mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env} && python {mantis_folder} setup_databases'
-        with open(self.workflow_console_out, 'a+') as file:
-            subprocess.run(mantis_setup_command,shell=True,stdout=file,stderr=file)
+        #with open(self.workflow_console_out, 'a+') as file:
+        #    subprocess.run(mantis_setup_command,shell=True,stdout=file,stderr=file)
+        subprocess.run(mantis_setup_command,shell=True)
         mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env} && python {mantis_folder} check_installation'
-        with open(self.workflow_console_out, 'a+') as file:
-            subprocess.run(mantis_setup_command,shell=True,stdout=file,stderr=file)
+        #with open(self.workflow_console_out, 'a+') as file:
+        #    subprocess.run(mantis_setup_command,shell=True,stdout=file,stderr=file)
+        subprocess.run(mantis_setup_command,shell=True)
 
     def create_mantis_input(self):
         res=0
@@ -113,6 +123,7 @@ class Compounds_to_Organisms_Mapping():
             with open(self.metabolites) as met_file:
                 for line in met_file:
                     line=line.strip('\n').split('\t')
+                    line_dict={}
                     for db_id in line:
                         try:
                             int(db_id)
@@ -190,9 +201,8 @@ class Compounds_to_Organisms_Mapping():
         for met in metabolites:
             if met not in mapped:
                 unmapped.append(met)
-        with open(self.output_report,'w+') as file:
-            outline=f'DRAX managed to gather information on {len(mapped)} metabolites, but failed to do so for {len(unmapped)} metabolites.\n'
-            file.write(outline)
+        outline=f'DRAX managed to gather information on {len(mapped)} metabolites, but failed to do so for {len(unmapped)} metabolites.'
+        print(outline)
         return res
 
     def get_mapped_reactions(self, reactions_info, mapped_internal):
@@ -211,9 +221,8 @@ class Compounds_to_Organisms_Mapping():
             if metabolites_in_reactions:
                 res[reaction_id] = metabolites_in_reactions
             compounds.update(metabolites_in_reactions)
-        with open(self.output_report,'a+') as file:
-            outline=f'DRAX managed to link {len(compounds)} metabolites to a total of {len(res)} reactions.\n'
-            file.write(outline)
+        outline=f'DRAX managed to link {len(compounds)} metabolites to a total of {len(res)} reactions.'
+        print(outline)
         return res
 
     def get_mapped_proteins(self,linked_reactions, reactions_info):
@@ -227,9 +236,8 @@ class Compounds_to_Organisms_Mapping():
                 total_proteins_connected.update(proteins_connected)
             else:
                 unconnected.add(reaction_id)
-        with open(self.output_report,'a+') as file:
-            outline=f'DRAX managed to link {len(res)} reactions to {len(total_proteins_connected)} proteins, but failed to do so for {len(unconnected)} reactions.\n'
-            file.write(outline)
+        outline=f'DRAX managed to link {len(res)} reactions to {len(total_proteins_connected)} proteins, but failed to do so for {len(unconnected)} reactions.'
+        print(outline)
         return res
 
 
@@ -277,9 +285,8 @@ class Compounds_to_Organisms_Mapping():
                 elif annot in unique:
                     unique.remove(annot)
                     non_unique.add(annot)
-        with open(self.output_report,'a+') as file:
-            outline=f'After parsing the functional annotation from Mantis, we found that there were {len(unique)} unique annotations, and {len(non_unique)} non-unique annotations.\n'
-            file.write(outline)
+        outline=f'After parsing the functional annotation from Mantis, we found that there were {len(unique)} unique annotations, and {len(non_unique)} non-unique annotations.'
+        print(outline)
 
     def get_proteins_to_reactions(self,linked_reactions, organisms_protein_ids, reactions_info):
         res = set()
@@ -291,31 +298,25 @@ class Compounds_to_Organisms_Mapping():
         return res
 
     def get_organisms_to_metabolites(self,mapped_organisms, mapping, metabolites, linked_reactions, reactions_info):
-        counter={}
-        with open(self.output_report,'a+') as file:
-            for organism in mapped_organisms:
-                organisms_protein_ids = mapped_organisms[organism]['protein_ids']
-                proteins_to_reactions = self.get_proteins_to_reactions(linked_reactions, organisms_protein_ids, reactions_info)
-                for reaction_id in proteins_to_reactions:
-                    reaction_cpds = reactions_info[reaction_id]['reaction_compounds']
-                    if ' => ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' => ', ' <=> ')
-                    if ' <= ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' <= ', ' <=> ')
-                    drax_reactants, drax_products = reaction_cpds.split('<=>')
-                    drax_reactants, drax_products = [j.strip() for j in drax_reactants.split('+')], [j.strip() for j in drax_products.split('+')]
-                    reaction_cpds = set(drax_reactants + drax_products)
-                    for cpd_id in reaction_cpds:
-                        if cpd_id in mapping:
-                            metabolites_info = mapping[cpd_id]
-                            metline=", ".join(metabolites_info)
-                            if organism not in counter: counter[organism]={}
-                            if metline not in counter[organism]: counter[organism][metline]=0
-                            counter[organism][metline]+=1
+        for organism in mapped_organisms:
+            organisms_protein_ids = mapped_organisms[organism]['protein_ids']
+            proteins_to_reactions = self.get_proteins_to_reactions(linked_reactions, organisms_protein_ids, reactions_info)
+            for reaction_id in proteins_to_reactions:
+                reaction_cpds = reactions_info[reaction_id]['reaction_compounds']
+                if ' => ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' => ', ' <=> ')
+                if ' <= ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' <= ', ' <=> ')
+                drax_reactants, drax_products = reaction_cpds.split('<=>')
+                drax_reactants, drax_products = [j.strip() for j in drax_reactants.split('+')], [j.strip() for j in drax_products.split('+')]
+                reaction_cpds = set(drax_reactants + drax_products)
+                for cpd_id in reaction_cpds:
+                    if cpd_id in mapping:
+                        metabolites_info = mapping[cpd_id]
+                        metline=", ".join(metabolites_info)
+                        if organism not in self.report: self.report[organism]={}
+                        if metline not in self.report[organism]: self.report[organism][metline]=0
+                        self.report[organism][metline]+=1
+                        #print(organism, reaction_id,cpd_id,metabolites_info)
 
-                            #print(organism, reaction_id,cpd_id,metabolites_info)
-            for organism in counter:
-                for metline in counter[organism]:
-                    outline = f'The sample {organism} was linked {counter[organism][metline]} times to the metabolites line:{metline} \n'
-                    file.write(outline)
 
     def output_graph(self,linked_reactions,linked_proteins,mapped_organisms):
         output_sif = f'{self.workflow_output}Graph.sif'
@@ -338,8 +339,20 @@ class Compounds_to_Organisms_Mapping():
                     outline = f'{protein_id}\tps\t{organism}\n'
                     file.write(outline)
 
-
-
+    def output_report_tsv(self):
+        headers=['Sample']
+        for organism in self.report:
+            for metline in self.report[organism]:
+                if metline not in headers: headers.append(metline)
+        headers='\t'.join(headers)+'\n'
+        with open(self.output_report, 'w+') as file:
+            file.write(headers)
+            for organism in self.report:
+                line=[organism]
+                for metline in self.report[organism]:
+                    line.append(str(self.report[organism][metline]))
+                line='\t'.join(line)+'\n'
+                file.write(line)
 
     def output_results(self):
         compounds = f'{self.drax_output}Compounds.tsv'
@@ -363,6 +376,7 @@ class Compounds_to_Organisms_Mapping():
         self.get_unique_annotations(mapped_organisms)
         organisms_to_metabolites = self.get_organisms_to_metabolites(mapped_organisms, mapping, metabolites,linked_reactions, reactions_info)
         self.output_graph(linked_reactions,linked_proteins,mapped_organisms)
+        self.output_report_tsv()
 
 
     ###### main workflow
@@ -375,9 +389,9 @@ class Compounds_to_Organisms_Mapping():
         self.output_results()
 
 if __name__ == '__main__':
-    #if True:
-    #    Compounds_to_Organisms_Mapping(input_samples='/home/pedroq/Desktop/test_mapping/samples/', metabolites='/home/pedroq/Desktop/test_mapping/metabolites.tsv',output_folder='/home/pedroq/Desktop/test_mapping/out',database=None)
-    #else:
+    if True:
+        Compounds_to_Organisms_Mapping(input_samples='/home/pedroq/Desktop/test_mapping/samples/', metabolites='/home/pedroq/Desktop/test_mapping/metabolites.tsv',output_folder='/home/pedroq/Desktop/test_mapping/out',database=None)
+    else:
         print('Executing command:\n', ' '.join(sys.argv))
         parser = argparse.ArgumentParser(description='This workflow suggests new connections for Carveme metabolic models\n',formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('-i','--input_samples', help='[required]\tInput folder with protein sequences fastas')

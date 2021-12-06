@@ -1,5 +1,7 @@
 # Running the GSMM_Expansion workflow
 
+![overview](case_study1.png)
+
 
 ## Required installation
 
