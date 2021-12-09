@@ -53,9 +53,9 @@ class Compound_Fetcher_Biocyc(Compound_Fetcher):
                     for second_nest in first_nest:
                         if 'title' in second_nest.attrib:
                             if second_nest.attrib['title'] == 'smiles':
-                                res['SMILES'] = second_nest.text
+                                res['smiles'] = second_nest.text
                         if second_nest.tag == 'formula':
-                            res['Chemical_formula'] = second_nest.attrib['concise'].replace(' ', '')
+                            res['chemical_formula'] = second_nest.attrib['concise'].replace(' ', '')
         
             if i.tag == 'synonym':            syns.append(strip_tags(i.text).lower())
             if i.tag == 'common-name':        syns.insert(0, strip_tags(i.text).lower())

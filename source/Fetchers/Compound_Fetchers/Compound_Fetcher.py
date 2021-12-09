@@ -40,6 +40,8 @@ class Compound_Fetcher(Global_Fetcher):
         else:
             return self.memory_storage.get_biological_instance('compounds',self.compound_id,self.db)
 
+    def replace_reaction_met_instances(self,new_instance,old_instance):
+        self.memory_storage.replace_reaction_met_instances(new_instance,old_instance)
 
     def find_protein(self,query_id=None,extra_args={}):
         memory_type=get_instance_type(self.memory_storage)

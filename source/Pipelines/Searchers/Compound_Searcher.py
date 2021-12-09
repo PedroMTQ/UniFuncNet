@@ -144,6 +144,7 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
                 found_met, _ = self.find_info(db, met_id)
                 if found_met:
                     match.unite_instances(found_met)
+
             match.set_detail(db, met_id)
             if db != 'synonyms': match.set_detail('synonyms', met_name)
             rn_with_instances[side].append([whole_met_name[0], match])
@@ -190,7 +191,9 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
         pages = soup.find_all(class_='page_info')
         if not pages: return None
         pages=pages[0]
-        search_number=[int(strip_tags(i)) for i in re.findall('\d+\s',strip_tags(pages.text))]
+        try:
+            search_number=[int(strip_tags(i)) for i in re.findall('\d+\s',strip_tags(pages.text))]
+        except: return None
         #when we have several pages of results
         if len(search_number)==3:
             several_pages=True
@@ -401,8 +404,9 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
             chebi_to_others=self.fetch_chebi_id_info(bio_query)
             self.close_sql_connection()
             for chebi_db in chebi_to_others:
-                for chebi_db_id in chebi_to_others[chebi_db]:
-                    args_to_search.append([chebi_db,chebi_db_id])
+                if chebi_db not in ['smiles','chemical_formula']: #we also have this info in the sql database, wont really change much, just avoid function calls since there's no fetcher for these
+                    for chebi_db_id in chebi_to_others[chebi_db]:
+                        args_to_search.append([chebi_db,chebi_db_id])
         if bio_db in SCRAPPABLE_DBS:
             args_to_search.append([bio_db,bio_query])
         #now we just keep searching for all the possible compounds

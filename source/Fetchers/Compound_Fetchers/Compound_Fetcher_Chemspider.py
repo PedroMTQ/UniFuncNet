@@ -37,7 +37,7 @@ class Compound_Fetcher_Chemspider(Compound_Fetcher):
             found_detail = soup.find_all('span', class_='prop_title', text=detail)
             if found_detail:
                 found_detail = strip_tags(str(found_detail[0].nextSibling))
-                if detail == 'Molecular Formula':     res['Chemical_formula'] = found_detail
+                if detail == 'Molecular Formula':     res['chemical_formula'] = found_detail
                 if detail == 'ChemSpider ID':         res['chemspider'] = found_detail
         main_name_tag = 'ctl00_ctl00_ContentSection_ContentPlaceHolder1_RecordViewDetails_rptDetailsView_ctl00_WrapTitle'
         name = soup.find_all('span', {'id': main_name_tag})
@@ -53,7 +53,7 @@ class Compound_Fetcher_Chemspider(Compound_Fetcher):
                 if detail == 'Systematic name':
                     res['synonyms'].add(found_detail)
                 elif detail == 'SMILES':
-                    res['SMILES'] = found_detail
+                    res['smiles'] = found_detail
         # Now to find the DBs IDs
         for db in dbs_to_look_for:
             db_ids = soup.find_all('a', {'href': re.compile(db)})

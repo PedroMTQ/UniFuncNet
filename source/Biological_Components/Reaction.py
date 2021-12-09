@@ -100,15 +100,22 @@ class Reaction(Base_Component):
 
 
 def test_instance_creator(test_string='test'):
+    from source.Biological_Components.Compound import Compound
+
     details=['reaction_str','kegg','rhea']
     d={}
     p=Reaction(d)
+    cpd1=Compound()
+    cpd2=Compound()
+    rn_instances=[[1,cpd1],[1,cpd2]]
+    p.set_detail('reaction_with_instances')
 
     for d in details:
         if d=='reaction_str':
             p.set_detail(d,test_string+' = '+test_string)
         else:
             p.set_detail(d,test_string)
+    p.get_all_info()
     return p
 
 if __name__ == '__main__':

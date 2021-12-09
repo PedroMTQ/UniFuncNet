@@ -76,29 +76,29 @@ Data is  retrieved according to the information provided, for example, if the us
 
 The input file should be a tab separated file that looks something like this:
  
-  | Component  | search mode | ID type | ID |
-  | ---  | ---  | --- | --- |
-  | gene |  | biocyc  | HS08548  |
-  | gene | gp | hmdb  | HMDBP00087  |
-  | gene | global | kegg  | hsa:150763  |
-  | gene |  | uniprot  | P19367  |
-  | protein |  | enzyme_ec  | 2.7.1.1  |
-  | protein | global | kegg  | 2.7.1.1  |
-  | protein |  | biocyc  | 2.7.1.1  |
-  | protein |  | hmdb  | HMDBP00609  |
-  | protein | global | kegg_ko    | K00844   |
-  | protein |  | uniprot    | P19367   |
-  | reaction |  | biocyc  | PROTOHEMEFERROCHELAT-RXN   |
-  | reaction | rp | hmdb  | 14073   |
-  | reaction |  | kegg  | R02887   |
-  | reaction |  | rhea  | 10000   |
-  | compound | global | biocyc    | CPD-520   |
-  | compound |  | chebi    | 27531   |
-  | compound |  | chemspider    | 937   |
-  | compound |  | hmdb    | HMDB0000538   |
-  | compound |  | kegg    | C00093   |
-  | compound |  | inchi_key  | XLYOFNOQVPJJNP-UHFFFAOYSA-N   |
-  | compound |  | synonyms    | water   |
+| Component  | search mode | ID type | ID |
+| ---  | ---  | --- | --- |
+| gene |  | biocyc  | HS08548  |
+| gene | gp | hmdb  | HMDBP00087  |
+| gene | global | kegg  | hsa:150763  |
+| gene |  | uniprot  | P19367  |
+| protein |  | enzyme_ec  | 2.7.1.1  |
+| protein | global | kegg  | 2.7.1.1  |
+| protein |  | biocyc  | 2.7.1.1  |
+| protein |  | hmdb  | HMDBP00609  |
+| protein | global | kegg_ko    | K00844   |
+| protein |  | uniprot    | P19367   |
+| reaction |  | biocyc  | PROTOHEMEFERROCHELAT-RXN   |
+| reaction | rp | hmdb  | 14073   |
+| reaction |  | kegg  | R02887   |
+| reaction |  | rhea  | 10000   |
+| compound | global | biocyc    | CPD-520   |
+| compound |  | chebi    | 27531   |
+| compound |  | chemspider    | 937   |
+| compound |  | hmdb    | HMDB0000538   |
+| compound |  | kegg    | C00093   |
+| compound |  | inchi_key  | XLYOFNOQVPJJNP-UHFFFAOYSA-N   |
+| compound |  | synonyms    | water   |
 
 I've tried to make this example tsv extensive but some caveats remain:
 
@@ -192,6 +192,15 @@ Should the user provide a compound name (e.g. "water") the compound search may a
 This also applies to when the option `reaction_metabolites` is enabled and the reaction does not contain any compound ID, in that case the reaction string (e.g. "sn-Glycerol 3-phosphate + Acyl-CoA <=> 1-Acyl-sn-glycerol 3-phosphate + CoA") is parsed  and its compounds are searched using the method previously described.
 DRAX can also search for information connected to compounds (i.e., reactions) by enabling the required search modes `rp,pr`
 
+### Data models
+DRAX contains multiple components types (i.e., genes, proteins, reactions, and compounds), which are implemented as different data models (i.e., Python classes)
+These components inherent methods from a general data model which is able to preserve information (such as database IDs) in memory (i.e., random access memory - RAM). Besides serving as temporary data storage, this general data model also contains methods for retrieval and editing of information, as well as, matching and merging of components. Naturally, each specific component will also contain unique methods applicable only to its own component type (e.g., reactions). In this manner, through the use of object oriented programming, we effectively create a layer of abstraction that facilitates programmatic interaction with the components.
+
+For example, having collected data on a certain reaction into a python dictionary, a "Reaction" instance can be created, storing any information relevant to this data model type, such as the reaction string and database IDs. This reaction instance can then be interacted with using generic methods, e.g., DRAX can connect this instance to any compound instances involved with this reaction. 
+
+While the data models for genes, reactions and compounds are well defined (both in computational and biological terms), proteins, in the context of web scraping, are somewhat more ambiguous entities (e.g., a protein complex can be subdivided into multiple database entries); therefore, in the context of DRAX, protein components roughly represent functions. This ambiguity is a necessity to build a generic protein data model that is able to integrate multiple databases into one consistent network. This effectively creates a layer of abstraction that facilitates programmatic interaction with the components and any putative connections.
+
+Using instances and connecting them through memory pointers, a network can be generated in RAM, where each instance represents a network node. Any of the individual instances in this network can then be accessed, edited or exported as necessary; in the case of DRAX through a pre-determined workflow respecting the user input requirements. Such a framework, and it's corresponding application programming interface (API), has the added benefit of being quite general, thus being re-usable in scenarios that extend beyond the scope of DRAX. 
 
 # License and copyright
 

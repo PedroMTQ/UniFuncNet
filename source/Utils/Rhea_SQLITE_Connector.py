@@ -208,10 +208,18 @@ class Rhea_SQLITE_Connector():
                             f'EQUATIONSTR TEXT,' \
                             f'EQUATIONCHEBI  TEXT )'
         self.cursor.execute(create_reaction_table_command)
+        create_index_command = f'CREATE INDEX RHEA_IDX ON RHEAREACTIONS (RHEA)'
+        self.cursor.execute(create_index_command)
+
         create_alt_table_command = f'CREATE TABLE RHEAALTIDS (' \
                             f'ALTID INTEGER,' \
                             f'MASTERID  INTEGER )'
         self.cursor.execute(create_alt_table_command)
+
+        create_index_command = f'CREATE INDEX ALTID_IDX ON RHEAALTIDS (ALTID)'
+        self.cursor.execute(create_index_command)
+
+
         self.sqlite_connection.commit()
         self.scrape_rhea()
 

@@ -276,6 +276,7 @@ class Global_Searcher(Memory_Keeper):
 
     def write_to_output_file(self,inst,outfile):
         instance_info = inst.export_all_info()
+        instance_info=instance_info.replace('\n','')
         outfile.write(f'internal_id:{inst.internal_id}\t{instance_info}\n')
 
     def output_results(self):

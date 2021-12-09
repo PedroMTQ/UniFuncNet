@@ -11,7 +11,7 @@ class CHEBI_SQLITE_Connector():
     '''
     def __init__(self):
         self.insert_step=50000
-        self.db_file = f'{RESOURCES_FOLDER}chebi2others.db'
+        self.db_file = f'{RESOURCES_FOLDER}chebi.db'
         self.download_chebi()
 
         if os.path.exists(self.db_file):
@@ -37,6 +37,7 @@ class CHEBI_SQLITE_Connector():
         print(res_fetch)
 
     def trim_chebi_obo(self,infile_path,outfile_path):
+        a=set()
         with open(infile_path) as infile:
             with open(outfile_path,'a+') as outfile:
                 line=infile.readline()
@@ -48,7 +49,21 @@ class CHEBI_SQLITE_Connector():
                         current_info=line.split('CHEBI:')[1].strip()
                         outline=f'{main_id}\tchebi\t{current_info}'
                         outfile.write(f'{outline}\n')
+                    elif line.startswith('property_value:'):
+                        line=line.split()
+                        if len(line)==4:
+                            link_type,current_info=line[1],line[2]
+                            current_info=current_info.strip('\"')
+                            if link_type.endswith('formula'): link_type='chemical_formula'
+                            elif link_type.endswith('smiles'): link_type='smiles'
+                            elif link_type.endswith('inchikey'): link_type='inchi_key'
+                            else: link_type=None
+                            if link_type:
+                                outline=f'{main_id}\t{link_type}\t{current_info}'
+                                outfile.write(f'{outline}\n')
+                                a.add(link_type)
                     line=infile.readline()
+        print(a)
 
 
     def trim_chebi_accession(self,infile_path,outfile_path):
@@ -131,7 +146,12 @@ class CHEBI_SQLITE_Connector():
                             f'CHEBI INTEGER,' \
                             f'DATABASE TEXT,' \
                             f'ALTID  TEXT )'
+
         self.cursor.execute(create_table_command)
+
+        create_index_command = f'CREATE INDEX CHEBI_IDX ON CHEBI2OTHERS (CHEBI)'
+        self.cursor.execute(create_index_command)
+
         self.sqlite_connection.commit()
         self.store_chebi2others()
 
@@ -174,6 +194,5 @@ class CHEBI_SQLITE_Connector():
 
 if __name__ == '__main__':
     sql=CHEBI_SQLITE_Connector()
-    #sql.create_sql_table()
     alt_ids=sql.fetch_chebi_id_info('15377')
     print(alt_ids)

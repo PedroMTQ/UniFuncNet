@@ -104,7 +104,7 @@ class Compound_Fetcher_HMDB(Compound_Fetcher):
             res['Location'] = location
         SMILES = soup.find('th', string='SMILES')
         if SMILES: SMILES = SMILES.findNext().text
-        res['SMILES'] = SMILES
+        res['smiles'] = SMILES
         inchi_key = soup.find('th', string='InChI Key')
         if inchi_key: inchi_key = remove_inchi_key_equal(inchi_key.findNext().text)
         res['inchi_key'] = inchi_key
@@ -116,7 +116,7 @@ class Compound_Fetcher_HMDB(Compound_Fetcher):
         chemical_formula = soup.find('th', string='Chemical Formula')
         if chemical_formula:
             chemical_formula = chemical_formula.findNext()
-            if chemical_formula.text: res['Chemical_formula'] = chemical_formula.text
+            if chemical_formula.text: res['chemical_formula'] = chemical_formula.text
         cas = soup.find('th', string='CAS Registry Number')
         if cas:
             cas=cas.findNext()

@@ -72,10 +72,16 @@ class Synonyms():
 
     def fix_synonym_generic(self,synonym):
         syn=synonym.lower()
+        syn=syn.replace('\n','')
         syn=syn.strip()
-        if '(ambiguous)' in syn:
-            syn=syn.replace('(ambiguous)','')
-            syn=syn.strip()
+        for s in ['(non-preferred name)',
+                  '(brand name)'
+                  '(ambiguous)'
+                  ]:
+            if s in syn:
+                syn=syn.replace('(ambiguous)','')
+                syn=syn.strip()
+
         return syn
 
     def fix_synonym_compound(self,synonym):

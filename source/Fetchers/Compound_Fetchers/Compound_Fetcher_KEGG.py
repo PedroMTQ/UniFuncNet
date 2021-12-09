@@ -63,7 +63,7 @@ class Compound_Fetcher_KEGG(Compound_Fetcher):
         res['synonyms'] = synonyms
         res['kegg'] = self.compound_id
         res=self.remove_unwanted_info(res)
-        if formula: res['Chemical_formula'] = formula
+        if formula: res['chemical_formula'] = formula
         if number_of_nones_dict(res)==len(res): return None
         compound_instance= Compound(res)
         self.convergence_args['soup']=soup

@@ -81,7 +81,7 @@ def get_unique_details_gene():
 
 def get_unique_details_protein():
     res=[
-        'enzyme_ec',
+        #'enzyme_ec',
          ]
     return res
 
