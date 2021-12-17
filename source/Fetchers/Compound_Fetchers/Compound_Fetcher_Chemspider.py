@@ -63,6 +63,9 @@ class Compound_Fetcher_Chemspider(Compound_Fetcher):
                     chebi_search = re.search('CHEBI:', db_id)
                     if chebi_search: db_id = db_id[chebi_search.span()[1]:]
                     else: db_id=None
+                elif dbs_to_look_for[db] == 'drugbank':
+                    if db_id.lower()=='drugbank':
+                        db_id = db_ids[1].text
                 if db_id:
                     res[dbs_to_look_for[db]] = db_id
         res=self.remove_unwanted_info(res)
@@ -75,4 +78,5 @@ class Compound_Fetcher_Chemspider(Compound_Fetcher):
 
 
 if __name__ == '__main__':
-    search= Compound_Fetcher_Chemspider('83157')
+    search= Compound_Fetcher_Chemspider('58575')
+    search.get_compound().get_all_info()

@@ -13,7 +13,6 @@ from source.Pipelines.Searchers.Reaction_Searcher import  Reaction_Searcher
 #https://patorjk.com/software/taag/#p=display&f=Alpha&t=DRAX
 from time import time
 
-
 if platform.startswith('win'):
     SPLITTER = '\\'
 else:
@@ -68,11 +67,13 @@ def check_validity_input(target_path):
             line=line.strip('\n')
             if line:
                 line_split=line.split('\t')
-                kegg_org_codes=[]
-                if len(line_split)==5:
-                    instance_type, search_mode, db_type, db_id,kegg_org_codes= line_split
+                search_mode=[]
+                if len(line_split) == 5:
+                    db_id, db_type, instance_type, search_mode, kegg_org_codes = line_split
+                elif len(line_split) == 4:
+                    db_id, db_type, instance_type, search_mode = line_split
                 else:
-                    instance_type, search_mode, db_type, db_id= line_split
+                    db_id, db_type, instance_type = line_split
 
 
                 search_mode=[i.lower() for i in search_mode.split(',')]
@@ -88,8 +89,10 @@ def check_validity_input(target_path):
 
 def run_searcher(target_path,output_folder,politeness_timer):
     start=time()
-    print('uncomment this')
-    #run_test_browser_drivers()
+    run_test_browser_drivers()
+    current_time = datetime.datetime.now()
+    print(f"DRAX started running at  {current_time}")
+
     gene_searcher= Gene_Searcher(output_folder=output_folder,politeness_timer=politeness_timer)
     protein_searcher= gene_searcher.protein_searcher
     compound_searcher= gene_searcher.compound_searcher
@@ -102,14 +105,17 @@ def run_searcher(target_path,output_folder,politeness_timer):
             if line:
                 line_split=line.split('\t')
                 kegg_org_codes=[]
-                if len(line_split)<4:
+                search_mode=[]
+                if len(line_split)<3:
                     print('Invalid input line')
 
                 else:
                     if len(line_split)==5:
-                        instance_type, search_mode, db_type, db_id,kegg_org_codes= line_split
+                        db_id,db_type,instance_type,search_mode,kegg_org_codes = line_split
+                    elif len(line_split)==4:
+                        db_id,db_type,instance_type,search_mode = line_split
                     else:
-                        instance_type, search_mode, db_type, db_id= line_split
+                        db_id,db_type,instance_type= line_split
 
                     instance_type=instance_type.lower()
 

@@ -150,7 +150,7 @@ class Compound_Fetcher_HMDB(Compound_Fetcher):
         self.convergence_args['soup']=None
 
 if __name__ == '__main__':
-    c=Compound_Fetcher_HMDB('HMDB0000187')
+    c=Compound_Fetcher_HMDB('HMDB03153')
     c.get_compound().get_all_info()
     #c=Compound_Fetcher_HMDB('HMDB0005794')
     #print(c.get_compound())

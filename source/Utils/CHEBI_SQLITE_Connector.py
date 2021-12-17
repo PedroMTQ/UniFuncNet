@@ -190,6 +190,12 @@ class CHEBI_SQLITE_Connector():
             res[db].add(alt_id)
         return res
 
+    def fetch_all_chebi_ids(self):
+        res=set()
+        fetch_command = f"SELECT CHEBI FROM CHEBI2OTHERS"
+        res_fetch=self.cursor.execute(fetch_command).fetchall()
+        for i in res_fetch:
+            res.add(i[0])
 
 
 if __name__ == '__main__':

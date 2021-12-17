@@ -111,4 +111,5 @@ class Compound_Fetcher_Biocyc(Compound_Fetcher):
 
 
 if __name__ == '__main__':
-    search= Compound_Fetcher_Biocyc('META:6G-KESTOTETRAOSE')
+    search= Compound_Fetcher_Biocyc('CPD-15291')
+    search.get_compound().get_all_info()
