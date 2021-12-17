@@ -1,8 +1,8 @@
 # DRAX
 
 
-DRAX is a biological data collector, fetching information on gene-protein-reaction-compound relationship across multiple databases.
-It was built to aid in the mapping of metabolism related components, for example to aid in the expansion of metabolic networks, automating the often monotonous, manual data collection. 
+DRAX is a network annotation tool, fetching information on multiple entities and establishing gene-protein-reaction-compound relationships across multiple databases.
+It was built to aid in the mapping of metabolism related entities, for example to aid in the expansion of metabolic networks, automating the often monotonous, manual data collection. 
 
 ## Installation 
 
@@ -75,36 +75,38 @@ Data is  retrieved according to the information provided, for example, if the us
 ### Formatting input file
 
 The input file should be a tab separated file that looks something like this:
+
  
-| Component  | search mode | ID type | ID |
-| ---  | ---  | --- | --- |
-| gene |  | biocyc  | HS08548  |
-| gene | gp | hmdb  | HMDBP00087  |
-| gene | global | kegg  | hsa:150763  |
-| gene |  | uniprot  | P19367  |
-| protein |  | enzyme_ec  | 2.7.1.1  |
-| protein | global | kegg  | 2.7.1.1  |
-| protein |  | biocyc  | 2.7.1.1  |
-| protein |  | hmdb  | HMDBP00609  |
-| protein | global | kegg_ko    | K00844   |
-| protein |  | uniprot    | P19367   |
-| reaction |  | biocyc  | PROTOHEMEFERROCHELAT-RXN   |
-| reaction | rp | hmdb  | 14073   |
-| reaction |  | kegg  | R02887   |
-| reaction |  | rhea  | 10000   |
-| compound | global | biocyc    | CPD-520   |
-| compound |  | chebi    | 27531   |
-| compound |  | chemspider    | 937   |
-| compound |  | hmdb    | HMDB0000538   |
-| compound |  | kegg    | C00093   |
-| compound |  | inchi_key  | XLYOFNOQVPJJNP-UHFFFAOYSA-N   |
-| compound |  | synonyms    | water   |
+| ID                          | ID type    | entity type | search mode |
+|-----------------------------|------------|-------------|-------------|
+| HS08548                     | biocyc     | gene        |             |
+| HMDBP00087                  | hmdb       | gene        | gp          |
+| hsa:150763                  | kegg       | gene        | global      |
+| P19367                      | uniprot    | gene        |             |
+| 2.7.1.1                     | enzyme_ec  | protein     | pr          |
+| 2.7.1.2                     | kegg       | protein     | pg          |
+| 2.7.1.3                     | biocyc     | protein     | prc         |
+| HMDBP00609                  | hmdb       | protein     |             |
+| K00844                      | kegg_ko    | protein     |             |
+| P19367                      | uniprot    | protein     | prc,pg      |
+| PROTOHEMEFERROCHELAT-RXN    | biocyc     | reaction    |             |
+| 14073                       | hmdb       | reaction    |             |
+| R02887                      | kegg       | reaction    | rpg,rc      |
+| 10000                       | rhea       | reaction    | rp          |          
+| CPD-520                     | biocyc     | compound    |             |
+| 27531                       | chebi      | compound    | cp          |
+| 937                         | chemspider | compound    | cprg        |
+| HMDB0000538                 | hmdb       | compound    | c           |
+| C00093                      | kegg       | compound    |             |
+| XLYOFNOQVPJJNP-UHFFFAOYSA-N | inchi_key  | compound    |             |
+| water                       | synonyms   | compound    | cr          |
 
-I've tried to make this example tsv extensive but some caveats remain:
+Each column is described below:
 
-- the first column corresponds to the component type you provided the ID for
-
-- the second column the search mode, i.e., direction of the search, `global` for searching in both directions, and, for example, `rpg` for searching from reaction->protein->gene. You can also search only for the data associated with your input IDs without actually searching for connections by leaving this value blank. **Keep in mind you can use multiple search modes**, e.g., `rp,pr`, but this may result in redundant searches. At the moment these are all the valid directions of search:
+- column 1 - ID you want to search for
+- column 2 - origin of the ID
+- column 3 - entity type you provided the ID for
+- column 4 -  the search mode, i.e., direction of the search, `global` for searching in both directions, and, for example, `rpg` for searching from reaction->protein->gene. You can also search only for the data associated with your input IDs without actually searching for connections by leaving this value blank. **Keep in mind you can use multiple search modes**, e.g., `rp,pr`, but this may result in redundant searches. At the moment these are all the valid directions of search:
   - 'gp'
   - 'gpr'
   - 'gprc'
@@ -120,10 +122,9 @@ I've tried to make this example tsv extensive but some caveats remain:
   - 'global'
   - ''
 
+Keep in mind DRAX will always try to use all available IDs to search for more information. That is, if you start with a certain ID (e.g., kegg ID), if DRAX finds searchable information for the other databases (in this case biocyc and hmdb) then it will also collect data from those databases. This applies to different entities as well, e.g., DRAX starts with gene IDs from kegg, then finds the corresponding proteins for these genes in hmdb and biocyc; DRAX (if the search mode is set to `gp,pg`) will then also find information on genes for these two additional databases.
 
-- keep in mind DRAX will always try to use all available IDs to search for more information. That is, if you start with a certain ID (e.g., kegg ID), if DRAX finds searchable information for the other databases (in this case biocyc and hmdb) then it will also collect data from those databases. This applies to different components as well, e.g., DRAX starts with gene IDs from kegg, then finds the corresponding proteins for these genes in hmdb and biocyc; DRAX (if the search mode is set to `gp,pg`) will then also find information on genes for these two additional databases.
-
-- Some type of IDs (i.e., `enzyme_ec` and `uniprot`) can be matched with multiple databases. `synonyms` and `chebi` can also be used to query multiple databases. For example, for the line `protein | pr | uniprot | P19367`, DRAX will try to match this Uniprot ID with all the databases
+Some type of IDs (i.e., `enzyme_ec` and `uniprot`) can be matched with multiple databases. `synonyms` and `chebi` can also be used to query multiple databases. For example, for the line `protein | pr | uniprot | P19367`, DRAX will try to match this Uniprot ID with all the databases
 
 
 
@@ -179,10 +180,22 @@ Using the example above as an example (with input the enzyme EC 2.7.8.26), the o
 As can be seen, the protein (i.e., `internal_id:270`) shown above is connected to the reaction `25550` which in turn is described as the following interaction between compounds: 10310 + 6731 => 21252 + 24415 + 8385. These compounds are then listed in the `Compounds.tsv` as shown above. For visualization purposess only a small transcript is shown above.
 
 
-The `Graph.tsv` file contains edges between nodes (i.e. components). For example since the protein with the internal id 270 is connected to the reaction with the internal id 25550, then there will be an edge between the **source** node 270 and the **target** node 25550. The third column in this file contains the type of interaction, which in this case would be from protein to reaction, i.e., **pr**.
+The `Graph.tsv` file contains edges between nodes (i.e. entities). For example since the protein with the internal id 270 is connected to the reaction with the internal id 25550, then there will be an edge between the **source** node 270 and the **target** node 25550. The third column in this file contains the type of interaction, which in this case would be from protein to reaction, i.e., **pr**.
 
+### Example run
+
+![example_run](Figures/example.png)
+
+The example contains two inputs: in the first input line the KEGG gene edh:EcDH1\_1436 with the search mode "gp", and a second input line with the ChEBI compound ID 17968 with the search mode "crp". DRAX starts by searching for information regarding the seed gene KEGG ID edh:EcDH1\_1436, parsing the result, creating a gene entity, and retrieving the connected proteins IDs (i.e., here UniProt IDs, P76458 and P23673). Since the search mode is "gp",DRAX will do a new web query and search for the protein IDs in the available databases. DRAX now retrieves information on these two proteins and creates two protein entities (one for each UniProt ID), and stops here. The connections between the gene seed entity and the protein entities constitute direct connections.
+In the second seed input, DRAX receives the ChEBI compound ID 17968, which it then cross-links to other databases through a ChEBI SQL database. This cross-linking connects the ChEBI ID 17968 to the Biocyc ID BUTYRIC\_ACID, KEGG ID C00246 and HMDB ID HMDB0039. DRAX then searches for information on these three compound IDs on each respective database, retrieving also information on the reactions these compounds are involved in. The information from each database is then merged internally into one single compound entity. Since the search mode is "crp", DRAX starts a new round of data retrieval, querying each database for each reaction connected to the previous compound entity. During this reaction data retrieval, DRAX also searches for information on all other compounds involved in these reactions (not shown in figure, but, e.g., for the reaction "Butanoyl-CoA + Acetate <=> Butanoic acid + Acetyl-CoA", DRAX will not search for information on the seed compound "Butanoic acid" since it was previously searched, but it will search for information on the "Butanoyl-CoA", "Acetate", and "Acetyl-CoA" compounds). During this reaction search, DRAX finds information on the proteins linked to these reactions, and, since the search mode is "crp", it then searches for information on these proteins. Among these proteins, there are two proteins (i.e., P76458 and P23673) which have been previously searched and so DRAX does not repeat the same web query, it simply connects the reaction entities to these already existing protein entities. Having finished reading the inputs, DRAX then outputs all this information, linking entities in a graph-based manner (notice how the two seed input IDs are connected in the output graph).
 
 ### On search modes
+
+For example: the user inputs a gene ID, and the search mode `gprc`, DRAX will then search for information on the gene, as well as any directly (proteins) or indirectly (reactions and compounds) connected entities.
+
+Another example: should the user input be a gene ID and the search mode "gp" then data is first retrieved on the seed input gene ID, a seed entity is generated from this data, and (since the search mode is "gp") a new data retrieval iteration starts for the protein IDs connected to this seed entity. In this new iteration, data is retrieved for the protein IDs and the respective protein entities are generated.
+Finally, while these entities may be associated with more gene IDs and reaction IDs, the search stops, since the search mode is "gp".
+
 
 The search mode  `na` removes any type of extra search besides the initial IDs provided, meaning that if the user provides the KEGG gene ID hsa:150763, we would still search for it (and retrieve gene-related data) but we would not search for its respective proteins.
 
@@ -193,12 +206,12 @@ This also applies to when the option `reaction_metabolites` is enabled and the r
 DRAX can also search for information connected to compounds (i.e., reactions) by enabling the required search modes `rp,pr`
 
 ### Data models
-DRAX contains multiple components types (i.e., genes, proteins, reactions, and compounds), which are implemented as different data models (i.e., Python classes)
-These components inherent methods from a general data model which is able to preserve information (such as database IDs) in memory (i.e., random access memory - RAM). Besides serving as temporary data storage, this general data model also contains methods for retrieval and editing of information, as well as, matching and merging of components. Naturally, each specific component will also contain unique methods applicable only to its own component type (e.g., reactions). In this manner, through the use of object oriented programming, we effectively create a layer of abstraction that facilitates programmatic interaction with the components.
+DRAX contains multiple entities types (i.e., genes, proteins, reactions, and compounds), which are implemented as different data models (i.e., Python classes)
+These entities inherent methods from a general data model which is able to preserve information (such as database IDs) in memory (i.e., random access memory - RAM). Besides serving as temporary data storage, this general data model also contains methods for retrieval and editing of information, as well as, matching and merging of entities. Naturally, each specific component will also contain unique methods applicable only to its own component type (e.g., reactions). In this manner, through the use of object oriented programming, we effectively create a layer of abstraction that facilitates programmatic interaction with the entities.
 
 For example, having collected data on a certain reaction into a python dictionary, a "Reaction" instance can be created, storing any information relevant to this data model type, such as the reaction string and database IDs. This reaction instance can then be interacted with using generic methods, e.g., DRAX can connect this instance to any compound instances involved with this reaction. 
 
-While the data models for genes, reactions and compounds are well defined (both in computational and biological terms), proteins, in the context of web scraping, are somewhat more ambiguous entities (e.g., a protein complex can be subdivided into multiple database entries); therefore, in the context of DRAX, protein components roughly represent functions. This ambiguity is a necessity to build a generic protein data model that is able to integrate multiple databases into one consistent network. This effectively creates a layer of abstraction that facilitates programmatic interaction with the components and any putative connections.
+While the data models for genes, reactions and compounds are well defined (both in computational and biological terms), proteins, in the context of web scraping, are somewhat more ambiguous entities (e.g., a protein complex can be subdivided into multiple database entries); therefore, in the context of DRAX, protein entities roughly represent functions. This ambiguity is a necessity to build a generic protein data model that is able to integrate multiple databases into one consistent network. This effectively creates a layer of abstraction that facilitates programmatic interaction with the entities and any putative connections.
 
 Using instances and connecting them through memory pointers, a network can be generated in RAM, where each instance represents a network node. Any of the individual instances in this network can then be accessed, edited or exported as necessary; in the case of DRAX through a pre-determined workflow respecting the user input requirements. Such a framework, and it's corresponding application programming interface (API), has the added benefit of being quite general, thus being re-usable in scenarios that extend beyond the scope of DRAX. 
 
