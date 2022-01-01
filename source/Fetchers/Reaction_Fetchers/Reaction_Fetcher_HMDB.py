@@ -24,7 +24,7 @@ class Reaction_Fetcher_HMDB(Reaction_Fetcher):
 
     #######HMDB
     def synonyms_compound_HMDB(self, compound_ID, compound):
-        url = 'http://www.hmdb.ca/metabolites/' + compound_ID
+        url = f'http://www.hmdb.ca/metabolites/{compound_ID}'
         webpage = self.get_with_fetcher(url)
         if not webpage: return None
         soup = BeautifulSoup(webpage, 'lxml')
@@ -69,7 +69,7 @@ class Reaction_Fetcher_HMDB(Reaction_Fetcher):
 
     def find_compound_ID_HMDB(self, compound):
         # this will only check the first page, which should already contain the best results
-        url = 'http://www.hmdb.ca/unearth/q?utf8=%E2%9C%93&query=' + compound + '&searcher=metabolites&button='
+        url = f'http://www.hmdb.ca/unearth/q?utf8=%E2%9C%93&query={compound}&searcher=metabolites&button='
         webpage = self.get_with_fetcher(url)
         if not webpage: return None
         soup = BeautifulSoup(webpage, 'lxml')
@@ -105,7 +105,7 @@ class Reaction_Fetcher_HMDB(Reaction_Fetcher):
 
     def get_table_detail(self, hmdb_id, database, detail):  # gets a certain detail from HMDB
         # database= proteins for enzymes, metabolites for compounds, only works for these 2
-        url = 'http://www.hmdb.ca/' + database + '/' + hmdb_id
+        url = f'http://www.hmdb.ca/{database}/{hmdb_id}'
         try:
             webpage = self.get_with_fetcher(url)
             if not webpage: return None
@@ -118,7 +118,7 @@ class Reaction_Fetcher_HMDB(Reaction_Fetcher):
 
     def get_reaction_HMDB(self):
 
-        url = 'http://www.hmdb.ca/reactions/' + self.reaction_id
+        url = f'http://www.hmdb.ca/reactions/{self.reaction_id}'
         webpage = self.get_with_fetcher(url)
         if not webpage: return None
         reaction_soup = BeautifulSoup(webpage, 'lxml')

@@ -99,7 +99,7 @@ class Gene_Searcher(Global_Searcher):
 
 
     def get_db_id_from_uniprot_biocyc(self,uniprot_id):
-        url='https://biocyc.org/META/search-query?type=GENE&pname='+uniprot_id
+        url=f'https://biocyc.org/META/search-query?type=GENE&pname={uniprot_id}'
         webpage=self.get_with_fetcher(url)
         if not webpage: return None
         soup = BeautifulSoup(webpage, 'lxml')
@@ -116,7 +116,7 @@ class Gene_Searcher(Global_Searcher):
             return gene_id
 
     def get_db_id_from_uniprot_hmdb(self,uniprot_id):
-        url='http://www.hmdb.ca/unearth/q?utf8=%E2%9C%93&query='+uniprot_id+'&searcher=proteins&button='
+        url=f'http://www.hmdb.ca/unearth/q?utf8=%E2%9C%93&query={uniprot_id}&searcher=proteins&button='
         webpage=self.get_with_fetcher(url)
         if not webpage: return None
         soup = BeautifulSoup(webpage, 'lxml')

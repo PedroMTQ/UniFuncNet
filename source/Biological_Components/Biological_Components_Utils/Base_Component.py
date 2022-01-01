@@ -90,7 +90,7 @@ class Base_Component():
                 reaction_with_instances=self.get_detail('reaction_with_instances')
                 for substrate in reaction_with_instances['left']:
                     detail_internal_id = substrate[1].internal_id
-                    edge = [detail_internal_id, 'c'+self_initial, internal_id]
+                    edge = [detail_internal_id, f'c{self_initial}', internal_id]
                     edge = [str(i) for i in edge]
                     edge = '\t'.join(edge)
                     lines.append(edge)

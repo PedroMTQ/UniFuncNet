@@ -24,9 +24,9 @@ class Compound_Fetcher_Chemspider(Compound_Fetcher):
                            'rcsb.org/ligand/': 'pdb',
                            'pubchem.ncbi.nlm.nih.gov/summary': 'pubchem_cid'}
         if self.db=='inchi_key':
-            url = 'http://www.chemspider.com/inchikey=' + self.compound_id
+            url = f'http://www.chemspider.com/inchikey={self.compound_id}'
         else:
-            url = 'http://www.chemspider.com/Chemical-Structure.' + self.compound_id + '.html'
+            url = f'http://www.chemspider.com/Chemical-Structure.{self.compound_id}.html'
         webpage = self.get_with_fetcher(url,selenium=True,xpath=xpath_list,timer=5)
         if not webpage: return None
         soup = BeautifulSoup(webpage, 'lxml')

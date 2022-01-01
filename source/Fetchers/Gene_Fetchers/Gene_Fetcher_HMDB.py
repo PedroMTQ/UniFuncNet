@@ -28,7 +28,7 @@ class Gene_Fetcher_HMDB(Gene_Fetcher):
 
         gene_soup=self.convergence_args['gene_soup']
         if not gene_soup:
-            url = 'http://www.hmdb.ca/proteins/' + self.gene_id
+            url = f'http://www.hmdb.ca/proteins/{self.gene_id}'
             webpage = self.get_with_fetcher(url)
             if not webpage: return None
             gene_soup = BeautifulSoup(webpage, 'lxml')

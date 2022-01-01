@@ -13,7 +13,7 @@ class Gene_Fetcher_Biocyc(Gene_Fetcher):
 
     #PG
     def get_gene_biocyc(self):
-        gene_url='https://biocyc.org/gene?orgid=META&id='+self.gene_id+'#tab=showAll'
+        gene_url=f'https://biocyc.org/gene?orgid=META&id={self.gene_id}#tab=showAll'
         webpage = self.get_with_fetcher(gene_url, selenium=True)
         if not webpage: return None
         soup = BeautifulSoup(webpage, 'lxml')

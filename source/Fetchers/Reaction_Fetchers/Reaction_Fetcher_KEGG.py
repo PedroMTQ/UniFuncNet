@@ -37,7 +37,7 @@ class Reaction_Fetcher_KEGG(Reaction_Fetcher):
         return res
 
     def reaction_info_KEGG(self, rn_id):
-        url = 'http://www.kegg.jp/dbget-bin/www_bget?rn:' + rn_id
+        url = f'http://www.kegg.jp/dbget-bin/www_bget?rn:{rn_id}'
         webpage = self.get_with_fetcher(url)
         if not webpage: return None
         soup = BeautifulSoup(webpage, 'lxml')

@@ -86,7 +86,7 @@ class Compound_Fetcher_Biocyc(Compound_Fetcher):
         return res
 
     def get_compound_biocyc(self):
-        url = 'https://websvc.biocyc.org/getxml?id=META:' + self.compound_id
+        url = f'https://websvc.biocyc.org/getxml?id=META:{self.compound_id}'
         xml = self.get_with_fetcher(url,original_response=True)
         if not xml: return None
         parsed_info= self.parse_biocyc_xml(xml)

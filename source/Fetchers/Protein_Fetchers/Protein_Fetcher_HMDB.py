@@ -24,7 +24,7 @@ class Protein_Fetcher_HMDB(Protein_Fetcher):
 
         protein_soup=self.convergence_args['protein_soup']
         if not protein_soup:
-            url = 'http://www.hmdb.ca/proteins/' + self.protein_id
+            url = f'http://www.hmdb.ca/proteins/{self.protein_id}'
             webpage = self.get_with_fetcher(url)
             if not webpage: return None
             protein_soup = BeautifulSoup(webpage, 'lxml')

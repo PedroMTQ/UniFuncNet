@@ -34,12 +34,12 @@ class Protein_Fetcher_Biocyc(Protein_Fetcher):
         else:
             if is_ec(self.protein_id,4):
                 self.convergence_args['enzyme_ec']=self.protein_id
-                url = f'https://biocyc.org/META/NEW-IMAGE?type=EC-NUMBER&object=EC- {self.protein_id}'
+                url = f'https://biocyc.org/META/NEW-IMAGE?type=EC-NUMBER&object=EC-{self.protein_id}'
                 return self.get_protein_biocyc_ec_number(url)
             elif is_ec(self.protein_id,3):
                 pass
             else:
-                url='https://biocyc.org/META/NEW-IMAGE?type=ENZYME&object='+self.protein_id
+                url=f'https://biocyc.org/META/NEW-IMAGE?type=ENZYME&object={self.protein_id}'
                 return self.get_protein_biocyc_enzyme(url)
 
     def get_protein_genes(self,genes,protein_names):
@@ -95,7 +95,6 @@ class Protein_Fetcher_Biocyc(Protein_Fetcher):
         protein_info={'synonyms': enz_syns,
              'biocyc': self.protein_id,
              'enzyme_ec': self.protein_id,
-             'brenda': unification_links['brenda'] if 'brenda' in unification_links else None,
              }
         self.get_other_info_ec_page(soup)
         return Protein(protein_info)
@@ -327,7 +326,7 @@ class Protein_Fetcher_Biocyc(Protein_Fetcher):
 if __name__ == '__main__':
     from source.Biological_Components.Protein import Protein
     from source.Fetchers.Reaction_Fetchers.Reaction_Fetcher import *
-    protein=Protein_Fetcher_Biocyc('2.7.1.1')
+    protein=Protein_Fetcher_Biocyc('1.1.1.370')
 
 
 

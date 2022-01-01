@@ -32,11 +32,11 @@ class Compound_Fetcher_KEGG(Compound_Fetcher):
                       }
         res = {}
         if self.compound_id[0]=='D':
-            url = 'https://www.genome.jp/dbget-bin/www_bget?dr:' + self.compound_id
+            url = f'https://www.genome.jp/dbget-bin/www_bget?dr:{self.compound_id}'
         elif self.compound_id[0]=='G':
-            url = 'https://www.genome.jp/dbget-bin/www_bget?gl:' + self.compound_id
+            url = f'https://www.genome.jp/dbget-bin/www_bget?gl:{self.compound_id}'
         else:
-            url = 'https://www.genome.jp/dbget-bin/www_bget?cpd:' + self.compound_id
+            url = f'https://www.genome.jp/dbget-bin/www_bget?cpd:{self.compound_id}'
         webpage = self.get_with_fetcher(url)
         if not webpage: return None
         soup = BeautifulSoup(webpage, 'lxml')

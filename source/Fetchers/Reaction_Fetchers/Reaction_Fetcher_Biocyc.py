@@ -11,7 +11,7 @@ class Reaction_Fetcher_Biocyc(Reaction_Fetcher):
             self.add_reaction()
 
     def reaction_IDs_biocyc(self, reaction_id):
-        url = 'https://biocyc.org/rxn-svg?r=' + reaction_id + '&o=META&n=n&c=y&ai=0&h=y'
+        url = f'https://biocyc.org/rxn-svg?r={reaction_id}&o=META&n=n&c=y&ai=0&h=y'
         res = None
         webpage = self.get_with_fetcher(url)
         if webpage:
@@ -34,7 +34,7 @@ class Reaction_Fetcher_Biocyc(Reaction_Fetcher):
 
     def get_rn_str(self,enzyme_ec):
         temp_ec=self.clean_ec(str(enzyme_ec))
-        webpage = self.get_with_fetcher('https://biocyc.org/META/NEW-IMAGE?type=EC-NUMBER&object=EC-'+temp_ec, selenium=True)
+        webpage = self.get_with_fetcher(f'https://biocyc.org/META/NEW-IMAGE?type=EC-NUMBER&object=EC-{temp_ec}', selenium=True)
         if not webpage: return None
         soup = BeautifulSoup(webpage, 'lxml')
         for extra_rn_id in [self.reaction_id]+self.convergence_args['extra_rn_ids']:
@@ -44,7 +44,7 @@ class Reaction_Fetcher_Biocyc(Reaction_Fetcher):
                 return fix_html_sign(reaction_str.text)
 
     def get_genes_protein_orgs(self):
-        url='https://biocyc.org/META/reaction-genes?object='+self.reaction_id
+        url=f'https://biocyc.org/META/reaction-genes?object={self.reaction_id}'
         webpage = self.get_with_fetcher(url)
         if webpage:
             get_r_str=False
@@ -110,7 +110,7 @@ class Reaction_Fetcher_Biocyc(Reaction_Fetcher):
                     if '-1-content' not in found:
                         xpaths_ids_to_load.append(found)
         if xpaths:
-            url = 'https://biocyc.org/META/NEW-IMAGE?type=REACTION&object=' + self.reaction_id
+            url = f'https://biocyc.org/META/NEW-IMAGE?type=REACTION&object={self.reaction_id}'
             webpage = self.get_with_fetcher(url,selenium=True,xpath=xpaths,ids_to_load=xpaths_ids_to_load)
             if not webpage: return None
             soup = BeautifulSoup(webpage, 'lxml')
@@ -143,7 +143,7 @@ class Reaction_Fetcher_Biocyc(Reaction_Fetcher):
         if not self.reaction_id: return None
         self.get_genes_protein_orgs()
         reaction_str=self.convergence_args['reaction_str']
-        url = 'https://biocyc.org/META/NEW-IMAGE?type=REACTION&object=' + self.reaction_id
+        url = f'https://biocyc.org/META/NEW-IMAGE?type=REACTION&object={self.reaction_id}'
         enzyme_ec,Unification_links, Relationship_links, pathways = None, [], [], []
         webpage = self.get_with_fetcher(url)
         if not webpage: return None

@@ -183,7 +183,7 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
 
 
     def derivatives_HMDB_ids(self, compound,limit_mets=20,number_search_not_exact=200):
-        url = 'http://www.hmdb.ca/unearth/q?query=' + compound + '&searcher=metabolites&button='
+        url = f'http://www.hmdb.ca/unearth/q?query={compound}&searcher=metabolites&button='
         webpage = self.get_with_fetcher(url)
         if not webpage: return None
         soup = BeautifulSoup(webpage, 'lxml')
@@ -219,7 +219,7 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
                 current_met+=1
             if current_met==page_met_limit and page_met_limit != total_mets and several_pages:
                 page_number+=1
-                url = 'http://www.hmdb.ca/unearth/q?&page=' + str(page_number) + '&query=' + compound + '&searcher=metabolites&button='
+                url = f'http://www.hmdb.ca/unearth/q?&page={page_number}&query={compound}&searcher=metabolites&button='
                 webpage = self.get_with_fetcher(url)
                 soup = BeautifulSoup(webpage, 'lxml')
                 pages = soup.find(class_='page_info')
@@ -248,7 +248,7 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
     # this searches for a certain compound and all of its derivatives, returning a list of biocyc ids
     def derivatives_biocyc_ids(self,compound):
         cpd_search = quote_plus(compound)
-        url = 'https://biocyc.org/META/substring-search?type=NIL&object=' + cpd_search + '&quickSearch=Quick+Search'
+        url = f'https://biocyc.org/META/substring-search?type=NIL&object={cpd_search}&quickSearch=Quick+Search'
         webpage = self.get_with_fetcher(url,selenium=True,original_response=True)
         if not webpage: return None
         current_url=webpage.current_url

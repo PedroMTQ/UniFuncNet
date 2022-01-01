@@ -275,7 +275,7 @@ class Web_Connector():
                 query = api_type + '/' + database
         else:
             query = api_type + '/' + to_search
-        url = 'http://rest.kegg.jp/' +query
+        url = f'http://rest.kegg.jp/{query}'
         webpage = self.try_until_catch(url)
         if not webpage: return []
         soup = BeautifulSoup(webpage, 'lxml')
@@ -432,8 +432,8 @@ class Web_Connector():
 
 if __name__ == '__main__':
     f=Web_Connector()
-    url='https://biocyc.org/META/new-image?object=RXN66-521'
+    url='https://biocyc.org/META/NEW-IMAGE?type=EC-NUMBER&object=EC-1.1.1.370'
     a=f.try_until_catch(url)
     print(a)
-    a=f.try_until_catch_selenium(url)
+    a=f.get_driver_selenium(url)
     print(a)

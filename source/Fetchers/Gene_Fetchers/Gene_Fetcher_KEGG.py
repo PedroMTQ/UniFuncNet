@@ -16,7 +16,7 @@ class Gene_Fetcher_KEGG(Gene_Fetcher):
 
     def get_gene_kegg(self):
         #match wasnt found so we keep going
-        url = 'https://www.kegg.jp/dbget-bin/www_bget?' + self.gene_id
+        url = f'https://www.kegg.jp/dbget-bin/www_bget?{self.gene_id}'
         webpage = self.get_with_fetcher(url)
         if not webpage: return None
         gene_soup = BeautifulSoup(webpage, 'lxml')

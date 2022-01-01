@@ -66,7 +66,7 @@ class Global_Fetcher():
             for i in range(len(td_items)):
                 t=normalize('NFKD',td_items[i].text).strip()
                 if  i%2 != 0:
-                    res[c]+=' : '+t
+                    res[c]+=f' : {t}'
                     c += 1
                 else:
                     res.append([])

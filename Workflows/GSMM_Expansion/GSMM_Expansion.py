@@ -368,8 +368,8 @@ class GSMM_expansion():
                 new_dead_ends.add(dead)
         with open(self.output_report,'a+') as file:
             outline=f'Original network dead end metabolites: {len(dead_end1)} ({round(100*len(dead_end1)/len(graph1.nodes),3)}%)\n' \
-                    f'Expanded network end metabolites: {len(new_dead_ends)} ({round(100*len(dead_end1)/len(graph2.nodes),3)}%)\n'\
-                    f'Newly connected end metabolites: {len(connected)} ({round(100*len(connected)/len(graph1.nodes),3)}%)\n'
+                    f'Expanded network dead end metabolites: {len(new_dead_ends)} ({round(100*len(dead_end1)/len(graph2.nodes),3)}%)\n'\
+                    f'Newly connected dead end metabolites: {len(connected)} ({round(100*len(connected)/len(graph1.nodes),3)}%)\n'
             file.write(outline)
 
     def evaluate_network(self,graph, evaluation_function,network_name):
@@ -817,7 +817,7 @@ if __name__ == '__main__':
         parser.add_argument('-i', '--input_folder', help='[required]\tInput folder with protein sequences fastas')
         parser.add_argument('-o', '--output_folder', help='[required]\tOutput directory')
         parser.add_argument('-db','--database', help='[optional]\tDatabases to be used in DRAX')
-        parser.add_argument('-oc','--only_connected', action='store_true', help='[optional]\tExpand network with nodes that are not connected to the original network (this is off by default)')
+        parser.add_argument('-oc','--only_connected', action='store_true', help='[optional]\tExpand network with only nodes that are connected to the original network (this is off by default)')
         args = parser.parse_args()
         input_folder = args.input_folder
         output_folder = args.output_folder

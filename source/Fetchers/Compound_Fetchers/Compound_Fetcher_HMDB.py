@@ -47,7 +47,7 @@ class Compound_Fetcher_HMDB(Compound_Fetcher):
         i = 1
         while i <= number_pages:
             if i > 1:
-                url = f'http://www.hmdb.ca/metabolites/{self.compound_id}/metabolite_protein_links?c=hmdb_id&d=up&page=' + str(i)
+                url = f'http://www.hmdb.ca/metabolites/{self.compound_id}/metabolite_protein_links?c=hmdb_id&d=up&page={i}'
                 webpage = self.get_with_fetcher(url)
                 soup = BeautifulSoup(webpage, 'lxml')
             table = soup.find('table', class_='table table-condensed table-striped metabolite-protein-links proteins')
@@ -90,7 +90,7 @@ class Compound_Fetcher_HMDB(Compound_Fetcher):
                         'PubChem Compound': 'puchem_cid',
                         'PDB ID': 'pdb',
                         'ChEBI ID': 'chebi'}
-        url = 'http://www.hmdb.ca/metabolites/' + self.compound_id
+        url = f'http://www.hmdb.ca/metabolites/{self.compound_id}'
         res = {}
         res['hmdb'] = self.compound_id
         webpage = self.get_with_fetcher(url)

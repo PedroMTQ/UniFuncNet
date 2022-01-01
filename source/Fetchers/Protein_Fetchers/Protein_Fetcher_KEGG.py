@@ -37,7 +37,7 @@ class Protein_Fetcher_KEGG(Protein_Fetcher):
 
     def get_protein_KEGG(self):
 
-        url = 'https://www.genome.jp/dbget-bin/www_bget?ec:' + self.protein_id
+        url = f'https://www.genome.jp/dbget-bin/www_bget?ec:{self.protein_id}'
         webpage = self.get_with_fetcher(url)
         if not webpage: return None
         ec_soup = BeautifulSoup(webpage, 'lxml')

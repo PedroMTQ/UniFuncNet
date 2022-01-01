@@ -147,7 +147,7 @@ class Protein_Searcher(Global_Searcher):
         """
         res=[]
         for db in SCRAPPABLE_DBS:
-            if uniprot_id and not self.check_already_searched_memory(dict_input_key=db+'_'+'uniprot',dict_input_value=uniprot_id):
+            if uniprot_id and not self.check_already_searched_memory(dict_input_key=f'{db}_uniprot',dict_input_value=uniprot_id):
                 db_id = self.get_db_id_from_uniprot(db, uniprot_id=uniprot_id)
                 if not (isinstance(db_id, list) and not isinstance(db_id,generator) and not isinstance(db_id,dict)): db_id = [db_id]
                 for p_id in db_id:
@@ -159,7 +159,7 @@ class Protein_Searcher(Global_Searcher):
                             if p:
                                 if not p.get_detail('uniprot_id'): p.set_detail('uniprot',uniprot_id)
                                 res.append(p)
-                    self.add_to_already_tried_to_search(db+'_'+'uniprot', uniprot_id)
+                    self.add_to_already_tried_to_search(f'{db}_uniprot', uniprot_id)
         return res
 
 
@@ -228,7 +228,7 @@ class Protein_Searcher(Global_Searcher):
                 return res
 
     def get_db_id_from_uniprot_api_hmdb(self,uniprot_id):
-        url='http://www.hmdb.ca/unearth/q?utf8=%E2%9C%93&query='+uniprot_id+'&searcher=proteins&button='
+        url=f'http://www.hmdb.ca/unearth/q?utf8=%E2%9C%93&query={uniprot_id}&searcher=proteins&button='
         webpage=self.get_with_fetcher(url)
         if not webpage: return None
         soup = BeautifulSoup(webpage, 'lxml')
@@ -241,7 +241,7 @@ class Protein_Searcher(Global_Searcher):
 
 
     def get_db_id_from_uniprot_biocyc(self,uniprot_id):
-        url='https://biocyc.org/META/search-query?type=GENE&pname='+uniprot_id
+        url=f'https://biocyc.org/META/search-query?type=GENE&pname={uniprot_id}'
         webpage=self.get_with_fetcher(url)
         if not webpage: return None
         soup = BeautifulSoup(webpage, 'lxml')
@@ -318,6 +318,6 @@ class Protein_Searcher(Global_Searcher):
 
 if __name__ == '__main__':
 
-    searcher=Protein_Searcher(search_mode='pr')
-    p1=searcher.run_searcher('3.5.1.50','biocyc')
-    #p1.get_all_info()
+    searcher=Protein_Searcher(search_mode={'pr'})
+    p1=searcher.run_searcher('1.1.1.370','enzyme_ec')
+    p1.get_all_info()
