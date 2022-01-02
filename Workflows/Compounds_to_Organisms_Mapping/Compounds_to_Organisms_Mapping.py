@@ -107,7 +107,7 @@ class Compounds_to_Organisms_Mapping():
         mantis_folder=f'{RESOURCES_FOLDER}mantis{SPLITTER}'
         n_input=self.create_mantis_input()
         if n_input:
-            mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env} && python {mantis_folder} run_mantis -t {self.mantis_input} -o {self.mantis_output} -da heuristic'
+            mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env} && python {mantis_folder} run_mantis -i {self.mantis_input} -o {self.mantis_output} -da heuristic'
             subprocess.run(mantis_setup_command,shell=True)
 
     def run_drax(self):
@@ -130,7 +130,7 @@ class Compounds_to_Organisms_Mapping():
                             db_type='chebi'
                         except:
                             db_type='synonyms'
-                        outline=['compound','crp,prc',db_type,db_id,'\n']
+                        outline=[db_id,db_type,'compound','crp,prc','\n']
                         outline='\t'.join(outline)
                         out_file.write(outline)
 

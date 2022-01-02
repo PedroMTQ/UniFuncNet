@@ -220,13 +220,11 @@ class GSMM_expansion():
         drax_ids=self.merge_ids_to_run(drax_ids)
         with open(self.drax_input, 'w+') as file:
             for id_type in drax_ids:
-                if id_type in ['kegg_ko','enzyme_ec']:
+                if id_type in ['kegg_ko','enzyme_ec','rhea']:
                     for annot in drax_ids[id_type]:
                         if not annot.endswith('-'):
-                            file.write(f'protein\tprc\t{id_type}\t{annot}\n')
-                elif id_type in ['rhea','enzyme_ec']:
-                    for annot in drax_ids[id_type]:
-                        file.write(f'protein\tprc\t{id_type}\t{annot}\n')
+                            file.write(f'{annot}\t{id_type}\tprotein\tprc\n')
+
 
     ###### network analysis
 
@@ -670,7 +668,7 @@ class GSMM_expansion():
         mantis_folder=f'{RESOURCES_FOLDER}mantis{SPLITTER}'
         n_input=self.create_mantis_input()
         if n_input:
-            mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env} && python {mantis_folder} run_mantis -t {self.mantis_input} -o {self.mantis_output} -da heuristic'
+            mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env} && python {mantis_folder} run_mantis -i {self.mantis_input} -o {self.mantis_output} -da heuristic'
             subprocess.run(mantis_setup_command,shell=True)
 
     def run_drax(self):

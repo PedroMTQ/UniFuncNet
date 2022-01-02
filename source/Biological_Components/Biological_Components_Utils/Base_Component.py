@@ -113,9 +113,11 @@ class Base_Component():
                         edge=[str(i) for i in edge ]
                         edge='\t'.join(edge)
                         lines.append(edge)
-
-        return '\n'.join(lines)+'\n'
-
+        lines=[i for i in lines if i]
+        if lines:
+            return '\n'.join(lines)+'\n'
+        else:
+            return ''
 
 
     def set_detail(self,detail_type,detail,converged_in=None):
