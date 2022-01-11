@@ -87,15 +87,15 @@ class Reaction_Searcher(Global_Searcher):
 
 
 if __name__ == '__main__':
-    searcher=Reaction_Searcher(search_mode={'rp'})
+    searcher=Reaction_Searcher(search_mode={'rc'})
 
 
-    #r1=searcher.run_searcher('R05188','kegg')
-    #r1.get_all_info()
-    #for cpd in r1.get_detail('reaction_with_instances'):
-    #    cpd[1].get_all_info()
+    r1=searcher.run_searcher('RXN-20993','biocyc')
+    r1.get_all_info()
+    for cpd in r1.get_detail('reaction_with_instances'):
+        cpd[1].get_all_info()
 
-    r1=searcher.run_searcher('10000','rhea')
+    #r1=searcher.run_searcher('RXN-20993','biocyc')
     #r1.get_all_info()
     #for cpd in r1.get_detail('reaction_with_instances'):
     #    cpd[1].get_all_info()

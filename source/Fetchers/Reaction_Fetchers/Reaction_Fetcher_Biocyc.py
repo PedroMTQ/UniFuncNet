@@ -167,7 +167,6 @@ class Reaction_Fetcher_Biocyc(Reaction_Fetcher):
             except:
                 return None
         rn_with_instances = self.reaction_met_instances(reaction_str, rn_with_ids, 'biocyc')
-
         paragraphs = soup.find_all('p',class_='ecoparagraph')
         for i in paragraphs:
             s0 = ' Unification Links: \n'
@@ -272,6 +271,7 @@ class Reaction_Fetcher_Biocyc(Reaction_Fetcher):
 
 if __name__ == '__main__':
     #rn_search=Reaction_Fetcher_Biocyc('RXN-2043')
-    rn_search=Reaction_Fetcher_Biocyc('PROTOHEMEFERROCHELAT-RXN')
+    rn_search=Reaction_Fetcher_Biocyc('RXN-20993')
+    rn_search.reaction.get_all_info()
 
 

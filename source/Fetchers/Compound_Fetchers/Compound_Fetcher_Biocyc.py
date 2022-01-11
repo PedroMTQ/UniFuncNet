@@ -111,5 +111,5 @@ class Compound_Fetcher_Biocyc(Compound_Fetcher):
 
 
 if __name__ == '__main__':
-    search= Compound_Fetcher_Biocyc('CPD-15291')
+    search= Compound_Fetcher_Biocyc('OXYGEN-MOLECULE')
     search.get_compound().get_all_info()

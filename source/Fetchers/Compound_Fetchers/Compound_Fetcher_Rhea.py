@@ -38,4 +38,5 @@ class Compound_Fetcher_Rhea(Compound_Fetcher,Rhea_SQLITE_Connector):
 
 
 if __name__ == '__main__':
-    search= Compound_Fetcher_Rhea('15377')
+    search= Compound_Fetcher_Rhea('7580')
+    print(search.compound.get_all_info())

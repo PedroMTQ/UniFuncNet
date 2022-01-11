@@ -259,4 +259,5 @@ class Gene_Fetcher_Biocyc(Gene_Fetcher):
 if __name__ == '__main__':
     from source.Biological_Components.Protein import Protein
     from source.Fetchers.Reaction_Fetchers.Reaction_Fetcher import *
-    gene=Gene_Fetcher_Biocyc('HS08548')
+    gene=Gene_Fetcher_Biocyc('G1G01-1865')
+    print(gene.convergence_args)

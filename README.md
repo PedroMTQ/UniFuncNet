@@ -2,9 +2,9 @@
 
 
 DRAX is a network annotation tool, fetching information on multiple entities and establishing gene-protein-reaction-compound relationships across multiple databases.
-It was built to aid in the mapping of metabolism related entities, for example to aid in the expansion of metabolic networks, automating the often monotonous, manual data collection. 
+It was built to aid in the mapping of metabolism related entities, for example to aid in the expansion of metabolic networks, automating the often monotonous, manual data collection.
 
-## Installation 
+## Installation
 
 
 1. `git clone git@github.com:PedroMTQ/DRAX.git`  
@@ -17,13 +17,13 @@ It was built to aid in the mapping of metabolism related entities, for example t
 
 DRAX supports two browsers, Mozilla Firefox and Google Chrome, please download the driver for your current browser version and add it to `DRAX/Browser_Drivers`:
 - Mozilla Firefox please go to https://github.com/mozilla/geckodriver/releases
-- Google Chrome please go to https://chromedriver.chromium.org/downloads 
+- Google Chrome please go to https://chromedriver.chromium.org/downloads
 
 
 ## Using DRAX
 
 
-Running DRAX within a personal computer should be straightforward, however keep in mind that in order to scrape websites with Javascript, DRAX (more specifically the package `Selenium`) needs to use a browser. To install browsers in a server you may need admin access. 
+Running DRAX within a personal computer should be straightforward, however keep in mind that in order to scrape websites with Javascript, DRAX (more specifically the package `Selenium`) needs to use a browser. To install browsers in a server you may need admin access.
 
 You can run the code below to test the execution:
 
@@ -31,23 +31,16 @@ You can run the code below to test the execution:
 
 A typical run would look like:
 
-    python DRAX -i input.tsv 
+    python DRAX -i input.tsv
 
 
-
-
-Data collection is possible for multiple databases:
-- KEGG
-- HMDB
-- Biocyc
-- Rhea
 
 To avoid overloading these database websites, a 10 seconds pause between requests was added.
 
 DRAX accepts the following parameters:
 
 
-    python DRAX -i input_path -o output_folder -db kegg,rhea,biocyc,hmdb -pt 10
+    python DRAX -i input_path -o output_folder -db biocyc,kegg,hmdb,rhea,uniprot,chemspider,inchi_key -pt 10
 
     Mandatory arguments: --input_path / -i
     Optional arguments:  --output_folder / -o
@@ -56,9 +49,9 @@ DRAX accepts the following parameters:
 
 Where each parameter corresponds to the following:
 
-- `input_path` - the input tsv file path. 
+- `input_path` - the input tsv file path.
 - `output_folder` - the output folder where the spreadsheets are stored
-- `databases ` - databases that DRAX can search in, by default HMDB,Biocyc, and KEGG
+- `databases ` - databases that DRAX can search in, by default `biocyc,kegg,hmdb,rhea,uniprot,chemspider,inchi_key`
 - `politeness_timer` - time (seconds) between requests. Default is 10. Please be careful not to overleaf the corresponding databases, you might get blocked from doing future requests.
 
 
@@ -76,7 +69,7 @@ Data is  retrieved according to the information provided, for example, if the us
 
 The input file should be a tab separated file that looks something like this:
 
- 
+
 | ID                          | ID type    | entity type | search mode |
 |-----------------------------|------------|-------------|-------------|
 | HS08548                     | biocyc     | gene        |             |
@@ -126,6 +119,8 @@ Keep in mind DRAX will always try to use all available IDs to search for more in
 
 Some type of IDs (i.e., `enzyme_ec` and `uniprot`) can be matched with multiple databases. `synonyms` and `chebi` can also be used to query multiple databases. For example, for the line `protein | pr | uniprot | P19367`, DRAX will try to match this Uniprot ID with all the databases
 
+Optionally, the user can include a fifth column with a list of KEGG organism IDs (e.g., \textit{hsa} for human),  which narrows down information retrieval during the gene->protein searching.
+
 
 
 ### Supported input IDs
@@ -137,7 +132,7 @@ Several IDs are allowed per biological instance:
     - KEGG (e.g., "R02848")
     - HMDB (e.g., "14073")
     - Rhea (e.g., "10000")
-    
+
 - Protein:
     - enzyme EC number (e.g., "2.7.1.1")
     - KEGG (e.g., "2.7.1.1")
@@ -145,7 +140,7 @@ Several IDs are allowed per biological instance:
     - Biocyc (e.g., "2.7.1.1")
     - Uniprot (e.g., "P10632")
     - HMDB (e.g., "HMDBP00609")
-    
+
 
 - Gene:
     - KEGG (e.g., "hsa:150763")
@@ -209,11 +204,11 @@ DRAX can also search for information connected to compounds (i.e., reactions) by
 DRAX contains multiple entities types (i.e., genes, proteins, reactions, and compounds), which are implemented as different data models (i.e., Python classes)
 These entities inherent methods from a general data model which is able to preserve information (such as database IDs) in memory (i.e., random access memory - RAM). Besides serving as temporary data storage, this general data model also contains methods for retrieval and editing of information, as well as, matching and merging of entities. Naturally, each specific component will also contain unique methods applicable only to its own component type (e.g., reactions). In this manner, through the use of object oriented programming, we effectively create a layer of abstraction that facilitates programmatic interaction with the entities.
 
-For example, having collected data on a certain reaction into a python dictionary, a "Reaction" instance can be created, storing any information relevant to this data model type, such as the reaction string and database IDs. This reaction instance can then be interacted with using generic methods, e.g., DRAX can connect this instance to any compound instances involved with this reaction. 
+For example, having collected data on a certain reaction into a python dictionary, a "Reaction" instance can be created, storing any information relevant to this data model type, such as the reaction string and database IDs. This reaction instance can then be interacted with using generic methods, e.g., DRAX can connect this instance to any compound instances involved with this reaction.
 
 While the data models for genes, reactions and compounds are well defined (both in computational and biological terms), proteins, in the context of web scraping, are somewhat more ambiguous entities (e.g., a protein complex can be subdivided into multiple database entries); therefore, in the context of DRAX, protein entities roughly represent functions. This ambiguity is a necessity to build a generic protein data model that is able to integrate multiple databases into one consistent network. This effectively creates a layer of abstraction that facilitates programmatic interaction with the entities and any putative connections.
 
-Using instances and connecting them through memory pointers, a network can be generated in RAM, where each instance represents a network node. Any of the individual instances in this network can then be accessed, edited or exported as necessary; in the case of DRAX through a pre-determined workflow respecting the user input requirements. Such a framework, and it's corresponding application programming interface (API), has the added benefit of being quite general, thus being re-usable in scenarios that extend beyond the scope of DRAX. 
+Using instances and connecting them through memory pointers, a network can be generated in RAM, where each instance represents a network node. Any of the individual instances in this network can then be accessed, edited or exported as necessary; in the case of DRAX through a pre-determined workflow respecting the user input requirements. Such a framework, and it's corresponding application programming interface (API), has the added benefit of being quite general, thus being re-usable in scenarios that extend beyond the scope of DRAX.
 
 # License and copyright
 
@@ -222,7 +217,7 @@ This project is available under the [MIT license](https://github.com/PedroMTQ/DR
 # References and acknowledgements
 
 > Minoru Kanehisa, Susumu Goto, KEGG: Kyoto Encyclopedia of Genes and Genomes, Nucleic Acids Research, Volume 28, Issue 1, 1 January 2000, Pages 27–30, https://doi.org/10.1093/nar/28.1.27
-> 
+>
 > Caspi R, Billington R, Keseler IM, Kothari A, Krummenacker M, Midford PE, Ong WK, Paley S, Subhraveti P, Karp PD. The MetaCyc database of metabolic pathways and enzymes - a 2019 update. Nucleic Acids Res. 2020 Jan 8;48(D1):D445-D453. doi: 10.1093/nar/gkz862. PMID: 31586394; PMCID: PMC6943030.
 >
 > Wishart DS, Feunang YD, Marcu A, Guo AC, Liang K, Vázquez-Fresno R, Sajed T, Johnson D, Li C, Karu N, Sayeeda Z, Lo E, Assempour N, Berjanskii M, Singhal S, Arndt D, Liang Y, Badran H, Grant J, Serra-Cayuela A, Liu Y, Mandal R, Neveu V, Pon A, Knox C, Wilson M, Manach C, Scalbert A. HMDB 4.0: the human metabolome database for 2018. Nucleic Acids Res. 2018 Jan 4;46(D1):D608-D617. doi: 10.1093/nar/gkx1089. PMID: 29140435; PMCID: PMC5753273.

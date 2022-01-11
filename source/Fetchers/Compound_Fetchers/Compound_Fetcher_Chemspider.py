@@ -78,5 +78,5 @@ class Compound_Fetcher_Chemspider(Compound_Fetcher):
 
 
 if __name__ == '__main__':
-    search= Compound_Fetcher_Chemspider('58575')
+    search= Compound_Fetcher_Chemspider('QVGXLLKOCUKJST-UHFFFAOYSA-N',search_by_inchi_key=True)
     search.get_compound().get_all_info()
