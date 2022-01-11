@@ -19,7 +19,7 @@ RESOURCES_FOLDER=f'{DRAX_FOLDER}Resources{SPLITTER}'
 
 class Compounds_to_Organisms_Mapping():
 
-    def __init__(self,input_samples,metabolites,output_folder,database=None):
+    def __init__(self,input_samples,metabolites,output_folder,database=None,politeness_timer=10):
             if not input_samples.endswith('/'):input_samples+='/'
             self.input_folder=input_samples
             if not output_folder.endswith('/'):output_folder+='/'
@@ -41,6 +41,7 @@ class Compounds_to_Organisms_Mapping():
 
             self.conda_prefix = self.get_conda_prefix()
             self.database=database
+            self.politeness_timer=politeness_timer
             for p in [self.output_folder,self.drax_output,self.mantis_output,self.workflow_output]:
                 Path(p).mkdir(parents=True, exist_ok=True)
             self.workflow()
@@ -113,8 +114,8 @@ class Compounds_to_Organisms_Mapping():
     def run_drax(self):
         self.create_mantis_input()
         if not os.listdir(self.drax_output):
-            mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && python {DRAX_FOLDER} -i {self.drax_input} -o {self.drax_output}'
-            subprocess.run(mantis_setup_command,shell=True)
+            run_drax_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && python {DRAX_FOLDER} -i {self.drax_input} -o {self.drax_output} -pt {self.politeness_timer}'
+            subprocess.run(run_drax_command,shell=True)
         else:
             print(f'We found files in {self.mantis_output}, so DRAX will not run again')
 
@@ -389,21 +390,27 @@ class Compounds_to_Organisms_Mapping():
         self.output_results()
 
 if __name__ == '__main__':
-    if True:
-        Compounds_to_Organisms_Mapping(input_samples='/home/pedroq/Desktop/test_mapping/samples/', metabolites='/home/pedroq/Desktop/test_mapping/metabolites.tsv',output_folder='/home/pedroq/Desktop/test_mapping/out',database=None)
+    #if True:
+    #    Compounds_to_Organisms_Mapping(input_samples='/home/pedroq/Desktop/test_mapping/samples/', metabolites='/home/pedroq/Desktop/test_mapping/metabolites.tsv',output_folder='/home/pedroq/Desktop/test_mapping/out',database=None)
+    #else:
+    print('Executing command:\n', ' '.join(sys.argv))
+    parser = argparse.ArgumentParser(description='This workflow suggests new connections for Carveme metabolic models\n',formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-i','--input_samples', help='[required]\tInput folder with protein sequences fastas')
+    parser.add_argument('-m', '--metabolites', help='[required]\tMetabolites list (synonyms or ChEBI IDs), with each metabolite in a separate line')
+    parser.add_argument('-o', '--output_folder', help='[required]\tOutput directory')
+    parser.add_argument('-pt', '--politeness_timer', help='[optional]\tTime (seconds) between requests. Default is 10. Please be careful not to overleaf the corresponding databases, you might get blocked from doing future requests.')
+    parser.add_argument('-db','--database', help='[optional]\tDatabases to be used in DRAX')
+    args = parser.parse_args()
+    input_samples = args.input_samples
+    metabolites = args.metabolites
+    output_folder = args.output_folder
+    politeness_timer = args.politeness_timer
+    database = args.database
+    if politeness_timer: politeness_timer=int(politeness_timer)
+    else: politeness_timer=10
+
+
+    if input_samples and metabolites and output_folder:
+        Compounds_to_Organisms_Mapping(input_samples=input_samples,metabolites=metabolites,output_folder=output_folder,database=database,politeness_timer=politeness_timer)
     else:
-        print('Executing command:\n', ' '.join(sys.argv))
-        parser = argparse.ArgumentParser(description='This workflow suggests new connections for Carveme metabolic models\n',formatter_class=argparse.RawTextHelpFormatter)
-        parser.add_argument('-i','--input_samples', help='[required]\tInput folder with protein sequences fastas')
-        parser.add_argument('-m', '--metabolites', help='[required]\tMetabolites list (synonyms or ChEBI IDs), with each metabolite in a separate line')
-        parser.add_argument('-o', '--output_folder', help='[required]\tOutput directory')
-        parser.add_argument('-db','--database', help='[optional]\tDatabases to be used in DRAX')
-        args = parser.parse_args()
-        input_samples = args.input_samples
-        metabolites = args.metabolites
-        output_folder = args.output_folder
-        database = args.database
-        if input_folder and output_folder:
-            Compounds_to_Organisms_Mapping(input_folder=input_folder,metabolites=metabolites,output_folder=output_folder,database=database)
-        else:
-            print('Missing input and output folders')
+        print('Missing input and output folders')

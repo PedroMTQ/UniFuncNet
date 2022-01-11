@@ -20,7 +20,7 @@ RESOURCES_FOLDER=f'{DRAX_FOLDER}Resources{SPLITTER}'
 
 
 class GSMM_expansion():
-    def __init__(self,input_folder,output_folder,database=None,only_connected=False):
+    def __init__(self,input_folder,output_folder,database=None,only_connected=False,politeness_timer=10):
         if not input_folder.endswith('/'):input_folder+='/'
         self.input_folder=input_folder
         if not output_folder.endswith('/'):output_folder+='/'
@@ -44,6 +44,7 @@ class GSMM_expansion():
         #only expand network if some of the nodes are connected to the initial gsmm
         self.only_connected=only_connected
         self.database=database
+        self.politeness_timer=politeness_timer
         for p in [self.output_folder,self.carveme_models,self.drax_output,self.mantis_output,self.workflow_output]:
             Path(p).mkdir(parents=True, exist_ok=True)
         self.workflow()
@@ -245,26 +246,27 @@ class GSMM_expansion():
 
         for reaction_id in reactions_dict:
             drax_reaction_id = f'RD_{reaction_id}'
-            reaction_cpds = reactions_dict[reaction_id]['reaction_compounds']
-            if ' => ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' => ', ' <=> ')
-            if ' <= ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' <= ', ' <=> ')
-            drax_reactants, drax_products = reaction_cpds.split('<=>')
-            drax_reactants, drax_products = [j.strip() for j in drax_reactants.split('+')], [j.strip() for j in drax_products.split('+')]
-            for reactant in drax_reactants:
-                if reactant in compounds_match:
-                    reactant = compounds_match[reactant]
-                else:
-                    reactant = {reactant}
-                for product in drax_products:
-                    if product in compounds_match:
-                        product = compounds_match[product]
+            if 'reaction_compounds' in reactions_dict[reaction_id]:
+                reaction_cpds = reactions_dict[reaction_id]['reaction_compounds']
+                if ' => ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' => ', ' <=> ')
+                if ' <= ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' <= ', ' <=> ')
+                drax_reactants, drax_products = reaction_cpds.split('<=>')
+                drax_reactants, drax_products = [j.strip() for j in drax_reactants.split('+')], [j.strip() for j in drax_products.split('+')]
+                for reactant in drax_reactants:
+                    if reactant in compounds_match:
+                        reactant = compounds_match[reactant]
                     else:
-                        product = {product}
+                        reactant = {reactant}
+                    for product in drax_products:
+                        if product in compounds_match:
+                            product = compounds_match[product]
+                        else:
+                            product = {product}
 
-                    for r in reactant:
-                        G.add_edge(r, drax_reaction_id)
-                    for p in product:
-                        G.add_edge(drax_reaction_id, p)
+                        for r in reactant:
+                            G.add_edge(r, drax_reaction_id)
+                        for p in product:
+                            G.add_edge(drax_reaction_id, p)
 
         return G
 
@@ -280,35 +282,39 @@ class GSMM_expansion():
 
         for reaction_id in reactions_drax:
             drax_reaction_id = f'RD_{reaction_id}'
-            reaction_cpds = reactions_drax[reaction_id]['reaction_compounds']
-            if ' => ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' => ', ' <=> ')
-            if ' <= ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' <= ', ' <=> ')
-            drax_reactants, drax_products = reaction_cpds.split('<=>')
-            drax_reactants, drax_products = [j.strip() for j in drax_reactants.split('+')], [j.strip() for j in drax_products.split('+')]
-            if not self.only_connected:
-                connected=True
-            else:
-                connected = False
-                for drax_cpd_id in drax_reactants+drax_products:
-                    if drax_cpd_id in compounds_match:
-                        connected=True
-            if connected:
-                for reactant in drax_reactants:
-                    if reactant in compounds_match:
-                        reactant = compounds_match[reactant]
-                    else:
-                        reactant = {reactant}
+            if 'reaction_compounds' in reactions_dict[reaction_id]:
 
-                for product in drax_products:
-                    if product in compounds_match:
-                        product = compounds_match[product]
-                    else:
-                        product = {product}
+                reaction_cpds = reactions_drax[reaction_id]['reaction_compounds']
+                if ' => ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' => ', ' <=> ')
+                if ' <= ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' <= ', ' <=> ')
+                drax_reactants, drax_products = reaction_cpds.split('<=>')
+                drax_reactants, drax_products = [j.strip() for j in drax_reactants.split('+')], [j.strip() for j in drax_products.split('+')]
+                if not self.only_connected:
+                    connected=True
+                else:
+                    connected = False
+                    for drax_cpd_id in drax_reactants+drax_products:
+                        if drax_cpd_id in compounds_match:
+                            connected=True
+                if connected:
+                    for reactant in drax_reactants:
+                        if reactant in compounds_match:
+                            reactant = compounds_match[reactant]
+                        else:
+                            reactant = {reactant}
 
-                for r in reactant:
-                    G.add_edge(r, drax_reaction_id)
-                for p in product:
-                    G.add_edge(drax_reaction_id, p)
+                    for product in drax_products:
+                        if product in compounds_match:
+                            product = compounds_match[product]
+                        else:
+                            product = {product}
+
+                    for r in reactant:
+                        G.add_edge(r, drax_reaction_id)
+                    for p in product:
+                        G.add_edge(drax_reaction_id, p)
+                else:
+                    rejected_reactions += 1
             else:
                 rejected_reactions+=1
 
@@ -352,7 +358,6 @@ class GSMM_expansion():
         dead_end2,n_nodes2 = self.check_dead_end_metabolites(graph2)
 
 
-        new_dead_ends = set()
         connected = set()
         # original
         for dead in dead_end1:
@@ -361,12 +366,11 @@ class GSMM_expansion():
                 # connected
                 connected.add(dead)
 
-        for dead in dead_end2:
-            if dead not in dead_end1:
-                new_dead_ends.add(dead)
+        dead_end1_str=','.join(sorted(dead_end1))
+        dead_end2_str=','.join(sorted(dead_end2))
         with open(self.output_report,'a+') as file:
-            outline=f'Original network dead end metabolites: {len(dead_end1)} ({round(100*len(dead_end1)/len(graph1.nodes),3)}%)\n' \
-                    f'Expanded network dead end metabolites: {len(new_dead_ends)} ({round(100*len(dead_end1)/len(graph2.nodes),3)}%)\n'\
+            outline=f'Original network dead end metabolites: {len(dead_end1)} ({round(100*len(dead_end1)/len(graph1.nodes),3)}%)\n{dead_end1_str}\n' \
+                    f'Expanded network dead end metabolites: {len(dead_end2)} ({round(100*len(dead_end2)/len(graph2.nodes),3)}%)\n{dead_end2_str}\n'\
                     f'Newly connected dead end metabolites: {len(connected)} ({round(100*len(connected)/len(graph1.nodes),3)}%)\n'
             file.write(outline)
 
@@ -416,8 +420,7 @@ class GSMM_expansion():
                     id_type = i.split(':')[0]
                     annot = i.replace(id_type + ':', '')
                     if internal_id not in res: res[internal_id] = {}
-                    if id_type not in res[internal_id] and id_type != 'reaction_compounds': res[internal_id][
-                        id_type] = set()
+                    if id_type not in res[internal_id] and id_type != 'reaction_compounds': res[internal_id][id_type] = set()
                     if id_type == 'reaction_compounds':
                         res[internal_id][id_type] = annot
                     else:
@@ -519,37 +522,38 @@ class GSMM_expansion():
         matched = set()
         unmatched = set()
         for r_drax in reactions_dict:
-            reaction_cpds = reactions_dict[r_drax]['reaction_compounds']
-            if ' => ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' => ', ' <=> ')
-            if ' <= ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' <= ', ' <=> ')
-            drax_reactants, drax_products = reaction_cpds.split('<=>')
-            drax_reactants, drax_products = [j.strip() for j in drax_reactants.split('+')], [j.strip() for j in drax_products.split('+')]
-            matched_reactants, matched_products = [], []
-            for cpd in drax_reactants:
-                if cpd in compounds_match:
-                    matched_reactants.append(compounds_match[cpd])
-                    matched.add(cpd)
-                else:
-                    unmatched.add(cpd)
-            for cpd in drax_products:
-                if cpd in compounds_match:
-                    matched_products.append(compounds_match[cpd])
-                    matched.add(cpd)
-                else:
-                    unmatched.add(cpd)
-            if len(matched_reactants) == len(drax_reactants) and len(matched_products) == len(drax_products):
-                for r_model in model_data:
-                    model_reactants, model_products = model_data[r_model]['reactants'], model_data[r_model]['products']
-                    match_reactants = self.check_match_reactions(model_reactants, matched_reactants)
-                    match_products = self.check_match_reactions(model_products, matched_products)
-                    if len(model_reactants) and len(model_products):
-                        if match_reactants == len(model_reactants) and match_products == len(model_products):
-                            matched_reactions[r_drax] = r_model
+            if 'reaction_compounds' in reactions_dict[r_drax]:
+                reaction_cpds = reactions_dict[r_drax]['reaction_compounds']
+                if ' => ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' => ', ' <=> ')
+                if ' <= ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' <= ', ' <=> ')
+                drax_reactants, drax_products = reaction_cpds.split('<=>')
+                drax_reactants, drax_products = [j.strip() for j in drax_reactants.split('+')], [j.strip() for j in drax_products.split('+')]
+                matched_reactants, matched_products = [], []
+                for cpd in drax_reactants:
+                    if cpd in compounds_match:
+                        matched_reactants.append(compounds_match[cpd])
+                        matched.add(cpd)
+                    else:
+                        unmatched.add(cpd)
+                for cpd in drax_products:
+                    if cpd in compounds_match:
+                        matched_products.append(compounds_match[cpd])
+                        matched.add(cpd)
+                    else:
+                        unmatched.add(cpd)
+                if len(matched_reactants) == len(drax_reactants) and len(matched_products) == len(drax_products):
+                    for r_model in model_data:
+                        model_reactants, model_products = model_data[r_model]['reactants'], model_data[r_model]['products']
+                        match_reactants = self.check_match_reactions(model_reactants, matched_reactants)
+                        match_products = self.check_match_reactions(model_products, matched_products)
+                        if len(model_reactants) and len(model_products):
+                            if match_reactants == len(model_reactants) and match_products == len(model_products):
+                                matched_reactions[r_drax] = r_model
 
-                        match_reactants = self.check_match_reactions(model_reactants, matched_products)
-                        match_products = self.check_match_reactions(model_products, matched_reactants)
-                        if match_reactants == len(model_reactants) and match_products == len(model_products):
-                            matched_reactions[r_drax] = r_model
+                            match_reactants = self.check_match_reactions(model_reactants, matched_products)
+                            match_products = self.check_match_reactions(model_products, matched_reactants)
+                            if match_reactants == len(model_reactants) and match_products == len(model_products):
+                                matched_reactions[r_drax] = r_model
         #print('Matched compounds', len(matched))
         #print('Unmatched compounds', len(unmatched))
         for i in reactions_dict:
@@ -676,11 +680,11 @@ class GSMM_expansion():
         self.create_mantis_input()
         if not os.listdir(self.drax_output):
             if self.database:
-                mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && python {DRAX_FOLDER} -i {self.drax_input} -o {self.drax_output} -db {self.database}'
+                run_drax_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && python {DRAX_FOLDER} -i {self.drax_input} -o {self.drax_output} -db {self.database} -pt {self.politeness_timer}'
             else:
-                mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && python {DRAX_FOLDER} -i {self.drax_input} -o {self.drax_output}'
+                run_drax_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && python {DRAX_FOLDER} -i {self.drax_input} -o {self.drax_output} -pt {self.politeness_timer}'
 
-            subprocess.run(mantis_setup_command,shell=True)
+            subprocess.run(run_drax_command,shell=True)
         else:
             print(f'We found files in {self.mantis_output}, so DRAX will not run again')
 
@@ -740,7 +744,7 @@ class GSMM_expansion():
             self.evaluate_network(model_network, nx.weakly_connected_components,'baseline')
 
             expanded_network,rejected_reactions = self.create_network_expanded(model_reactions, reactions_drax)
-            outline = f'We rejected {rejected_reactions} reactions since there were not connected to the model so we only added {len(reactions_drax)-rejected_reactions} reactions\n'
+            outline = f'We rejected {rejected_reactions} reactions so we only added {len(reactions_drax)-rejected_reactions} reactions\n'
             file.write(outline)
             self.evaluate_network(expanded_network, nx.weakly_connected_components,'expanded')
         self.compare_dead_end_metabolites(model_network, expanded_network)
@@ -807,22 +811,26 @@ class GSMM_expansion():
 
 
 if __name__ == '__main__':
-    if True:
-        GSMM_expansion(input_folder='/home/pedroq/Desktop/test_expansion/samples', output_folder='/home/pedroq/Desktop/test_expansion/out',only_connected=False)
-    else:
-        print('Executing command:\n', ' '.join(sys.argv))
-        parser = argparse.ArgumentParser(description='This workflow suggests new connections for Carveme metabolic models\n',formatter_class=argparse.RawTextHelpFormatter)
-        parser.add_argument('-i', '--input_folder', help='[required]\tInput folder with protein sequences fastas')
-        parser.add_argument('-o', '--output_folder', help='[required]\tOutput directory')
-        parser.add_argument('-db','--database', help='[optional]\tDatabases to be used in DRAX')
-        parser.add_argument('-oc','--only_connected', action='store_true', help='[optional]\tExpand network with only nodes that are connected to the original network (this is off by default)')
-        args = parser.parse_args()
-        input_folder = args.input_folder
-        output_folder = args.output_folder
-        database = args.database
-        only_connected = args.only_connected
+    #if True:
+    #    GSMM_expansion(input_folder='/home/pedroq/Desktop/test_expansion/samples', output_folder='/home/pedroq/Desktop/test_expansion/out',only_connected=False)
+    #else:
+    print('Executing command:\n', ' '.join(sys.argv))
+    parser = argparse.ArgumentParser(description='This workflow suggests new connections for Carveme metabolic models\n',formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-i', '--input_folder', help='[required]\tInput folder with protein sequences fastas')
+    parser.add_argument('-o', '--output_folder', help='[required]\tOutput directory')
+    parser.add_argument('-db','--database', help='[optional]\tDatabases to be used in DRAX')
+    parser.add_argument('-pt', '--politeness_timer', help='[optional]\tTime (seconds) between requests. Default is 10. Please be careful not to overleaf the corresponding databases, you might get blocked from doing future requests.')
+    parser.add_argument('-oc','--only_connected', action='store_true', help='[optional]\tExpand network with only nodes that are connected to the original network (this is off by default)')
+    args = parser.parse_args()
+    input_folder = args.input_folder
+    output_folder = args.output_folder
+    database = args.database
+    politeness_timer = args.politeness_timer
+    only_connected = args.only_connected
+    if politeness_timer: politeness_timer=int(politeness_timer)
+    else: politeness_timer=10
 
-        if input_folder and output_folder:
-            GSMM_expansion(input_folder=input_folder,output_folder=output_folder,database=database,only_connected=only_connected)
-        else:
-            print('Missing input and output folders')
+    if input_folder and output_folder:
+        GSMM_expansion(input_folder=input_folder,output_folder=output_folder,database=database,only_connected=only_connected,politeness_timer=politeness_timer)
+    else:
+        print('Missing input and output folders')
