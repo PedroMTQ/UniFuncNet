@@ -5,31 +5,29 @@ from source.Utils.Rhea_SQLITE_Connector import Rhea_SQLITE_Connector
 
 
 class Reaction_Fetcher_Rhea(Reaction_Fetcher,Rhea_SQLITE_Connector):
-    def __init__(self,reaction_id,extra_args={},memory_storage=None,init_Fetcher=True):
+    def __init__(self,reaction_id,extra_args={},memory_storage=None):
         Reaction_Fetcher.__init__(self,reaction_id=reaction_id,memory_storage=memory_storage)
-        Rhea_SQLITE_Connector.__init__(self)
         self.db = 'rhea'
         self.set_convergence_args(extra_args)
-        if init_Fetcher:
-            self.reaction= self.get_reaction_rhea()
-            self.add_reaction()
-        self.close_sql_connection()
+        self.reaction= self.get_reaction_rhea()
+        self.add_reaction()
 
 
-    def get_reaction_rhea(self):  # this basically gets all the details from biocyc, may be able to implement a more concise search, see later
+    def get_reaction_rhea(self):  # this basically gets all the details from rhea, may be able to implement a more concise search, see later
         if not self.reaction_id: return None
         reaction_info=self.fetch_rhea_id_info(self.reaction_id)
         if reaction_info:
             rhea_ids=reaction_info['alt_ids']
             rhea_ids.append(self.reaction_id)
             kegg_ids=reaction_info['kegg']
-            biocyc_ids=reaction_info['biocyc']
+            metacyc_ids=reaction_info['metacyc']
             uniprot_ids=reaction_info['uniprot']
             enzyme_ec_ids=reaction_info['enzyme_ec']
             reaction_str=reaction_info['reaction_str']
             rn_with_ids=reaction_info['chebi_equation']
             self.convergence_args['uniprot_ids']=uniprot_ids
             self.convergence_args['enzyme_ec_ids']=enzyme_ec_ids
+
 
             try:
                 rn_with_ids, complete_l, len_sub = get_stoichiometry(reaction_str, rn_with_ids)
@@ -38,15 +36,12 @@ class Reaction_Fetcher_Rhea(Reaction_Fetcher,Rhea_SQLITE_Connector):
                     rn_with_ids, complete_l, len_sub  = get_stoichiometry(reaction_str, reaction_str)
                 except:
                     return None
-
-
             rn_with_instances = self.reaction_met_instances(reaction_str, rn_with_ids, 'chebi')
-
             reaction_dict = {
                 'rhea': rhea_ids,
                 'reaction_str': reaction_str,
                 'kegg':kegg_ids,
-                'biocyc':biocyc_ids,
+                'metacyc':metacyc_ids,
             }
             if rn_with_instances:  reaction_dict['reaction_with_instances']= rn_with_instances
             else:

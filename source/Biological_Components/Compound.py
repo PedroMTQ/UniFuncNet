@@ -15,7 +15,7 @@ class Compound(Base_Component,CHEBI_SQLITE_Connector):
         Base_Component.__init__(self,init_dictionary)
         CHEBI_SQLITE_Connector.__init__(self)
         self.add_chebi_ids()
-        self.close_sql_connection()
+        self.chebi_close_sql_connection()
 
 
     def __str__(self):
@@ -84,19 +84,6 @@ class Compound(Base_Component,CHEBI_SQLITE_Connector):
             score=score_match_possible_ids(inst1_ids,inst2_ids)
             c+=score
         return c
-
-
-
-
-
-    def is_empty_metabolite(self):
-        c=0
-        for d in self.get_details_list():
-            if self.get_detail(d): c+=1
-        if c==0:    return True
-        else:       return False
-
-
 
 
 

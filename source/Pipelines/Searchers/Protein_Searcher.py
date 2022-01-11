@@ -2,7 +2,7 @@
 from source.Pipelines.Searchers.Gene_Searcher import Gene_Searcher
 from source.Pipelines.Pipelines_Utils.Global_Searcher import *
 from source.Biological_Components.Protein import Protein
-from source.Fetchers.Protein_Fetchers.Protein_Fetcher_Biocyc import Protein_Fetcher_Biocyc
+from source.Fetchers.Protein_Fetchers.Protein_Fetcher_Metacyc import Protein_Fetcher_Metacyc
 from source.Fetchers.Protein_Fetchers.Protein_Fetcher_KEGG import Protein_Fetcher_KEGG
 from source.Fetchers.Protein_Fetchers.Protein_Fetcher_HMDB import Protein_Fetcher_HMDB
 from source.Fetchers.Protein_Fetchers.Protein_Fetcher_Rhea import Protein_Fetcher_Rhea
@@ -17,30 +17,30 @@ class Protein_Searcher(Global_Searcher):
                                  db_name=db_name,wanted_org_kegg_codes=wanted_org_kegg_codes,output_folder=output_folder,politeness_timer=politeness_timer)
         self.original_searcher=get_instance_type(self)
 
-
-    def find_protein(self,db,query_id=None,extra_args={}):
+    def find_protein(self,db,query_id=None,extra_args={},convergence_search=False):
         if db in SCRAPPABLE_DBS:
-            fetcher_protein,fetcher= self.find_info(db, query_id, extra_args)
+            fetcher_protein,fetcher= self.find_info(db, query_id, extra_args,convergence_search=convergence_search)
             return fetcher_protein
 
-    def select_fetcher(self,db,query_id,extra_args,init_Fetcher=True):
-        if db in SCRAPPABLE_DBS and (not self.check_already_searched_memory(db,query_id) or (db=='biocyc' and 'genes' in extra_args)):
-            if db == 'biocyc':        return    Protein_Fetcher_Biocyc(query_id,extra_args=extra_args,memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
-            elif 'kegg' in db:        return    Protein_Fetcher_KEGG(query_id, extra_args=extra_args,memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
-            elif db == 'hmdb':        return    Protein_Fetcher_HMDB(query_id, extra_args=extra_args,memory_storage= self.memory_storage,init_Fetcher=init_Fetcher)
-            elif db == 'rhea':        return    Protein_Fetcher_Rhea(query_id, extra_args=extra_args,memory_storage= self.memory_storage,init_Fetcher=init_Fetcher)
+    def select_fetcher(self,db,query_id,extra_args):
+        if db in SCRAPPABLE_DBS and not self.check_already_searched_memory(db,query_id):
+            if db == 'metacyc':       return   Protein_Fetcher_Metacyc(query_id,extra_args=extra_args,memory_storage=self.memory_storage)
+            elif 'kegg' in db:        return    Protein_Fetcher_KEGG(query_id, extra_args=extra_args,memory_storage=self.memory_storage)
+            elif db == 'hmdb':        return    Protein_Fetcher_HMDB(query_id, extra_args=extra_args,memory_storage= self.memory_storage)
+            elif db == 'rhea':        return    Protein_Fetcher_Rhea(query_id, extra_args=extra_args,memory_storage= self.memory_storage)
             else:                     return    Global_Fetcher()
 
 
 
-    def find_info(self, db,query_id,extra_args={}):
+    def find_info(self, db,query_id,extra_args={},convergence_search=False):
         if not query_id: return None,None
         fetcher=self.select_fetcher(db=db,query_id=query_id,extra_args=extra_args)
         if fetcher:
             self.add_to_already_tried_to_search(db,query_id)
             fetcher_protein=fetcher.get_protein()
             if fetcher_protein:
-                #converge only occurs in the searchers- these are the global classes
+                if convergence_search:
+                    if db=='metacyc': fetcher.converge_protein_to_protein()
                 if self.is_valid_search_mode({'global'}):
                     fetcher.converge_protein_global()
                 if self.is_valid_search_mode({'rpg','pg','crpg'}):
@@ -58,7 +58,7 @@ class Protein_Searcher(Global_Searcher):
                 return None,None
 
 
-    def run_searcher(self,bio_query,bio_db):
+    def run_searcher(self,bio_query,bio_db,convergence_search=False):
         """
         The only common ID in all DBs is Uniprot ID so this is the central point
         If a uniprot Id is provided we start with that, otherwise we go to the other dbs and extract the uniprot Id and go from there
@@ -66,14 +66,11 @@ class Protein_Searcher(Global_Searcher):
         enzyme_ec
         ko
         uniprot
-        biocyc - uniprot id or enzyme ec or biocyc id
+        metacyc - uniprot id or enzyme ec or metacyc id
         kegg  - enzyme ec
         hmdb - uniprot id or hmdb id
 
         Ko and uniprot has 1:n but others 1:1 so, we assume that the 1:1 dbs input will be correct and will unite instances accordingly
-
-        if only uniprot and/or ko we return several instances
-        otherwise we find best match and return one or (if no unique match, several instances too)
 
         """
         print(f'STARTING PROTEIN SEARCHER {bio_query} in {bio_db}')
@@ -92,19 +89,19 @@ class Protein_Searcher(Global_Searcher):
             id_arg= current_arg[1]
             if isinstance(id_arg,str) or isinstance(id_arg,int): id_arg={id_arg}
             for s_id_arg in id_arg:
-                if db_arg == 'enzyme_ec':   temp_inst= self.get_protein_from_ec(s_id_arg)
-                elif db_arg == 'uniprot':   temp_inst = self.get_proteins_from_uniprot(s_id_arg)
+                if db_arg == 'enzyme_ec':   temp_inst= self.get_protein_from_ec(s_id_arg,convergence_search=convergence_search)
+                elif db_arg == 'uniprot':   temp_inst = self.get_proteins_from_uniprot(s_id_arg,convergence_search=convergence_search)
                 elif db_arg=='kegg_ko':
                     ko_ecs = self.get_ec_from_ko(s_id_arg)
                     for ec in ko_ecs:
-                        temp_inst = self.get_protein_from_ec(ec)
+                        temp_inst = self.get_protein_from_ec(ec,convergence_search=convergence_search)
                         if temp_inst:
                             if not isinstance(temp_inst,list): temp_inst=[temp_inst]
                             for p in temp_inst:
                                 if p:  p.set_detail('kegg_ko',s_id_arg)
                 else:
                     if s_id_arg and not self.check_already_searched_memory(dict_input_key=db_arg, dict_input_value=s_id_arg):
-                        temp_inst = self.find_protein(db=db_arg,query_id=s_id_arg)
+                        temp_inst = self.find_protein(db=db_arg,query_id=s_id_arg,convergence_search=convergence_search)
                 self.add_to_already_tried_to_search(db_arg, s_id_arg)
                 if temp_inst:  self.add_to_args_to_search(temp_inst,args_to_search)
         return self.get_protein_match(bio_query,bio_db)
@@ -127,9 +124,9 @@ class Protein_Searcher(Global_Searcher):
                 if id_to_add and not self.check_already_searched_memory(dict_input_key='kegg', dict_input_value=id_to_add):
                     args_to_search.append(['kegg', id_to_add])
 
-                id_to_add = protein_instance.get_detail('biocyc')
-                if id_to_add and not self.check_already_searched_memory(dict_input_key='biocyc', dict_input_value=id_to_add):
-                    args_to_search.append(['biocyc', id_to_add])
+                id_to_add = protein_instance.get_detail('metacyc')
+                if id_to_add and not self.check_already_searched_memory(dict_input_key='metacyc', dict_input_value=id_to_add):
+                    args_to_search.append(['metacyc', id_to_add])
 
                 id_to_add = protein_instance.get_detail('hmdb')
                 if id_to_add and not self.check_already_searched_memory(dict_input_key='hmdb', dict_input_value=id_to_add):
@@ -139,19 +136,20 @@ class Protein_Searcher(Global_Searcher):
 
 
 
-    def get_proteins_from_uniprot(self,uniprot_id):
+    def get_proteins_from_uniprot(self,uniprot_id,convergence_search=False):
         """
         hmdb has 1:1 relation with uniprot (since its only for humans)
-        biocyc and kegg have a 1:n relationship (n for families)
+        metacyc and kegg have a 1:n relationship (n for families)
         brenda has no connection
         """
         res=[]
         for db in SCRAPPABLE_DBS:
             if uniprot_id and not self.check_already_searched_memory(dict_input_key=f'{db}_uniprot',dict_input_value=uniprot_id):
                 db_id = self.get_db_id_from_uniprot(db, uniprot_id=uniprot_id)
-                if not (isinstance(db_id, list) and not isinstance(db_id,generator) and not isinstance(db_id,dict)): db_id = [db_id]
+                if not db_id: db_id=[]
+                if isinstance(db_id,str) or isinstance(db_id,int) or isinstance(db_id,float): db_id = [db_id]
                 for p_id in db_id:
-                    temp_protein = self.find_protein(db=db,query_id= p_id)
+                    temp_protein = self.find_protein(db=db,query_id= p_id,convergence_search=convergence_search)
                     #for kegg
                     if temp_protein:
                         if not isinstance(temp_protein,list): temp_protein=[temp_protein]
@@ -163,31 +161,29 @@ class Protein_Searcher(Global_Searcher):
         return res
 
 
-    def get_protein_from_ec(self,enzyme_ec):
+    def get_protein_from_ec(self,enzyme_ec,convergence_search=False):
         """
         hmdb doesnt have EC info
         brenda and kegg have a 1:1 relationship
-        biocyc has 1:n
+        metacyc has 1:n
         """
         res=[]
-        protein_instance,kegg_prot,brenda_prot,biocyc_prot=None,None,None,None
+        protein_instance,kegg_prot,brenda_prot,metacyc_prot=None,None,None,None
         if is_ec(enzyme_ec,4):
             if enzyme_ec and not self.check_already_searched_memory(dict_input_key='kegg',dict_input_value=enzyme_ec):
-                kegg_prot= self.find_protein(db='kegg',query_id=enzyme_ec)
+                kegg_prot= self.find_protein(db='kegg',query_id=enzyme_ec,convergence_search=convergence_search)
                 self.add_to_already_tried_to_search('kegg', enzyme_ec)
-            if enzyme_ec and not self.check_already_searched_memory(dict_input_key='biocyc',dict_input_value=enzyme_ec):
-                biocyc_prot=self.find_protein(db='biocyc',query_id=enzyme_ec)
-                self.add_to_already_tried_to_search('biocyc', enzyme_ec)
-        #depending which threadpool we are using (if we are using it), the pool will can be in different variables
+            if enzyme_ec and not self.check_already_searched_memory(dict_input_key='metacyc',dict_input_value=enzyme_ec):
+                metacyc_prot=self.find_protein(db='metacyc',query_id=enzyme_ec,convergence_search=convergence_search)
+                self.add_to_already_tried_to_search('metacyc', enzyme_ec)
+
         if isinstance(kegg_prot,list): res.extend(kegg_prot)
         else:
             if kegg_prot: res.append(kegg_prot)
-        if isinstance(biocyc_prot,list): res.extend(biocyc_prot)
+        if isinstance(metacyc_prot,list): res.extend(metacyc_prot)
         else:
-            if biocyc_prot: res.append(biocyc_prot)
-        if isinstance(biocyc_prot,list): res.extend(biocyc_prot)
-        else:
-            if biocyc_prot: res.append(biocyc_prot)
+            if metacyc_prot: res.append(metacyc_prot)
+
         for p in res:
             if not protein_instance: protein_instance=p
             if p:
@@ -198,34 +194,14 @@ class Protein_Searcher(Global_Searcher):
 
 
     def get_db_id_from_uniprot(self,db,uniprot_id=None):
-        if not uniprot_id: return None
-        if db=='biocyc':
-            db_id = self.get_db_id_from_uniprot_api_biocyc(uniprot_id)
-            if not db_id:
-                #goes directly to biocyc website
-                db_id=self.get_db_id_from_uniprot_biocyc(uniprot_id)
-            return db_id
+        if not uniprot_id: return []
+        if db=='metacyc':
+            return self.fetch_metacyc_from_uniprot(uniprot_id)
         elif db=='kegg':
             return self.get_ecs_from_uniprot_kegg(uniprot_id)
         elif db=='hmdb':
             return self.get_db_id_from_uniprot_api_hmdb(uniprot_id)
 
-
-    def get_db_id_from_uniprot_api_biocyc(self,uniprot_id):
-        if uniprot_id:
-            # using uniprot api
-            params = {'from': 'ACC', 'to': 'BIOCYC_ID', 'format': 'tab', 'query': uniprot_id}
-            url = 'https://www.uniprot.org/uploadlists/'
-            webpage = self.get_with_fetcher(url, data=params)
-            split_lines = webpage.split('\n')
-            if len(split_lines)>1:
-                res=[]
-                split_lines=[i.split('\t') for i in split_lines[1:]]
-                for line in split_lines:
-                    if len(line)>1:
-                        uniprot_id,biocyc_id=line[0],line[1].split('MetaCyc:')[1]
-                        res.append(biocyc_id)
-                return res
 
     def get_db_id_from_uniprot_api_hmdb(self,uniprot_id):
         url=f'http://www.hmdb.ca/unearth/q?utf8=%E2%9C%93&query={uniprot_id}&searcher=proteins&button='
@@ -236,34 +212,6 @@ class Protein_Searcher(Global_Searcher):
         if res:
             hmdb_id=res.parent.parent.a.text
             return hmdb_id
-
-
-
-
-    def get_db_id_from_uniprot_biocyc(self,uniprot_id):
-        url=f'https://biocyc.org/META/search-query?type=GENE&pname={uniprot_id}'
-        webpage=self.get_with_fetcher(url)
-        if not webpage: return None
-        soup = BeautifulSoup(webpage, 'lxml')
-        result_table= soup.find(class_='sortableSAQPoutputTable')
-        if result_table:
-            res=result_table.find_all('tr')
-            res= res[1:]
-            if len(res)>1:
-                print('TOO MANY RESULTS BIOCYC')
-                return
-            gene_id,protein_id,organism= res[0].find_all('a')
-            gene_id = re.search('&id=.*',gene_id['href']).group()[4:]
-            return gene_id
-
-    def get_proteins_from_ec_biocyc(self,enzyme_ec):
-        fetcher=Protein_Fetcher_Biocyc(enzyme_ec)
-        protein_and_genes= fetcher.convergence_args['protein_and_genes']
-        res=[]
-        for p in protein_and_genes:
-            res.append(p['protein_id'])
-        return res
-
 
     def get_ko_from_gene_kegg(self,gene_id):
         webpage = self.get_with_fetcher(api_kegg=True, url=gene_id, database='ko',type_search='link')
@@ -306,18 +254,25 @@ class Protein_Searcher(Global_Searcher):
 
 
     def get_ec_from_ko(self,ko):
-        webpage = self.get_with_fetcher(api_kegg=True, url='ko:' + ko, database='ko')
-        if webpage:
-            kegg_id = webpage[0].split('\t')[1]
-            ec_pattern = re.compile('\[EC:(\d+\.){2,3}((\d+)|-)(\s(\d+\.){2,3}((\d+)|-))*\]')
-            enzyme_ec = re.search(ec_pattern, kegg_id)
-            if enzyme_ec: return enzyme_ec.group()[4:-1].split()
-            else: return []
+        if 'kegg' in SCRAPPABLE_DBS:
+            webpage = self.get_with_fetcher(api_kegg=True, url='ko:' + ko, database='ko')
+            if webpage:
+                kegg_id = webpage[0].split('\t')[1]
+                ec_pattern = re.compile('\[EC:(\d+\.){2,3}((\d+)|-)(\s(\d+\.){2,3}((\d+)|-))*\]')
+                enzyme_ec = re.search(ec_pattern, kegg_id)
+                if enzyme_ec: return enzyme_ec.group()[4:-1].split()
+                else: return []
         return []
 
 
 if __name__ == '__main__':
 
-    searcher=Protein_Searcher(search_mode={'pr'})
-    p1=searcher.run_searcher('1.1.1.370','enzyme_ec')
-    p1.get_all_info()
+    searcher=Protein_Searcher(search_mode={''},politeness_timer=2)
+    p1=searcher.run_searcher('G1G01-1865-MONOMER','metacyc')
+    p1=searcher.run_searcher('CPLX-2401','metacyc')
+    p1=searcher.run_searcher('MONOMER-2782','metacyc')
+    p1=searcher.run_searcher('5.3.1.26','metacyc')
+    for i in searcher.get_proteins_all():
+        print('######')
+        print(repr(i))
+        i.get_all_info()

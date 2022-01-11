@@ -18,7 +18,7 @@ class Protein(Base_Component):
     def __str__(self):
         try:
             return    '\nProtein ec: '          + xstr(self.get_detail('enzyme_ec')) \
-                + '\nProtein names:'         + xstr(self.get_most_common_synonym()) \
+                + '\nProtein Metacyc:'         + xstr(self.get_detail('metacyc')) \
                 + '\nProtein Uniprot ID:'         + xstr(self.get_detail('uniprot'))
         except:
             return ''
@@ -59,8 +59,7 @@ class Protein(Base_Component):
     def unite_instances_bio_specific(self, instance_2):
         for detail_type in self.get_details_list(extra_instances=instance_2):
             if detail_type == 'pathways':               self.set_detail(detail_type,instance_2.get_detail(detail_type,all_possible=True))
-            elif detail_type == 'gene_instances':       self.replace_instances(detail_type,instance_2)
-            elif detail_type == 'reaction_instances':   self.replace_instances(detail_type,instance_2)
+            elif detail_type.endswith('_instances'):       self.replace_instances(detail_type,instance_2)
             else:                                       unite_possible_ids(self, instance_2, detail_type)
 
 

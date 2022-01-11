@@ -1,6 +1,6 @@
 
 from source.Pipelines.Pipelines_Utils.Global_Searcher import *
-from source.Fetchers.Reaction_Fetchers.Reaction_Fetcher_Biocyc import Reaction_Fetcher_Biocyc
+from source.Fetchers.Reaction_Fetchers.Reaction_Fetcher_Metacyc import Reaction_Fetcher_Metacyc
 from source.Fetchers.Reaction_Fetchers.Reaction_Fetcher_HMDB import Reaction_Fetcher_HMDB
 from source.Fetchers.Reaction_Fetchers.Reaction_Fetcher_KEGG import Reaction_Fetcher_KEGG
 from source.Fetchers.Reaction_Fetchers.Reaction_Fetcher_Rhea import Reaction_Fetcher_Rhea
@@ -18,12 +18,12 @@ class Reaction_Searcher(Global_Searcher):
             return fetcher_reaction
 
 
-    def select_fetcher(self,db,query_id,extra_args,init_Fetcher=True):
+    def select_fetcher(self,db,query_id,extra_args):
         if db in SCRAPPABLE_DBS and not self.check_already_searched_memory(db,query_id):
-            if db == 'biocyc':        return  Reaction_Fetcher_Biocyc(query_id, extra_args=extra_args, memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
-            elif 'kegg' in db:        return  Reaction_Fetcher_KEGG(query_id, extra_args=extra_args, memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
-            elif db == 'hmdb':        return  Reaction_Fetcher_HMDB(query_id, extra_args=extra_args, memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
-            elif db == 'rhea':        return  Reaction_Fetcher_Rhea(query_id, extra_args=extra_args, memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
+            if db == 'metacyc':        return  Reaction_Fetcher_Metacyc(query_id, extra_args=extra_args, memory_storage=self.memory_storage)
+            elif 'kegg' in db:        return  Reaction_Fetcher_KEGG(query_id, extra_args=extra_args, memory_storage=self.memory_storage)
+            elif db == 'hmdb':        return  Reaction_Fetcher_HMDB(query_id, extra_args=extra_args, memory_storage=self.memory_storage)
+            elif db == 'rhea':        return  Reaction_Fetcher_Rhea(query_id, extra_args=extra_args, memory_storage=self.memory_storage)
             else:                     return  Global_Fetcher()
 
     def find_info(self, db, query_id, extra_args={}):
@@ -70,9 +70,9 @@ class Reaction_Searcher(Global_Searcher):
                 if id_to_add and not self.check_already_searched_memory(dict_input_key='kegg',dict_input_value=id_to_add):
                     args_to_search.append(['kegg', id_to_add])
 
-                id_to_add = reaction_instance.get_detail('biocyc')
-                if id_to_add and not self.check_already_searched_memory(dict_input_key='biocyc',dict_input_value=id_to_add):
-                    args_to_search.append(['biocyc', id_to_add])
+                id_to_add = reaction_instance.get_detail('metacyc')
+                if id_to_add and not self.check_already_searched_memory(dict_input_key='metacyc',dict_input_value=id_to_add):
+                    args_to_search.append(['metacyc', id_to_add])
 
 
                 id_to_add = reaction_instance.get_detail('hmdb')
@@ -90,15 +90,15 @@ if __name__ == '__main__':
     searcher=Reaction_Searcher(search_mode={'rc'})
 
 
-    r1=searcher.run_searcher('RXN-20993','biocyc')
+    r1=searcher.run_searcher('RXN-20993','metacyc')
     r1.get_all_info()
     for cpd in r1.get_detail('reaction_with_instances'):
         cpd[1].get_all_info()
 
-    #r1=searcher.run_searcher('RXN-20993','biocyc')
+    #r1=searcher.run_searcher('RXN-20993','metacyc')
     #r1.get_all_info()
     #for cpd in r1.get_detail('reaction_with_instances'):
     #    cpd[1].get_all_info()
-    #r1=searcher.find_reaction('biocyc','3.4.21.92-RXN')
+    #r1=searcher.find_reaction('metacyc','3.4.21.92-RXN')
     #r1=searcher.find_reaction('kegg','R01665')
 

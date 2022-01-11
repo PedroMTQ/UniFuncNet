@@ -7,6 +7,10 @@ from source.Biological_Components.Gene import Gene
 from source.Biological_Components.Protein import Protein
 from source.Biological_Components.Reaction import Reaction
 from source.Fetchers.Fetchers_Utils.Global_Fetcher import Global_Fetcher
+from source.Utils.Metacyc_SQLITE_Connector import Metacyc_SQLITE_Connector
+from source.Utils.Rhea_SQLITE_Connector import Rhea_SQLITE_Connector
+from source.Utils.CHEBI_SQLITE_Connector import CHEBI_SQLITE_Connector
+
 
 import datetime
 import re
@@ -17,20 +21,14 @@ from bs4 import BeautifulSoup
 
 #This is just the general class for the Searchers, instead of replicating code in the several searchers
 
-class Global_Searcher(Memory_Keeper):
+class Global_Searcher(Memory_Keeper,Metacyc_SQLITE_Connector,Rhea_SQLITE_Connector,CHEBI_SQLITE_Connector):
     def __init__(self,memory_storage=None,search_mode='global',db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
-        """
-        :param memory_storage: if one is given, memory location will be shared
-        :param search_mode:
-        types of convergence:
-            'gpr'
-            'rpg'
-            'global'
-            None
-        """
-
         self.output_folder=output_folder
         Memory_Keeper.__init__(self,db_name=db_name,politeness_timer=politeness_timer)
+        Metacyc_SQLITE_Connector.__init__(self)
+        Rhea_SQLITE_Connector.__init__(self)
+        CHEBI_SQLITE_Connector.__init__(self)
+        self.start_cursors()
         self.original_searcher=get_instance_type(self)
         self.search_mode=search_mode
         self.wanted_org_kegg_codes=wanted_org_kegg_codes
@@ -52,6 +50,10 @@ class Global_Searcher(Memory_Keeper):
         if not os.path.exists(RESOURCES_FOLDER):
             os.mkdir(RESOURCES_FOLDER)
 
+    def start_cursors(self):
+        self.metacyc_start_sqlite_cursor()
+        self.rhea_start_sqlite_cursor()
+        self.chebi_start_sqlite_cursor()
 
 
 
@@ -232,8 +234,8 @@ class Global_Searcher(Memory_Keeper):
 
     ###Function inheritance###
 
-    def find_protein(self, db, query_id, extra_args={}):
-        return self.protein_searcher.find_protein(db=db, query_id=query_id, extra_args=extra_args)
+    def find_protein(self, db, query_id, extra_args={},convergence_search=False):
+        return self.protein_searcher.find_protein(db=db, query_id=query_id, extra_args=extra_args,convergence_search=convergence_search)
 
     def find_gene(self, db, query_id, extra_args={}):
         return self.gene_searcher.find_gene(db=db, query_id=query_id, extra_args=extra_args)
@@ -247,6 +249,11 @@ class Global_Searcher(Memory_Keeper):
     def reaction_met_instances(self, rn, rn_with_ids, db):
         if self.is_valid_search_mode({'gprc','prc','rc','cr','crp','crpg','global'}):
             return self.compound_searcher.reaction_met_instances(rn,rn_with_ids,db)
+        else: return None
+
+    def reaction_met_instances_simple(self, reaction_stoichiometry, db):
+        if self.is_valid_search_mode({'gprc','prc','rc','cr','crp','crpg','global'}):
+            return self.compound_searcher.reaction_met_instances_simple(reaction_stoichiometry,db)
         else: return None
 
     ##########################
@@ -320,10 +327,9 @@ class Global_Searcher(Memory_Keeper):
 
 if __name__ == '__main__':
     gs=Global_Searcher()
-    print(SCRAPPABLE_DBS)
     #p=Protein({'kegg':'1'})
     #r=Reaction({'kegg':'2'})
-    #p.set_detail('reaction_instances',r,converged_in='biocyc')
+    #p.set_detail('reaction_instances',r,converged_in='metacyc')
     #r.set_detail('protein_instances',p,converged_in='kegg')
     #print(r.get_detail('protein_instances',return_convergence=True))
     #print(p.get_detail('reaction_instances',return_convergence=True))

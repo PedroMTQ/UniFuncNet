@@ -2,48 +2,25 @@
 # DRAX modules
 from source.Utils.util import strip_tags
 from source.Pipelines.Pipelines_Utils.Global_Searcher import *
-from source.Fetchers.Compound_Fetchers.Compound_Fetcher_Biocyc import Compound_Fetcher_Biocyc
+from source.Fetchers.Compound_Fetchers.Compound_Fetcher_Metacyc import Compound_Fetcher_Metacyc
 from source.Fetchers.Compound_Fetchers.Compound_Fetcher_KEGG import Compound_Fetcher_KEGG
 from source.Fetchers.Compound_Fetchers.Compound_Fetcher_Chemspider import Compound_Fetcher_Chemspider
 from source.Fetchers.Compound_Fetchers.Compound_Fetcher_HMDB import Compound_Fetcher_HMDB
 from source.Fetchers.Compound_Fetchers.Compound_Fetcher_Rhea import Compound_Fetcher_Rhea
 from source.Utils.util import get_stoichiometry
-from source.Utils.CHEBI_SQLITE_Connector import CHEBI_SQLITE_Connector
 
 # External modules
 from urllib.parse import quote_plus
 
-'''
-This class has different methods for searching through databases.
-1-Method all_derivatives:
-    Search compound name and retrieve all the derivatives
-This step starts by searching a database and extracting all search results it finds.
-It then cross-matches all these compounds into a final list of compounds.
- 
-2- Method find_compound:
-    Run all_derivavatives method and find best match between the found compounds and the initial query word.
-
-3-Method collect_all_info:
-    From a single or several IDs, other external IDs are collect through several databases. (step 1)
-This method starts by collecting all the information from the provided IDs.
-Then it can go through 2 methods: (step 2)
-        The first applies a search by synonyms by using the method find_compound.
-        The second collects an ID that was collected during step 1 by using the method find_info
-It does so until all available DBs have been visited.
-
-'''
-
-########INFO GETTER
-class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
+class Compound_Searcher(Global_Searcher):
     def __init__(self,memory_storage=None,search_mode=None,db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
         Global_Searcher.__init__(self,memory_storage,search_mode,db_name=db_name,wanted_org_kegg_codes=wanted_org_kegg_codes,output_folder=output_folder,politeness_timer=politeness_timer)
-        CHEBI_SQLITE_Connector.__init__(self)
-        self.close_sql_connection()
+
 
 
     def find_compound(self,db,query_id,already_found=set(),convergence_search=False):
         if self.check_already_searched_memory(db,query_id):
-            return self.get_compound_match(query_id,db)
+            return self.get_compound_match(query_id,db),None
         if db=='synonyms':
             print('Finding compound', db, query_id)
             return self.find_compound_string(query_id,already_found,convergence_search=convergence_search)
@@ -51,11 +28,11 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
             return self.find_info(db,query_id,convergence_search=convergence_search)
 
 
-    def select_fetcher(self,db,query_id,init_Fetcher=True):
+    def select_fetcher(self,db,query_id):
         if db in SCRAPPABLE_DBS and not self.check_already_searched_memory(db,query_id):
             print('Finding compound', db, query_id)
 
-            if db == 'biocyc':          return  Compound_Fetcher_Biocyc(query_id, memory_storage=self.memory_storage)
+            if db == 'metacyc':         return  Compound_Fetcher_Metacyc(query_id, memory_storage=self.memory_storage)
             elif db == 'kegg':          return  Compound_Fetcher_KEGG(query_id, memory_storage=self.memory_storage)
             elif db == 'chemspider':    return  Compound_Fetcher_Chemspider(query_id, memory_storage=self.memory_storage)
             elif db == 'hmdb':          return  Compound_Fetcher_HMDB(query_id, memory_storage=self.memory_storage)
@@ -76,14 +53,11 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
                     if self.is_valid_search_mode({'global','crpg','crp','cr'}):
                         fetcher.converge_compound_global()
                 return fetcher_cpd,fetcher
-            else:
-                return None, None
         else:
             if self.check_already_searched_memory(db, query_id):
                 print('Already searched', db, query_id)
                 return self.get_compound_match(bio_query=query_id, bio_db=db), None
-            else:
-                return None, None
+        return None, None
 
 
 ######Retrieval of compounds for reactions#######
@@ -113,6 +87,25 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
         print('POSSIBLE BROKEN LINK HERE', db, met_id, met_name)
         self.add_compound(match)
         return match
+
+    def reaction_met_instances_simple(self, reaction_stoichiometry,  db):
+        print('Reaction from', db, ': ', reaction_stoichiometry)
+        rn_with_instances = {'left':[],'right':[]}
+        side='left'
+        for i in reaction_stoichiometry:
+            if isinstance(i,list):
+                stoi,met_id=i
+            else:
+                side='right'
+            match=self.get_compound_match(met_id, db)
+            if not match:
+                print(f'Will now search for {met_id} in {db}')
+                self.run_searcher(met_id, db)
+                #####Third memory search#####
+                match = self.get_compound_match(met_id, db)
+
+            rn_with_instances[side].append([stoi, match])
+        return rn_with_instances
 
     def reaction_met_instances(self, rn, rn_with_ids, db):
         """
@@ -145,7 +138,7 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
                 if found_met:
                     match.unite_instances(found_met)
 
-            match.set_detail(db, met_id)
+                match.set_detail(db, met_id)
             if db != 'synonyms': match.set_detail('synonyms', met_name)
             rn_with_instances[side].append([whole_met_name[0], match])
         return rn_with_instances
@@ -245,63 +238,24 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
         if not res: return None
         return res
 
-    # this searches for a certain compound and all of its derivatives, returning a list of biocyc ids
-    def derivatives_biocyc_ids(self,compound):
-        cpd_search = quote_plus(compound)
-        url = f'https://biocyc.org/META/substring-search?type=NIL&object={cpd_search}&quickSearch=Quick+Search'
-        webpage = self.get_with_fetcher(url,selenium=True,original_response=True)
-        if not webpage: return None
-        current_url=webpage.current_url
-        page_source = webpage.page_source
-        if 'selenium.webdriver' in repr(webpage): webpage.quit()
-        if current_url!= url:
-            #sometimes biocyc will redirect to gene page, we want to extract info from this page too
-            #this will only happen when coming from the protein_searcher method
-            try:
-                print('REDIRECTED','current',webpage.current_url,'previous',url)
-            except: pass
-            return [self.redirected_compound_page(current_url)]
-        else:
-            return self.NOT_redirected_compound_page(page_source,compound)
 
-    def redirected_compound_page(self,current_url):
-        temp_url=current_url.replace('&redirect=T','')
-        #sometimes it redirects to a protein... which shouldnt happen
-        if 'EC-' in temp_url: return None
-        has_id=temp_url.split('&id=')
-        if len(has_id)>1: return has_id[1]
-        has_object= temp_url.split('&object=')
-        if len(has_object)>1: return has_object[1]
-        print('COULDNT REDIRECT', temp_url)
-        return None
-
-
-
-    def NOT_redirected_compound_page(self,webpage,compound_str):
+    def derivatives_metacyc(self, compound):
+        derivatives= self.fetch_metacyc_derivatives(compound)
+        if not derivatives: return None
         res = []
-        soup = BeautifulSoup(webpage, 'lxml')
-        if soup.find_all(text='No exact matches were found.  Showing matches for '): return None
-        search = soup.find_all('a', {'href': re.compile('/compound')})
-        for i in search:
-            cpd_syn=i.text
-            cpd_id=i['href'][re.search('META&id=', i['href']).span()[1]:]
-            if cpd_syn.lower()==compound_str.lower():
-                return [cpd_id]
-            if cpd_id not in res: res.append(cpd_id)
-        return res
-
-    def derivatives_biocyc(self, compound,limit_mets=20):
-        res = []
-        der_ids = self.derivatives_biocyc_ids(compound)
-        if not der_ids: return None
-        #some queries
-        for compound_id in der_ids[0:limit_mets]:
-            fetcher_cpd,fetcher_inst= self.find_info('biocyc',compound_id)
+        for cpd_id in derivatives:
+            fetcher_cpd,fetcher_inst = self.find_info('metacyc',cpd_id)
             if fetcher_inst:
                 if fetcher_cpd:
-                    res.append(fetcher_inst)
+                    if self.find_match_synonyms([compound], fetcher_cpd.get_detail('synonyms'), equal=True):
+                        res=[fetcher_inst]
+                        return res
+                    if self.find_match_synonyms([compound], fetcher_cpd.get_detail('synonyms'), equal=False):
+                        res.append(fetcher_inst)
         if not res: return None
         return res
+
+
 
 #############Joining queried info together#############
 
@@ -325,7 +279,7 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
         if not self.check_already_searched_memory(db,compound):
             res=None
             if db == 'hmdb':      res= self.derivatives_HMDB(compound)
-            if db == 'biocyc':    res= self.derivatives_biocyc(compound)
+            if db == 'metacyc':    res= self.derivatives_metacyc(compound)
             if db == 'kegg':      res= self.derivatives_kegg(compound)
             self.add_to_already_tried_to_search(db,compound)
             return res
@@ -384,9 +338,8 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
             found_cpd=self.all_derivatives(search_cpd,dbs_to_use,convergence_search=convergence_search)
             if found_cpd: return found_cpd,None
             else:
-                #print('Compound string ',search_cpd,' wasn\'t found anywhere so we just created a placeholder of this compound!')
-                #return Compound({'synonyms':search_cpd}),None
                 return None,None
+        return None,None
 
     def run_searcher(self,bio_query,bio_db,convergence_search=False):
         print(f'STARTING COMPOUND SEARCHER {bio_query} in {bio_db}')
@@ -399,10 +352,7 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
             args_to_search.append(['inchi_key',bio_query])
         if bio_db=='chebi':
             args_to_search.append(['rhea', bio_query])
-
-            self.start_sqlite_cursor()
             chebi_to_others=self.fetch_chebi_id_info(bio_query)
-            self.close_sql_connection()
             for chebi_db in chebi_to_others:
                 if chebi_db not in ['smiles','chemical_formula']: #we also have this info in the sql database, wont really change much, just avoid function calls since there's no fetcher for these
                     for chebi_db_id in chebi_to_others[chebi_db]:
@@ -477,7 +427,6 @@ class Compound_Searcher(Global_Searcher,CHEBI_SQLITE_Connector):
                         #to avoid very long searches
                         if id_arg.intersection(syns): return
                 self.add_to_already_tried_to_search(db_arg, s_id_arg)
-                #if temp_inst:   self.add_to_args_to_search_ids(temp_inst, args_to_search)
 
 if __name__ == '__main__':
     searcher = Compound_Searcher(search_mode={''})
@@ -486,4 +435,4 @@ if __name__ == '__main__':
     #searcher.reset_db(delete_all=True,force_reset=True)
     #res=searcher.find_compound_string('quercetin')
     #print(res)
-    r1=searcher.run_searcher('C01902','kegg')
+    r1=searcher.run_searcher('oxygen','synonyms')

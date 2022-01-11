@@ -67,15 +67,13 @@ def check_validity_input(target_path):
             line=line.strip('\n')
             if line:
                 line_split=line.split('\t')
-                search_mode=[]
+                search_mode=''
                 if len(line_split) == 5:
                     db_id, db_type, instance_type, search_mode, kegg_org_codes = line_split
                 elif len(line_split) == 4:
                     db_id, db_type, instance_type, search_mode = line_split
                 else:
                     db_id, db_type, instance_type = line_split
-
-
                 search_mode=[i.lower() for i in search_mode.split(',')]
                 search_mode=set(search_mode)
                 if search_mode.difference(VALID_DIRECTIONS):
@@ -89,8 +87,10 @@ def check_validity_input(target_path):
 
 def run_searcher(target_path,output_folder,politeness_timer):
     start=time()
-    run_test_browser_drivers()
-    current_time = datetime.datetime.now()
+    print('change')
+    #run_test_browser_drivers()
+    print(f'Available databases:\n{",".join(SCRAPPABLE_DBS)}')
+    current_time = datetime.now()
     print(f"DRAX started running at  {current_time}")
 
     gene_searcher= Gene_Searcher(output_folder=output_folder,politeness_timer=politeness_timer)
@@ -105,7 +105,7 @@ def run_searcher(target_path,output_folder,politeness_timer):
             if line:
                 line_split=line.split('\t')
                 kegg_org_codes=[]
-                search_mode=[]
+                search_mode=''
                 if len(line_split)<3:
                     print('Invalid input line')
 
@@ -130,7 +130,7 @@ def run_searcher(target_path,output_folder,politeness_timer):
 
                     set_search_mode([gene_searcher,protein_searcher,compound_searcher,reaction_searcher],search_mode)
                     set_kegg_org_codes([gene_searcher,protein_searcher,compound_searcher,reaction_searcher],kegg_org_codes)
-                    if instance_type == 'compound':
+                    if instance_type == 'compound' or instance_type == 'protein':
                         searcher.run_searcher(db_id,db_type,convergence_search=True)
                     else:
                         searcher.run_searcher(db_id,db_type)
@@ -139,8 +139,7 @@ def run_searcher(target_path,output_folder,politeness_timer):
         searcher.output_results()
     print(f'DRAX took {time()-start} seconds to run')
 
-
-if __name__ == '__main__':
+def main():
     if '--example' in sys.argv:
         run_test()
     elif '--test_web' in sys.argv:
@@ -167,6 +166,9 @@ if __name__ == '__main__':
         target_path = args.input_path
         output_folder = args.output_folder
         politeness_timer = args.politeness_timer
+        if not target_path:
+            print('Missing input path, quitting!')
+            return
         if politeness_timer:
             politeness_timer = int(politeness_timer)
         else: politeness_timer=10
@@ -188,12 +190,13 @@ if __name__ == '__main__':
         else:
             os.mkdir(output_folder)
 
-
         if databases:
             databases=databases.split(',')
             set_scrappable_dbs(databases)
         if os.path.exists(target_path):
             passed_check=False
+            check_validity_input(target_path)
+
             try:
                 check_validity_input(target_path)
                 passed_check=True
@@ -206,3 +209,6 @@ if __name__ == '__main__':
 
         else:
             print('Input file not found!')
+
+if __name__ == '__main__':
+    main()

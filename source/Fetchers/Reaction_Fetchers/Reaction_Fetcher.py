@@ -5,9 +5,8 @@ from source.Utils.util import get_stoichiometry,sub_prod_to_reaction
 
 class Reaction_Fetcher(Global_Fetcher):
     def __init__(self,reaction_id,memory_storage=None):
-        Global_Fetcher.__init__(self)
+        Global_Fetcher.__init__(self,memory_storage=memory_storage)
         self.reaction_id=reaction_id
-        self.memory_storage=memory_storage
         self.db= None
         self.reaction=None
         self.convergence_args={}
@@ -25,6 +24,10 @@ class Reaction_Fetcher(Global_Fetcher):
         #this wont run with the fetchers. this was intentionally designed this way
         return self.memory_storage.reaction_met_instances(rn,rn_with_ids,db)
 
+    def reaction_met_instances_simple(self, reaction_stoichiometry, db):
+        #this wont run with the fetchers. this was intentionally designed this way
+        return self.memory_storage.reaction_met_instances_simple(reaction_stoichiometry,db)
+
     def add_reaction(self):
         if self.get_reaction():
             match = self.get_reaction_match()
@@ -41,12 +44,12 @@ class Reaction_Fetcher(Global_Fetcher):
 
 
 
-    def find_protein(self,query_id=None,extra_args={}):
+    def find_protein(self,query_id=None,extra_args={},convergence_search=False):
         memory_type=get_instance_type(self.memory_storage)
         if memory_type=='Protein_Searcher':
-            return self.memory_storage.find_protein(db=self.db,query_id=query_id,extra_args=extra_args)
+            return self.memory_storage.find_protein(db=self.db,query_id=query_id,extra_args=extra_args,convergence_search=convergence_search)
         else:
-            return self.memory_storage.protein_searcher.find_protein(db=self.db,query_id=query_id,extra_args=extra_args)
+            return self.memory_storage.protein_searcher.find_protein(db=self.db,query_id=query_id,extra_args=extra_args,convergence_search=convergence_search)
 
     def find_gene(self,query_id=None,extra_args={}):
         memory_type=get_instance_type(self.memory_storage)

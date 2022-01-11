@@ -10,31 +10,34 @@ class CHEBI_SQLITE_Connector():
     then anytime we need to fetch info we just open the db, fetch the info, and close the connection
     '''
     def __init__(self):
-        self.insert_step=50000
-        self.db_file = f'{RESOURCES_FOLDER}chebi.db'
+        self.insert_step=10000
+        self.chebi_db = f'{RESOURCES_FOLDER}chebi.db'
         self.download_chebi()
 
-        if os.path.exists(self.db_file):
-            self.start_sqlite_cursor()
+        if os.path.exists(self.chebi_db):
+            self.chebi_start_sqlite_cursor()
         else:
-            self.create_sql_table()
+            self.metacyc_create_db()
 
+    def chebi_start_sqlite_cursor(self):
+        self.chebi_sqlite_connection = sqlite3.connect(self.chebi_db)
+        self.chebi_cursor = self.chebi_sqlite_connection.cursor()
 
-    def start_sqlite_cursor(self):
-        self.sqlite_connection = sqlite3.connect(self.db_file)
-        self.cursor = self.sqlite_connection.cursor()
+    def chebi_commit(self):
+        self.chebi_sqlite_connection.commit()
 
-    def commit_and_close_sqlite_cursor(self):
-        self.sqlite_connection.commit()
-        self.sqlite_connection.close()
+    def chebi_execute(self, command):
+        return self.chebi_cursor.execute(command)
 
-    def close_sql_connection(self):
-        self.sqlite_connection.close()
+    def chebi_executemany(self, command, chunk):
+        return self.chebi_cursor.executemany(command, chunk)
 
-    def check_table(self):
-        self.cursor.execute("SELECT * FROM CHEBI2OTHERS limit 10")
-        res_fetch = self.cursor.fetchall()
-        print(res_fetch)
+    def chebi_commit_and_close_sqlite_cursor(self):
+        self.chebi_commit()
+        self.chebi_close_sql_connection()
+
+    def chebi_close_sql_connection(self):
+        self.chebi_sqlite_connection.close()
 
     def trim_chebi_obo(self,infile_path,outfile_path):
         a=set()
@@ -65,7 +68,6 @@ class CHEBI_SQLITE_Connector():
                     line=infile.readline()
         print(a)
 
-
     def trim_chebi_accession(self,infile_path,outfile_path):
         res=set()
         with open(infile_path) as infile:
@@ -85,7 +87,7 @@ class CHEBI_SQLITE_Connector():
                     elif id_type=='KEGG COMPOUND accession':
                         outline=f'{chebi_id}\tkegg\t{secondary_id}'
                     elif id_type=='MetaCyc accession':
-                        outline=f'{chebi_id}\tbiocyc\t{secondary_id}'
+                        outline=f'{chebi_id}\tmetacyc\t{secondary_id}'
                     elif id_type=='HMDB accession':
                         outline=f'{chebi_id}\thmdb\t{secondary_id}'
                     elif id_type=='Chemspider accession':
@@ -116,7 +118,7 @@ class CHEBI_SQLITE_Connector():
         self.trim_chebi_accession(infile_path,outfile_path)
 
     def download_chebi(self):
-        if not os.path.exists(self.db_file):
+        if not os.path.exists(self.chebi_db):
             self.download_chebi_to_others()
             self.download_chebi_obo()
 
@@ -132,29 +134,23 @@ class CHEBI_SQLITE_Connector():
                 line = file.readline()
         os.remove(input_path)
 
-
-
-    def create_sql_table(self):
+    def metacyc_create_db(self):
         #this will probably need to be changed to an output_folder provided by the user
         outfile_path=f'{RESOURCES_FOLDER}chebi2others.tsv'
-        if os.path.exists(self.db_file):
-            os.remove(self.db_file)
-        self.sqlite_connection = sqlite3.connect(self.db_file)
-        self.cursor = self.sqlite_connection.cursor()
-
+        if os.path.exists(self.chebi_db):
+            os.remove(self.chebi_db)
+        self.chebi_start_sqlite_cursor()
         create_table_command = f'CREATE TABLE CHEBI2OTHERS (' \
                             f'CHEBI INTEGER,' \
                             f'DATABASE TEXT,' \
                             f'ALTID  TEXT )'
-
-        self.cursor.execute(create_table_command)
+        self.chebi_execute(create_table_command)
 
         create_index_command = f'CREATE INDEX CHEBI_IDX ON CHEBI2OTHERS (CHEBI)'
-        self.cursor.execute(create_index_command)
+        self.chebi_execute(create_index_command)
 
-        self.sqlite_connection.commit()
+        self.chebi_commit()
         self.store_chebi2others()
-
 
     def generate_inserts(self, input_generator):
         step=self.insert_step
@@ -167,35 +163,25 @@ class CHEBI_SQLITE_Connector():
                 temp=[]
         yield temp
 
-
-
-
     def store_chebi2others(self):
         chebi2others=self.get_chebi_to_others()
         generator_insert = self.generate_inserts(chebi2others)
         for table_chunk in generator_insert:
             insert_command = f'INSERT INTO CHEBI2OTHERS (CHEBI, DATABASE, ALTID) values (?,?,?)'
-            self.cursor.executemany(insert_command, table_chunk)
-        self.sqlite_connection.commit()
+            self.chebi_executemany(insert_command, table_chunk)
+        self.chebi_commit()
 
     def fetch_chebi_id_info(self,chebi_id):
         res={}
         try:    chebi_id=int(chebi_id)
         except: return res
         fetch_command = f"SELECT CHEBI,DATABASE, ALTID FROM CHEBI2OTHERS WHERE CHEBI = {chebi_id}"
-        res_fetch=self.cursor.execute(fetch_command).fetchall()
+        res_fetch=self.chebi_execute(fetch_command).fetchall()
         for i in res_fetch:
             chebi_id,db,alt_id=i
             if db not in res: res[db]=set()
             res[db].add(alt_id)
         return res
-
-    def fetch_all_chebi_ids(self):
-        res=set()
-        fetch_command = f"SELECT CHEBI FROM CHEBI2OTHERS"
-        res_fetch=self.cursor.execute(fetch_command).fetchall()
-        for i in res_fetch:
-            res.add(i[0])
 
 
 if __name__ == '__main__':

@@ -6,9 +6,8 @@ from source.Utils.util import remove_inchi_key_equal
 
 class Compound_Fetcher(Global_Fetcher):
     def __init__(self,compound_id,memory_storage=None):
-        Global_Fetcher.__init__(self)
+        Global_Fetcher.__init__(self,memory_storage=memory_storage)
         self.compound_id=compound_id
-        self.memory_storage=memory_storage
         self.db= None
         self.compound=None
         self.convergence_args={}
@@ -43,12 +42,12 @@ class Compound_Fetcher(Global_Fetcher):
     def replace_reaction_met_instances(self,new_instance,old_instance):
         self.memory_storage.replace_reaction_met_instances(new_instance,old_instance)
 
-    def find_protein(self,query_id=None,extra_args={}):
+    def find_protein(self,query_id=None,extra_args={},convergence_search=False):
         memory_type=get_instance_type(self.memory_storage)
         if memory_type=='Protein_Searcher':
-            return self.memory_storage.find_protein(db=self.db,query_id=query_id,extra_args=extra_args)
+            return self.memory_storage.find_protein(db=self.db,query_id=query_id,extra_args=extra_args,convergence_search=convergence_search)
         else:
-            return self.memory_storage.protein_searcher.find_protein(db=self.db,query_id=query_id,extra_args=extra_args)
+            return self.memory_storage.protein_searcher.find_protein(db=self.db,query_id=query_id,extra_args=extra_args,convergence_search=convergence_search)
 
     def find_reaction(self, query_id=None, extra_args={}):
         memory_type = get_instance_type(self.memory_storage)
@@ -58,26 +57,8 @@ class Compound_Fetcher(Global_Fetcher):
             return self.memory_storage.reaction_searcher.find_reaction(db=self.db, query_id=query_id,
                                                                        extra_args=extra_args)
 
-    def get_wanted_info(self):
-        return ['hmdb',
-                'kegg',
-                'chemspider',
-                'chebi',
-                'pubchem_cid',
-                'bigg',
-                'biocyc',
-                'seed',
-                'synonyms',
-                'brenda',
-                'inchi_key',
-                'drugbank',
-                'pdb',
-                'pubchem_sid',
-                ]
-
     def remove_unwanted_info(self,dict_to_change):
-        wanted_info=self.get_wanted_info()
-        res={i.lower():dict_to_change[i] for i in dict_to_change if dict_to_change[i] and i.lower() in wanted_info}
+        res=dict(dict_to_change)
         for detail in res:
             if isinstance(res[detail],str):
                 res[detail]={res[detail]}

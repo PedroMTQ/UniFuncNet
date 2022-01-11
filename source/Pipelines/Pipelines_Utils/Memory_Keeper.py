@@ -42,8 +42,8 @@ class Memory_Keeper():
 
     def setup_fetchers(self):
         #so that startup is quicker we dont init all the fetchers, we just do launch them the first time we need them
-        self.fetcher_biocyc = None
         self.fetcher_kegg = None
+        self.fetcher_hmdb = None
         self.fetcher_ncbi = None
         self.fetcher_uniprot = None
         # since non-specific fetcher accesses several databases, it's not as important to rotate proxies that often.
@@ -61,9 +61,11 @@ class Memory_Keeper():
             self.fetcher_kegg =Web_Connector(test=self.fetcher_test, omit_error_messages=self.fetcher_omit_error_messages,politeness_timer=self.politeness_timer)
             return self.fetcher_kegg
 
-        elif 'biocyc' in url_or_db.lower():
-            self.fetcher_biocyc =Web_Connector(test=self.fetcher_test, omit_error_messages=self.fetcher_omit_error_messages,politeness_timer=self.politeness_timer)
-            return self.fetcher_biocyc
+        elif 'hmdb' in url_or_db.lower():
+            self.fetcher_hmdb =Web_Connector(test=self.fetcher_test, omit_error_messages=self.fetcher_omit_error_messages,politeness_timer=self.politeness_timer)
+            return self.fetcher_hmdb
+
+
 
         elif 'ncbi' in url_or_db.lower():
             self.fetcher_ncbi =Web_Connector(test=self.fetcher_test, omit_error_messages=self.fetcher_omit_error_messages,politeness_timer=self.politeness_timer)
@@ -78,8 +80,8 @@ class Memory_Keeper():
 
     def borrow_fetchers(self,memory_storage):
         #print('Borrowing Fetchers!')
-        self.fetcher_biocyc = memory_storage.fetcher_biocyc
         self.fetcher_kegg = memory_storage.fetcher_kegg
+        self.fetcher_hmdb = memory_storage.fetcher_hmdb
         self.fetcher_ncbi = memory_storage.fetcher_ncbi
         self.fetcher_uniprot = memory_storage.fetcher_uniprot
         self.fetcher_others = memory_storage.fetcher_others
@@ -95,7 +97,7 @@ class Memory_Keeper():
     def get_db_fetcher(self,url_or_db=None):
         if not url_or_db:                                                       fetcher= self.fetcher_others
         elif 'kegg' in url_or_db.lower() or 'genome.jp' in url_or_db.lower():   fetcher= self.fetcher_kegg
-        elif 'biocyc' in url_or_db.lower():                                     fetcher= self.fetcher_biocyc
+        elif 'hmdb' in url_or_db.lower():                                       fetcher= self.fetcher_hmdb
         elif 'ncbi' in url_or_db.lower():                                       fetcher= self.fetcher_ncbi
         elif 'uniprot' in url_or_db.lower():                                    fetcher= self.fetcher_uniprot
         else:
@@ -173,27 +175,13 @@ class Memory_Keeper():
                 elif bio_type=='genes':         temp_bio_entity=Gene({bio_db:bio_query})
                 elif bio_type=='reactions':     temp_bio_entity=Reaction({bio_db:bio_query})
                 elif bio_type=='compounds':     temp_bio_entity=Compound({bio_db:bio_query})
+
                 if bio_entity.is_match_instances(temp_bio_entity,threshold_for_match=1):   return bio_entity
             else:
                 if bio_entity.is_match_instances(bio_query):   return bio_entity
         return None
 
-    def merge_all_instances(self):
-        for yielder in [
-            self.get_compounds_all(),
-            self.get_genes_all(),
-            self.get_proteins_all(),
-            self.get_reactions_all(),
-        ]:
-            current_set=set()
-            for current_inst in yielder:
-                current_set.add(current_inst)
-            current_length=len(current_set)
-            print(current_set)
-
-
-
-    #Getters all
+     #Getters all
     def get_proteins_all(self):
         return self.proteins.get_item_set()
 

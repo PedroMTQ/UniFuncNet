@@ -1,6 +1,6 @@
 
 from source.Pipelines.Pipelines_Utils.Global_Searcher import *
-from source.Fetchers.Gene_Fetchers.Gene_Fetcher_Biocyc import Gene_Fetcher_Biocyc
+from source.Fetchers.Gene_Fetchers.Gene_Fetcher_Metacyc import Gene_Fetcher_Metacyc
 from source.Fetchers.Gene_Fetchers.Gene_Fetcher_HMDB import Gene_Fetcher_HMDB
 from source.Fetchers.Gene_Fetchers.Gene_Fetcher_KEGG import Gene_Fetcher_KEGG
 
@@ -17,11 +17,11 @@ class Gene_Searcher(Global_Searcher):
             fetcher_gene,fetcher=self.find_info(db, query_id, extra_args)
             return fetcher_gene
 
-    def select_fetcher(self,db,query_id,extra_args,init_Fetcher=True):
+    def select_fetcher(self,db,query_id,extra_args):
         if db in SCRAPPABLE_DBS and not self.check_already_searched_memory(db,query_id):
-            if db == 'biocyc':        return    Gene_Fetcher_Biocyc(query_id,extra_args=extra_args, memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
-            elif 'kegg' in db:        return    Gene_Fetcher_KEGG(query_id,extra_args=extra_args,memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
-            elif db == 'hmdb':        return    Gene_Fetcher_HMDB(query_id,extra_args=extra_args, memory_storage=self.memory_storage,init_Fetcher=init_Fetcher)
+            if db == 'metacyc':        return    Gene_Fetcher_Metacyc(query_id,extra_args=extra_args, memory_storage=self.memory_storage)
+            elif 'kegg' in db:        return    Gene_Fetcher_KEGG(query_id,extra_args=extra_args,memory_storage=self.memory_storage)
+            elif db == 'hmdb':        return    Gene_Fetcher_HMDB(query_id,extra_args=extra_args, memory_storage=self.memory_storage)
             else:                     return    Global_Fetcher()
 
     def find_info(self,db,query_id,extra_args={}):
@@ -70,7 +70,7 @@ class Gene_Searcher(Global_Searcher):
 
         if bio_db in SCRAPPABLE_DBS:
             if bio_db=='uniprot':
-                for db in ['biocyc','hmdb','kegg']:
+                for db in ['metacyc','hmdb','kegg']:
                     if db in SCRAPPABLE_DBS:
                         db_id = self.get_db_id_from_uniprot(bio_query,db)
                         if db_id:args_to_search.append([db,db_id])
@@ -93,27 +93,9 @@ class Gene_Searcher(Global_Searcher):
 
 
     def get_db_id_from_uniprot(self,uniprot_id,db):
-        if db=='biocyc': return self.get_db_id_from_uniprot_biocyc(uniprot_id)
+        if db=='metacyc': return self.fetch_metacyc_from_uniprot(uniprot_id)
         if db=='hmdb': return self.get_db_id_from_uniprot_hmdb(uniprot_id)
         if db=='kegg': return self.get_db_id_from_uniprot_kegg(uniprot_id)
-
-
-    def get_db_id_from_uniprot_biocyc(self,uniprot_id):
-        url=f'https://biocyc.org/META/search-query?type=GENE&pname={uniprot_id}'
-        webpage=self.get_with_fetcher(url)
-        if not webpage: return None
-        soup = BeautifulSoup(webpage, 'lxml')
-        result_table= soup.find(class_='sortableSAQPoutputTable')
-        if result_table:
-            res=result_table.find_all('tr')
-            res= res[1:]
-            if len(res)>1:
-                print(uniprot_id,url)
-                print('TOO MANY RESULTS BIOCYC')
-                return
-            gene_id,protein_id,organism= res[0].find_all('a')
-            gene_id = re.search('&id=.*',gene_id['href']).group()[4:]
-            return gene_id
 
     def get_db_id_from_uniprot_hmdb(self,uniprot_id):
         url=f'http://www.hmdb.ca/unearth/q?utf8=%E2%9C%93&query={uniprot_id}&searcher=proteins&button='

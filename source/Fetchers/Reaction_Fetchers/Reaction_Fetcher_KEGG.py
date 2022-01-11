@@ -3,13 +3,12 @@ from source.Fetchers.Reaction_Fetchers.Reaction_Fetcher import *
 
 
 class Reaction_Fetcher_KEGG(Reaction_Fetcher):
-    def __init__(self,reaction_id,extra_args={},memory_storage=None,init_Fetcher=True):
+    def __init__(self,reaction_id,extra_args={},memory_storage=None):
         Reaction_Fetcher.__init__(self,reaction_id=reaction_id,memory_storage=memory_storage)
         self.db = 'kegg'
         self.set_convergence_args(extra_args)
-        if init_Fetcher:
-            self.reaction= self.get_reactions_KEGG()
-            self.add_reaction()
+        self.reaction= self.get_reactions_KEGG()
+        self.add_reaction()
 
     def set_convergence_args(self,extra_args):
         if 'compound' in extra_args: self.convergence_args['compound'] = extra_args['compound']
@@ -119,6 +118,7 @@ class Reaction_Fetcher_KEGG(Reaction_Fetcher):
         self.converge_reaction_to_protein()
 
     def converge_reaction_to_protein(self):
+
         for enzyme_ec in self.convergence_args['proteins_list']:  # there may be several enzymes for the same reaction
             print(f'Linking from reaction {self.reaction_id} in {self.db} to protein {enzyme_ec}')
             protein_instance = self.find_protein(query_id=enzyme_ec)
@@ -126,6 +126,6 @@ class Reaction_Fetcher_KEGG(Reaction_Fetcher):
                 self.get_reaction().set_detail('protein_instances',protein_instance,converged_in=self.db)
 
 if __name__ == '__main__':
-    rn_search=Reaction_Fetcher_KEGG('R02938')
+    rn_search=Reaction_Fetcher_KEGG('R00018')
     r=rn_search.get_reaction()
     print(r)

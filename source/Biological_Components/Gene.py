@@ -40,8 +40,7 @@ class Gene(Base_Component):
 
     def unite_instances_bio_specific(self,instance_2):
         for detail_type in self.get_details_list(extra_instances=instance_2):
-            if detail_type in 'protein_instances':    self.replace_instances(detail_type,instance_2)
-            elif detail_type in 'reaction_instances':   self.replace_instances(detail_type,instance_2)
+            if detail_type.endswith('_instances'):    self.replace_instances(detail_type,instance_2)
             else:                                       unite_possible_ids(self, instance_2, detail_type)
 
 

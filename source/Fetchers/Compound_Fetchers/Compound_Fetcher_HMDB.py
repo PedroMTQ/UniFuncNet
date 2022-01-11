@@ -84,7 +84,7 @@ class Compound_Fetcher_HMDB(Compound_Fetcher):
                         'KNApSAcK ID': 'knapsack',
                         'Chemspider ID': 'chemspider',
                         'KEGG Compound ID': 'kegg',
-                        'BioCyc ID': 'biocyc',
+                        'BioCyc ID': 'metacyc',
                         'BiGG ID': 'bigg',
                         'METLIN ID': 'metlin',
                         'PubChem Compound': 'puchem_cid',

@@ -5,14 +5,13 @@ from source.Fetchers.Gene_Fetchers.Gene_Fetcher import *
 #hmdb doesnt separate genes and enzymes so we just use the same id for both. If we come form the enzyme fetcher we can just reuse the enzyme soup
 #otherwise we fetch a new soup
 class Gene_Fetcher_HMDB(Gene_Fetcher):
-    def __init__(self,gene_id=None,extra_args={},memory_storage=None,init_Fetcher=True):
+    def __init__(self,gene_id=None,extra_args={},memory_storage=None):
         #hmdb is a database for human data
         Gene_Fetcher.__init__( self, gene_id=gene_id,extra_args=extra_args,memory_storage=memory_storage)
         self.db='hmdb'
         self.set_convergence_args(extra_args)
-        if init_Fetcher:
-            self.gene=self.get_gene_hmdb()
-            self.add_gene()
+        self.gene=self.get_gene_hmdb()
+        self.add_gene()
 
     def set_convergence_args(self,extra_args):
         #in hmdb, genes and proteins are in the same page, so effectively we are just parsing the same page

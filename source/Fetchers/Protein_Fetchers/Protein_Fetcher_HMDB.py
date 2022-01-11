@@ -2,13 +2,12 @@
 from source.Fetchers.Protein_Fetchers.Protein_Fetcher import *
 
 class Protein_Fetcher_HMDB(Protein_Fetcher):
-    def __init__(self,protein_id,extra_args={},memory_storage=None,init_Fetcher=True):
+    def __init__(self,protein_id,extra_args={},memory_storage=None):
         Protein_Fetcher.__init__( self, protein_id=protein_id,memory_storage=memory_storage)
         self.db='hmdb'
         self.set_convergence_args(extra_args)
-        if init_Fetcher:
-            self.protein = self.get_protein_HMDB()
-            self.add_protein()
+        self.protein = self.get_protein_HMDB()
+        self.add_protein()
 
     def set_convergence_args(self,extra_args):
         #args for getting protein
@@ -146,7 +145,7 @@ if __name__ == '__main__':
     from source.Fetchers.Reaction_Fetchers.Reaction_Fetcher import *
     import re
     cpd=Compound({
-        'biocyc':'SER',
+        'metacyc':'SER',
         'kegg':'C00065',
         'hmdb':'HMDB0000187',
         'chemspider':'5736',

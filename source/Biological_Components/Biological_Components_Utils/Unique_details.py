@@ -1,9 +1,5 @@
 from source.Utils.util import get_instance_type,SCRAPPABLE_DBS
 
-#This .py stores desired IDs and other details
-
-
-
 ###############GENERAL FUNCTION###############
 def generate_details_dict(bio_instance):
     return {i: None for i in get_details_list(bio_instance)}
@@ -11,7 +7,6 @@ def generate_details_dict(bio_instance):
 
 def get_details_list(bio_instances,remove_from_list=[],append_to_list=[]):
     details=set()
-
     if not isinstance(bio_instances,list):
         bio_instances=[bio_instances]
     for bio_inst in bio_instances:
@@ -67,7 +62,6 @@ def get_unique_details_compound():
         'pubchem_cid',
         'pubchem_sid',
         'inchi_key',
-
                        ]
     return res
 
@@ -81,7 +75,6 @@ def get_unique_details_gene():
 
 def get_unique_details_protein():
     res=[
-        #'enzyme_ec',
          ]
     return res
 
@@ -91,7 +84,6 @@ def get_unique_details_reaction():
     res = [
             'reaction_str',
             'reaction_with_instances',
-           'rhea',
            ]
     return res
 

@@ -4,9 +4,8 @@ from source.Fetchers.Fetchers_Utils.Global_Fetcher import *
 
 class Protein_Fetcher(Global_Fetcher):
     def __init__(self,protein_id,memory_storage=None):
-        Global_Fetcher.__init__(self)
+        Global_Fetcher.__init__(self,memory_storage=memory_storage)
         self.protein_id=protein_id
-        self.memory_storage=memory_storage
         self.db= None
         self.protein=None
         self.convergence_args={}
@@ -46,6 +45,13 @@ class Protein_Fetcher(Global_Fetcher):
             return self.memory_storage.find_gene(db=self.db,query_id=query_id,extra_args=extra_args)
         else:
             return self.memory_storage.gene_searcher.find_gene(db=self.db,query_id=query_id,extra_args=extra_args)
+
+    def find_protein(self,query_id=None,extra_args={},convergence_search=False):
+        memory_type=get_instance_type(self.memory_storage)
+        if 'Protein_Searcher' in memory_type:
+            return self.memory_storage.find_protein(db=self.db,query_id=query_id,extra_args=extra_args,convergence_search=convergence_search)
+        else:
+            return self.memory_storage.protein_searcher.find_protein(db=self.db,query_id=query_id,extra_args=extra_args,convergence_search=convergence_search)
 
     def find_reaction(self,query_id=None,extra_args={}):
         memory_type=get_instance_type(self.memory_storage)

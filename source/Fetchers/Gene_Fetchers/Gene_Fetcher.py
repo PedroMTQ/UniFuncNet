@@ -2,10 +2,9 @@ from source.Fetchers.Fetchers_Utils.Global_Fetcher import *
 
 class Gene_Fetcher(Global_Fetcher):
     def __init__(self,gene_id,extra_args={},memory_storage=None):
-        Global_Fetcher.__init__(self)
+        Global_Fetcher.__init__(self,memory_storage=memory_storage)
         self.gene_id=gene_id
         self.db= None
-        self.memory_storage=memory_storage
         self.gene=None
         self.convergence_args={}
         #if no memory_storage is present from one of the pipelines or previous fetchers we assign it one and initialize the memory
@@ -36,12 +35,12 @@ class Gene_Fetcher(Global_Fetcher):
             return self.memory_storage.get_biological_instance('genes',self.gene_id,self.db)
 
 
-    def find_protein(self,query_id=None,extra_args={}):
+    def find_protein(self,query_id=None,extra_args={},convergence_search=False):
         memory_type=get_instance_type(self.memory_storage)
         if memory_type=='Protein_Searcher':
-            return self.memory_storage.find_protein(db=self.db,query_id=query_id,extra_args=extra_args)
+            return self.memory_storage.find_protein(db=self.db,query_id=query_id,extra_args=extra_args,convergence_search=convergence_search)
         else:
-            return self.memory_storage.protein_searcher.find_protein(db=self.db,query_id=query_id,extra_args=extra_args)
+            return self.memory_storage.protein_searcher.find_protein(db=self.db,query_id=query_id,extra_args=extra_args,convergence_search=convergence_search)
 
     def find_reaction(self,query_id=None,extra_args={}):
         memory_type=get_instance_type(self.memory_storage)

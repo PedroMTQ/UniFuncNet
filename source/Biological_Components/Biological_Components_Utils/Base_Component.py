@@ -64,10 +64,22 @@ class Base_Component():
                     line.append(f'reaction_compounds:{reaction_compounds}')
             elif d_key in ['protein_instances',
                            'reaction_instances',
-                           'gene_instances',]:
+                           'gene_instances',
+                           ]:
                 details=self.get_detail(d_key, all_possible=True)
                 if details:
                     key_to_write=d_key.replace('_instances','s')+'_connected'
+                    for d in details:
+                        line.append(f'{key_to_write}:{d.internal_id}')
+            elif d_key in ['complex_instances',
+                           'subunit_instances',
+                           ]:
+                details=self.get_detail(d_key, all_possible=True)
+                if details:
+                    if d_key=='complex_instances':
+                        key_to_write='in_complex'
+                    else:
+                        key_to_write='has_subunits'
                     for d in details:
                         line.append(f'{key_to_write}:{d.internal_id}')
 
@@ -144,7 +156,7 @@ class Base_Component():
                         self.set_id(db=detail_type,id_to_add=to_add,count= count)
                         if get_instance_type(self)=='Protein':
                             # these DBs also use enzyme ec as ids
-                            self.set_id(db='biocyc',id_to_add=to_add,count= 1)
+                            self.set_id(db='metacyc',id_to_add=to_add,count= 1)
                             self.set_id(db='kegg',id_to_add=to_add,count= 1)
                     else:                                               self.set_id(db=detail_type, id_to_add=to_add, count=count)
 
@@ -171,18 +183,16 @@ class Base_Component():
         elif detail_type == 'synonyms':                    self.remove_synonym(detail_to_remove)
         elif detail_type == 'reaction_str':                self.remove_reaction(detail_to_remove)
         elif detail_type == 'pathways':                    self.remove_pathways(detail_to_remove)
-        elif detail_type.endswith('instances'):            return self.remove_detail_type_instances(self,detail_type,detail_to_remove)
+        elif detail_type.endswith('_instances'):            return self.remove_detail_type_instances(self,detail_type,detail_to_remove)
         else:                                              self.remove_id(db=detail_type, id_to_remove=detail_to_remove)
 
     def get_id(self, db):
-
         if not db.endswith('_id'): db_str=db+'_id'
         else: db_str=db
         if db_str in self.identifiers:
             return self.identifiers[db_str].get_most_common_string()
         else:   return []
-        #kegg= this id correponds to the bio componenets id in kegg
-        #kegg_<others> = these others are non  bio componenents ids in kegg
+
 
     def get_IDs(self, db):
         if not db.endswith('_id'):          db_str = db + '_id'
@@ -393,10 +403,7 @@ class Base_Component():
                 instance_2_l = []
                 rn_inst_2_dict = instance_2.get_detail(detail_type)
                 for rn_key in rn_inst_2_dict:   instance_2_l.extend(rn_inst_2_dict[rn_key])
-
                 if self_l!=instance_2_l: return False
-
-
             else:
                 self_l=set(self.get_detail(detail_type,all_possible=True))
                 instance_2_l=set(instance_2.get_detail(detail_type,all_possible=True))

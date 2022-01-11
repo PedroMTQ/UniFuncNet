@@ -20,7 +20,7 @@ class Compound_Fetcher_Chemspider(Compound_Fetcher):
                            'ebi.ac.uk/chembl/compound': 'chembl',
                            'drugbank.ca/': 'drugbank',
                            'genome.jp.*cpd:': 'kegg',
-                           'biocyc.org/compound': 'biocyc',
+                           'biocyc.org/compound': 'metacyc',
                            'rcsb.org/ligand/': 'pdb',
                            'pubchem.ncbi.nlm.nih.gov/summary': 'pubchem_cid'}
         if self.db=='inchi_key':

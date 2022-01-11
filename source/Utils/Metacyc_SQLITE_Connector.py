@@ -5,29 +5,54 @@ import re
 import os
 import sqlite3
 from string import punctuation
+from re import match
 
+stoichiometry_regex=re.compile('[n|N]')
 
 class Metacyc_SQLITE_Connector():
     def __init__(self):
         self.insert_step=5000
         self.info_splitter='##'
-        self.db_file = f'{RESOURCES_FOLDER}metacyc.db'
+        self.metacyc_db = f'{RESOURCES_FOLDER}metacyc.db'
         self.metacyc_folder=f'{RESOURCES_FOLDER}metacyc{SPLITTER}'
+        self.extra_tables = {
+            'TABLEINTRXNIDS': ['METACYCPRT', 'METACYCRXN'],
+            'TABLECPDRXN': ['METACYCRXN'],
+            'TABLEECRXN': ['METACYCRXN'],
+            'TABLEUNIPROTMETACYC': ['METACYCPRT'],
+             }
         self.db_headers={}
-        if os.path.exists(self.db_file):
-            self.start_sqlite_cursor()
+        if os.path.exists(self.metacyc_db):
+            self.metacyc_start_sqlite_cursor()
         else:
             check=self.check_all_resources()
             if check:
-                self.create_sql_tables()
-                self.start_sqlite_cursor()
-
+                self.metacyc_create_db()
             else:
                 print(f'Missing metacyc files. Please download them and place them in {self.metacyc_folder}')
 
-    def start_sqlite_cursor(self):
-        self.sqlite_connection = sqlite3.connect(self.db_file)
-        self.cursor = self.sqlite_connection.cursor()
+
+    def metacyc_start_sqlite_cursor(self):
+        self.metacyc_sqlite_connection = sqlite3.connect(self.metacyc_db)
+        self.metacyc_cursor = self.metacyc_sqlite_connection.cursor()
+
+    def metacyc_commit(self):
+        self.metacyc_sqlite_connection.commit()
+
+    def metacyc_execute(self, command):
+        return self.metacyc_cursor.execute(command)
+
+    def metacyc_executemany(self, command, chunk):
+        return self.metacyc_cursor.executemany(command, chunk)
+
+    def metacyc_commit_and_close_sqlite_cursor(self):
+        self.metacyc_sqlite_connection.commit()
+        self.metacyc_sqlite_connection.close()
+
+    def metacyc_close_sql_connection(self):
+        self.metacyc_sqlite_connection.close()
+
+
 
     def get_headers_generator(self,generator):
         res=set()
@@ -40,13 +65,12 @@ class Metacyc_SQLITE_Connector():
         if target_table in self.db_headers: return
         try:
             schema_command = f'PRAGMA table_info({target_table});'
-            res_fetch = self.cursor.execute(schema_command).fetchall()
+            res_fetch = self.metacyc_execute(schema_command).fetchall()
             res_fetch.pop(0)
             for line in res_fetch:
                 link_type=line[1]
                 res.add(link_type)
         except:
-            extra_tables={'TABLECPDRXN':['METACYCRXN'],'TABLEINTRXNIDS':['METACYCPRT','METACYCRXN']}
             generator=None
             if target_table=='COMPOUNDS':
                 generator=self.parse_compounds()
@@ -59,21 +83,12 @@ class Metacyc_SQLITE_Connector():
             if generator:
                 res=self.get_headers_generator(generator)
             else:
-                res=extra_tables[target_table]
+                res=self.extra_tables[target_table]
 
             if 'metacyc' in res:
                 res.remove('metacyc')
 
         self.db_headers[target_table]= sorted(list(res))
-
-    def commit_and_close_sqlite_cursor(self):
-        self.sqlite_connection.commit()
-        self.sqlite_connection.close()
-
-    def close_sql_connection(self):
-        self.sqlite_connection.close()
-
-
 
 
     def generate_inserts(self, metadata_yielder):
@@ -99,12 +114,7 @@ class Metacyc_SQLITE_Connector():
         insert_command = f'INSERT INTO {table_name} {headers_str} values {n_values_str}'
         return insert_command
 
-
     def store_main_data(self,target_table):
-        exceptional_headers=[
-            'reaction_stoichiometry',
-                             ]
-
         if target_table == 'COMPOUNDS':
             generator = self.parse_compounds()
         elif target_table == 'REACTIONS':
@@ -118,9 +128,8 @@ class Metacyc_SQLITE_Connector():
         if metadata_yielder:
             generator_insert = self.generate_inserts(metadata_yielder)
             for table_chunk in generator_insert:
-                self.cursor.executemany(insert_command, table_chunk)
-            self.sqlite_connection.commit()
-
+                self.metacyc_executemany(insert_command, table_chunk)
+            self.metacyc_commit()
 
     def convert_dict_to_sql(self,ref,row_dict,target_table):
         res=[ref]
@@ -149,8 +158,6 @@ class Metacyc_SQLITE_Connector():
             for metacyc_id in metacyc_ids:
                 yield self.convert_dict_to_sql(metacyc_id,row_dict,target_table)
 
-
-
     def yield_intermediate_reaction_ids(self):
         reactions_generator = self.parse_reactions()
         proteins_generator = self.parse_proteins()
@@ -172,7 +179,6 @@ class Metacyc_SQLITE_Connector():
             reaction_ids_str=self.info_splitter.join(res[int_reaction_id]['METACYCRXN'])
             yield [int_reaction_id,protein_ids_str,reaction_ids_str]
 
-
     def yield_cpd_to_rxn(self):
         generator = self.parse_reactions()
         res={}
@@ -189,82 +195,152 @@ class Metacyc_SQLITE_Connector():
             reaction_ids_str=self.info_splitter.join(res[cpd_id])
             yield [cpd_id,reaction_ids_str]
 
+    def yield_ec_to_rxn(self):
+        generator = self.parse_reactions()
+        res={}
+        for reaction_dict in generator:
+            if 'enzyme_ec' in reaction_dict:
+                r_ecs=reaction_dict['enzyme_ec']
+                metacyc_ids=reaction_dict['metacyc']
+                for ec in r_ecs:
+                    if ec not in res: res[ec]=set()
+                    res[ec].update(metacyc_ids)
+        for ec in res:
+            reaction_ids_str=self.info_splitter.join(res[ec])
+            yield [ec,reaction_ids_str]
+
+    def yield_uniprot_to_metacyc(self):
+        generator = self.parse_proteins()
+        res={}
+        for protein_dict in generator:
+            if 'uniprot' in protein_dict:
+                uniprot_ids=protein_dict['uniprot']
+                metacyc_ids=protein_dict['metacyc']
+                for uniprot_id in uniprot_ids:
+                    if uniprot_id not in res: res[uniprot_id]=set()
+                    res[uniprot_id].update(metacyc_ids)
+        for uniprot_id in res:
+            protein_ids_str=self.info_splitter.join(res[uniprot_id])
+            yield [uniprot_id,protein_ids_str]
 
     def create_main_tables(self):
         for current_table in ['COMPOUNDS','REACTIONS','PROTEINS','GENES']:
             #retrieving headers dynamicaly
+            main_id = 'METACYC'
             self.get_db_headers(current_table)
             current_db_headers=self.db_headers[current_table]
             #creating table
-            create_table_command = f'CREATE TABLE {current_table} (METACYC TEXT, '
+            create_table_command = f'CREATE TABLE {current_table} ({main_id} TEXT, '
             for header in current_db_headers:
                 create_table_command += f'{header} TEXT, '
             create_table_command = create_table_command.rstrip(', ')
             create_table_command += ')'
-            self.cursor.execute(create_table_command)
-            self.sqlite_connection.commit()
+            self.metacyc_execute(create_table_command)
+            self.metacyc_commit()
             #indexing table
-            create_index_command = f'CREATE INDEX {current_table[0]}METACYC_IDX ON {current_table} (METACYC)'
-            self.cursor.execute(create_index_command)
-            self.sqlite_connection.commit()
+            create_index_command = f'CREATE INDEX {current_table[0]}{main_id}_IDX ON {current_table} ({main_id})'
+            self.metacyc_execute(create_index_command)
+            self.metacyc_commit()
             #storing data in table
             self.store_main_data(current_table)
 
     def create_intermediate_reaction_ids_table(self):
         target_table='TABLEINTRXNIDS'
+        main_id='INTRXNID'
+
         #creating new table to connect proteins and reactions
         create_table_command = f'CREATE TABLE {target_table} (' \
-                                   f'INTRXNID TEXT,' \
+                                   f'{main_id} TEXT,' \
                                    f'METACYCPRT TEXT,' \
                                    f'METACYCRXN  TEXT )'
-        self.cursor.execute(create_table_command)
+        self.metacyc_execute(create_table_command)
         # indexing table
-        create_index_command = f'CREATE INDEX INTRXNID_IDX ON {target_table} (INTRXNID)'
-        self.cursor.execute(create_index_command)
-        self.sqlite_connection.commit()
+        create_index_command = f'CREATE INDEX {main_id}_IDX ON {target_table} ({main_id})'
+        self.metacyc_execute(create_index_command)
+        self.metacyc_commit()
         # storing data in table
-        insert_command=self.generate_insert_command(target_table,'INTRXNID')
+        insert_command=self.generate_insert_command(target_table,main_id)
         metadata_yielder=self.yield_intermediate_reaction_ids()
         if metadata_yielder:
             generator_insert = self.generate_inserts(metadata_yielder)
             for table_chunk in generator_insert:
-                self.cursor.executemany(insert_command, table_chunk)
-            self.sqlite_connection.commit()
-
+                self.metacyc_executemany(insert_command, table_chunk)
+            self.metacyc_commit()
 
     def create_cpd_to_rxn_table(self):
         target_table='TABLECPDRXN'
+        main_id='METACYCCPD'
         #creating new table to connect proteins and reactions
         create_table_command = f'CREATE TABLE {target_table} (' \
-                                   f'METACYCCPD TEXT,' \
+                                   f'{main_id} TEXT,' \
                                    f'METACYCRXN  TEXT )'
-        self.cursor.execute(create_table_command)
+        self.metacyc_execute(create_table_command)
         # indexing table
-        create_index_command = f'CREATE INDEX METACYCCPD_IDX ON {target_table} (METACYCCPD)'
-        self.cursor.execute(create_index_command)
-        self.sqlite_connection.commit()
+        create_index_command = f'CREATE INDEX {main_id}_IDX ON {target_table} ({main_id})'
+        self.metacyc_execute(create_index_command)
+        self.metacyc_commit()
         # storing data in table
-        insert_command=self.generate_insert_command(target_table,'METACYCCPD')
+        insert_command=self.generate_insert_command(target_table,main_id)
         metadata_yielder=self.yield_cpd_to_rxn()
         if metadata_yielder:
             generator_insert = self.generate_inserts(metadata_yielder)
             for table_chunk in generator_insert:
-                self.cursor.executemany(insert_command, table_chunk)
-            self.sqlite_connection.commit()
+                self.metacyc_executemany(insert_command, table_chunk)
+            self.metacyc_commit()
 
+    def create_ec_to_rxn_table(self):
+        target_table='TABLEECRXN'
+        main_id='EC'
+        #creating new table to connect proteins and reactions
+        create_table_command = f'CREATE TABLE {target_table} (' \
+                                   f'{main_id} TEXT,' \
+                                   f'METACYCRXN  TEXT )'
+        self.metacyc_execute(create_table_command)
+        # indexing table
+        create_index_command = f'CREATE INDEX {main_id}_IDX ON {target_table} ({main_id})'
+        self.metacyc_execute(create_index_command)
+        self.metacyc_commit()
+        # storing data in table
+        insert_command=self.generate_insert_command(target_table,main_id)
+        metadata_yielder=self.yield_ec_to_rxn()
+        if metadata_yielder:
+            generator_insert = self.generate_inserts(metadata_yielder)
+            for table_chunk in generator_insert:
+                self.metacyc_executemany(insert_command, table_chunk)
+            self.metacyc_commit()
 
-    def create_sql_tables(self):
+    def create_uniprot_to_metacyc_table(self):
+        target_table='TABLEUNIPROTMETACYC'
+        main_id='UNIPROT'
+        #creating new table to connect proteins and reactions
+        create_table_command = f'CREATE TABLE {target_table} (' \
+                                   f'{main_id} TEXT,' \
+                                   f'METACYCPRT  TEXT )'
+        self.metacyc_execute(create_table_command)
+        # indexing table
+        create_index_command = f'CREATE INDEX {main_id}_IDX ON {target_table} ({main_id})'
+        self.metacyc_execute(create_index_command)
+        self.metacyc_commit()
+        # storing data in table
+        insert_command=self.generate_insert_command(target_table,main_id)
+        metadata_yielder=self.yield_uniprot_to_metacyc()
+        if metadata_yielder:
+            generator_insert = self.generate_inserts(metadata_yielder)
+            for table_chunk in generator_insert:
+                self.metacyc_executemany(insert_command, table_chunk)
+            self.metacyc_commit()
+
+    def metacyc_create_db(self):
         print('Creating SQL tables for Metacyc')
-        if os.path.exists(self.db_file):
-            os.remove(self.db_file)
-        self.sqlite_connection = sqlite3.connect(self.db_file)
-        self.cursor = self.sqlite_connection.cursor()
-
+        if os.path.exists(self.metacyc_db):
+            os.remove(self.metacyc_db)
+        self.metacyc_start_sqlite_cursor()
         self.create_cpd_to_rxn_table()
+        self.create_ec_to_rxn_table()
+        self.create_uniprot_to_metacyc_table()
         self.create_intermediate_reaction_ids_table()
         self.create_main_tables()
-
-        self.commit_and_close_sqlite_cursor()
+        self.metacyc_commit()
 
     ######### fetching data
 
@@ -290,60 +366,117 @@ class Metacyc_SQLITE_Connector():
                         if db_res[i] in ['<-','<->','->']:
                             temp.append(db_res[i])
                         else:
-                            try:
-                                stoi=int(db_res[i])
+                            #some reactions have undefined stoichiometry
+                            if stoichiometry_regex.match(db_res[i]) and len(db_res[i])==1:
+                                stoi=db_res[i]
                                 cpd_id=db_res[i+1]
                                 temp.append([stoi,cpd_id])
-                            except: pass
+                            else:
+                                try:
+                                    stoi=int(db_res[i])
+                                    cpd_id=db_res[i+1]
+                                    temp.append([stoi,cpd_id])
+                                except: pass
+                    if len(temp)>1:
+                        res[db]=temp
                 else:
                     if db not in res: res[db]=set()
                     res[db].update(db_res)
         return res
 
-    def fetch_intermediate_reaction_ids(self,wanted_id):
-        if not os.path.exists(self.db_file):
+    def fetch_metacyc_intermediate_rxn_ids(self,wanted_id):
+        if not os.path.exists(self.metacyc_db):
             return {}
         table_name='TABLEINTRXNIDS'
         main_id_str='INTRXNID'
         fetch_command=self.generate_fetch_command(wanted_id,table_name,main_id_str)
         try:
-            res_fetch = self.cursor.execute(fetch_command).fetchone()
+            res_fetch = self.metacyc_execute(fetch_command).fetchone()
             temp=self.convert_sql_to_dict(res_fetch,table_name)
             res={}
             if 'METACYCPRT' in temp: res['protein_ids']=temp['METACYCPRT']
-            if 'METACYCRXN' in temp: res['reaction_ids']=temp['METACYCPRT']
+            if 'METACYCRXN' in temp: res['reaction_ids']=temp['METACYCRXN']
             return res
         except:
-            print(f'Failed retrieving {wanted_id} in {self.db_file}.{table_name}')
+            print(f'Failed retrieving {wanted_id} in {self.metacyc_db}.{table_name}')
             return {}
 
-    def fetch_cpd_to_rxn(self,wanted_id):
-        if not os.path.exists(self.db_file):
+    def fetch_metacyc_rxn_from_cpd(self,wanted_id):
+        if not os.path.exists(self.metacyc_db):
             return {}
         table_name='TABLECPDRXN'
         main_id_str='METACYCCPD'
         fetch_command=self.generate_fetch_command(wanted_id,table_name,main_id_str)
         try:
-            res_fetch = self.cursor.execute(fetch_command).fetchone()
+            res_fetch = self.metacyc_execute(fetch_command).fetchone()
             res=self.convert_sql_to_dict(res_fetch,table_name)
             return res['METACYCRXN']
         except:
-            print(f'Failed retrieving {wanted_id} in {self.db_file}.{table_name}')
+            print(f'Failed retrieving {wanted_id} in {self.metacyc_db}.{table_name}')
             return {}
 
-    def fetch_from_main_table(self,wanted_id,table_name):
-        if not os.path.exists(self.db_file):
+    def fetch_metacyc_rxn_from_ec(self,wanted_id):
+        if not os.path.exists(self.metacyc_db):
+            return {}
+        table_name='TABLEECRXN'
+        main_id_str='EC'
+        fetch_command=self.generate_fetch_command(wanted_id,table_name,main_id_str)
+        try:
+            res_fetch = self.metacyc_execute(fetch_command).fetchone()
+            res=self.convert_sql_to_dict(res_fetch,table_name)
+            return res['METACYCRXN']
+        except:
+            print(f'Failed retrieving {wanted_id} in {self.metacyc_db}.{table_name}')
+            return {}
+
+    def fetch_metacyc_from_uniprot(self,wanted_id):
+        if not os.path.exists(self.metacyc_db):
+            return {}
+        table_name='TABLEUNIPROTMETACYC'
+        main_id_str='UNIPROT'
+        fetch_command=self.generate_fetch_command(wanted_id,table_name,main_id_str)
+        try:
+            res_fetch = self.metacyc_execute(fetch_command).fetchone()
+            res=self.convert_sql_to_dict(res_fetch,table_name)
+            return res['METACYCPRT']
+        except:
+            print(f'Failed retrieving {wanted_id} in {self.metacyc_db}.{table_name}')
+            return {}
+
+    def fetch_metacyc_id_info(self,wanted_id,table_name):
+        if not os.path.exists(self.metacyc_db):
             return {}
         table_name=table_name.upper()+'S'
         main_id_str='METACYC'
         fetch_command=self.generate_fetch_command(wanted_id,table_name,main_id_str)
         try:
-            res_fetch = self.cursor.execute(fetch_command).fetchone()
+            res_fetch = self.metacyc_execute(fetch_command).fetchone()
             res=self.convert_sql_to_dict(res_fetch,table_name)
             return res
         except:
-            print(f'Failed retrieving {wanted_id} in {self.db_file}.{table_name}')
+            print(f'Failed retrieving {wanted_id} in {self.metacyc_db}.{table_name}')
             return {}
+
+    def fetch_metacyc_derivatives(self,compound_name):
+        if not os.path.exists(self.metacyc_db):
+            return {}
+        table_name='COMPOUNDS'
+        main_id_str='METACYC'
+        fetch_command=f'SELECT METACYC, SYNONYMS FROM COMPOUNDS WHERE SYNONYMS LIKE "%{compound_name}%"'
+        res=[]
+        try:
+            res_fetch = self.metacyc_execute(fetch_command).fetchall()
+            for cpd_id,syns in res_fetch:
+                syns=syns.split(self.info_splitter)
+                res.append(cpd_id)
+                for syn in syns:
+                    if syn.lower()==compound_name.lower():
+                        return [cpd_id]
+            return res
+        except:
+            print(f'Failed retrieving {compound_name} in {self.metacyc_db}.{table_name}')
+            return res
+
 
     ######### the parsing happens below
 
@@ -361,7 +494,6 @@ class Metacyc_SQLITE_Connector():
         if len(required_resources)==len(os.listdir(self.metacyc_folder)):
             return True
         return False
-
 
     def process_chemical_formula(self,chemical_formula):
         res=[]
@@ -415,8 +547,10 @@ class Metacyc_SQLITE_Connector():
                         db_type = 'smiles'
                     else:
                         line=line.split()
-                        db_type=line[0][1:].strip()
-                        line=line[1].strip('"').strip()
+                        db_type = line[0][1:].strip()
+                        line=line[1].strip(')').strip()
+                        line=line.strip('(').strip()
+                        line=line.strip('"').strip()
                         if db_type=='LIGAND-CPD':
                             db_type='kegg'
                         elif db_type=='KEGG-GLYCAN':
@@ -524,7 +658,9 @@ class Metacyc_SQLITE_Connector():
                     else:
                         line = line.split()
                         db_type = line[0][1:].strip()
-                        line = line[1].strip('"').strip()
+                        line = line[1].strip(')').strip()
+                        line = line.strip('(').strip()
+                        line = line.strip('"').strip()
                         if db_type=='REGULONDB':
                             db_type='regulondb'
                         elif db_type=='STRING':
@@ -603,7 +739,9 @@ class Metacyc_SQLITE_Connector():
                     else:
                         line = line.split()
                         db_type = line[0][1:].strip()
-                        line = line[1].strip('"').strip()
+                        line = line[1].strip(')').strip()
+                        line = line.strip('(').strip()
+                        line = line.strip('"').strip()
                         if db_type=='METANETX':
                             db_type='metanetx'
                         elif db_type=='PANTHER':
@@ -701,7 +839,9 @@ class Metacyc_SQLITE_Connector():
                     else:
                         line = line.split()
                         db_type = line[0][1:].strip()
-                        line = line[1].strip('"').strip()
+                        line = line[1].strip(')').strip()
+                        line = line.strip('(').strip()
+                        line = line.strip('"').strip()
                         if db_type=='METANETX-RXN':
                             db_type='metanetx'
                         elif db_type=='LIGAND-RXN':
@@ -739,26 +879,43 @@ class Metacyc_SQLITE_Connector():
                                 line='<->'
                             temp[db_type] = line
                         else:
+                            if db_type=='enzyme_ec': line=line.replace('EC-','')
                             temp[db_type].add(line)
 
         if 'reaction_stoichiometry' in temp:
             self.process_reaction_stoichiometry(temp)
         yield temp
 
+    def test_db(self):
+        for generator,gen_type in [[self.parse_compounds(),'compound'],[self.parse_reactions(),'reaction'],[self.parse_proteins(),'protein'],[self.parse_genes(),'gene']]:
+            for row_dict in generator:
+                metacyc_ids=row_dict['metacyc']
+                for m_id in metacyc_ids:
+                    res=self.fetch_metacyc_id_info(m_id,gen_type)
+                    if gen_type=='reaction':
+                        reaction_stoichiometry=res['reaction_stoichiometry']
+
+                        if len(reaction_stoichiometry)<2:
+                            print(m_id,reaction_stoichiometry)
 
 if __name__ == '__main__':
-    '''
-    to parse:
-            'reactions.dat',
-    '''
     s=Metacyc_SQLITE_Connector()
-    #s.create_sql_tables()
-    #s.start_sqlite_cursor()
-    print(s.fetch_cpd_to_rxn('GDP-MANNOSE'))
-    print(s.fetch_from_main_table('GDP-MANNOSE','compound'))
-    print(s.fetch_from_main_table('EG10368','gene'))
-    print(s.fetch_from_main_table('CPLX-2401','protein'))
-    print(s.fetch_from_main_table('MONOMER-2782','protein'))
-    print(s.fetch_from_main_table('RXN-12763','reaction'))
-    print(s.fetch_from_main_table('GDP-MANNOSE','compound'))
-    print(s.fetch_intermediate_reaction_ids('ENZRXN-23736'))
+    #s.metacyc_create_db()
+    #print(s.fetch_metacyc_rxn_from_cpd('CPD-22368'))
+    #s.test_db()
+    #print(s.fetch_metacyc_id_info('CPD-22368','compound'))
+    #print(s.fetch_metacyc_id_info('EG10368','gene'))
+    #print(s.fetch_metacyc_id_info('CPLX-2401','protein'))
+    #print(s.fetch_metacyc_id_info('MONOMER-2782','protein'))
+    print(s.fetch_metacyc_id_info('RXN-14380','reaction')['reaction_stoichiometry'])
+    print(s.fetch_metacyc_id_info('RXN66-82','reaction')['reaction_stoichiometry'])
+    #print(s.fetch_metacyc_id_info('RXN-20993','reaction'))
+    #print(s.fetch_metacyc_id_info('GDP-MANNOSE','compound'))
+    #print(s.fetch_metacyc_intermediate_rxn_ids('ENZRXN-2911'))
+    #print(s.fetch_metacyc_rxn_from_ec('5.3.1.26'))
+    #print(s.fetch_metacyc_from_uniprot('Q88M11'))
+    #print(s.fetch_metacyc_derivatives('oxygen'))
+    print(s.fetch_metacyc_id_info('RXN-14452','reaction'))
+    print(s.fetch_metacyc_id_info('RXN-15488','reaction'))
+    print(s.fetch_metacyc_id_info('RXN-15490','reaction'))
+

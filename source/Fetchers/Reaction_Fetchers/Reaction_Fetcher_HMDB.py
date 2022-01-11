@@ -2,13 +2,12 @@
 from source.Fetchers.Reaction_Fetchers.Reaction_Fetcher import *
 
 class Reaction_Fetcher_HMDB(Reaction_Fetcher):
-    def __init__(self,reaction_id,extra_args={},memory_storage=None,init_Fetcher=True):
+    def __init__(self,reaction_id,extra_args={},memory_storage=None):
         Reaction_Fetcher.__init__(self,reaction_id=reaction_id,memory_storage=memory_storage)
         self.db= 'hmdb'
         self.set_convergence_args(extra_args)
-        if init_Fetcher:
-            self.reaction=self.get_reaction_HMDB()
-            self.add_reaction()
+        self.reaction=self.get_reaction_HMDB()
+        self.add_reaction()
 
     def set_convergence_args(self,extra_args):
         #args for convergence
@@ -194,7 +193,7 @@ class Reaction_Fetcher_HMDB(Reaction_Fetcher):
 
 
 if __name__ == '__main__':
-    r=Reaction_Fetcher_HMDB('1746',init_Fetcher=False)
+    r=Reaction_Fetcher_HMDB('1746')
     r.find_compound_ID_HMDB('A phenyl acetate')
 
 

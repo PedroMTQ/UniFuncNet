@@ -4,14 +4,11 @@ from source.Fetchers.Protein_Fetchers.Protein_Fetcher import *
 from source.Utils.Rhea_SQLITE_Connector import Rhea_SQLITE_Connector
 
 class Protein_Fetcher_Rhea(Protein_Fetcher,Rhea_SQLITE_Connector):
-    def __init__(self,protein_id,extra_args={},memory_storage=None,init_Fetcher=True):
+    def __init__(self,protein_id,extra_args={},memory_storage=None):
         Protein_Fetcher.__init__( self, protein_id=protein_id,memory_storage=memory_storage)
-        Rhea_SQLITE_Connector.__init__(self)
         self.db='rhea'
-        if init_Fetcher:
-            self.protein=self.get_protein_rhea()
-            self.add_protein()
-        self.close_sql_connection()
+        self.protein=self.get_protein_rhea()
+        self.add_protein()
 
 
 

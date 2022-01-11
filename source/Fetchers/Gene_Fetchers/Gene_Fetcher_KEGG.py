@@ -2,13 +2,12 @@
 from source.Fetchers.Gene_Fetchers.Gene_Fetcher import *
 
 class Gene_Fetcher_KEGG(Gene_Fetcher):
-    def __init__(self,gene_id,extra_args={},memory_storage=None,init_Fetcher=True):
+    def __init__(self,gene_id,extra_args={},memory_storage=None):
         Gene_Fetcher.__init__( self, gene_id=gene_id,extra_args=extra_args,memory_storage=memory_storage)
         self.db='kegg'
         self.set_convergence_args(extra_args)
-        if init_Fetcher:
-            self.gene=self.get_gene_kegg()
-            self.add_gene()
+        self.gene=self.get_gene_kegg()
+        self.add_gene()
 
     def set_convergence_args(self,extra_args):
         #args for convergence

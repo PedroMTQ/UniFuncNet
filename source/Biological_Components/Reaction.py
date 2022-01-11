@@ -87,11 +87,10 @@ class Reaction(Base_Component):
         for detail_type in self.get_details_list(extra_instances=instance_2):
             if detail_type == 'reaction_str':                  self.set_detail(detail_type,instance_2.get_detail(detail_type,all_possible=True))
             elif detail_type == 'pathways':                     self.set_detail(detail_type,instance_2.get_detail(detail_type,all_possible=True))
-            elif detail_type == 'protein_instances':            self.replace_instances(detail_type,instance_2)
-            elif detail_type == 'gene_instances':               self.replace_instances(detail_type,instance_2)
+            elif detail_type == 'reaction_with_instances':      self.set_detail(detail_type,instance_2.get_detail(detail_type,all_possible=True))
+            elif detail_type.endswith('_instances'):            self.replace_instances(detail_type,instance_2)
             elif detail_type == 'rn_with_ids':
                 for i2_rn_with_ids in instance_2.get_rn_with_ids():   self.set_detail(detail_type,i2_rn_with_ids)
-            elif detail_type == 'reaction_with_instances':      self.set_detail(detail_type,instance_2.get_detail(detail_type,all_possible=True))
             else:                                               unite_possible_ids(self, instance_2, detail_type)
 
 
