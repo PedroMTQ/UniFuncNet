@@ -17,11 +17,10 @@ class Global_Fetcher():
     def __init__(self,memory_storage=None):
         self.memory_storage=memory_storage
 
-    def get_with_fetcher(self,url,selenium=False,api_kegg=False,scripts=[],data=None,original_response=False,xpath=[],timer=1,ids_to_load=[],database=None, type_search='find'):
-        return self.memory_storage.get_with_fetcher(url=url,selenium=selenium,api_kegg=api_kegg,scripts=scripts,
-                                                    data=data,original_response=original_response,xpath=xpath,
-                                                    timer=timer,ids_to_load=ids_to_load,database=database,
-                                                    type_search=type_search)
+    def get_with_fetcher(self,url,api_kegg=False,data=None,original_response=False,database=None, type_search='find',kegg_option=None):
+        return self.memory_storage.get_with_fetcher(url=url,api_kegg=api_kegg,data=data,
+                                                    original_response=original_response,database=database,
+                                                    type_search=type_search,kegg_option=kegg_option)
 
 
     def fetch_metacyc_intermediate_rxn_ids(self,wanted_id):

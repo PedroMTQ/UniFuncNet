@@ -5,11 +5,6 @@ from source.Utils.util import find_path,DRAX_FOLDER,SPLITTER
 #External modules
 from bs4 import BeautifulSoup
 import time
-from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import StaleElementReferenceException
 from os.path import isdir
 
 
@@ -45,12 +40,8 @@ class Web_Connector():
                  test=False,
                  omit_error_messages=False,
                  timeout=20,
-                 multiplier_max_timer=3,
-                 soft_js_load_delay=2,
-                 hard_js_load_delay=20,
-                 browser='firefox'):
+                 multiplier_max_timer=3):
         self.broken_link_file=f'{DRAX_FOLDER}broken_links.txt'
-        self.browser=browser
         self.test=test
         self.timeout=timeout
         self.multiplier_max_timer=multiplier_max_timer
@@ -61,11 +52,7 @@ class Web_Connector():
         self.request_time = time.time()
         self.omit_error_messages=omit_error_messages
         if self.test and not self.omit_error_messages: print('THIS FETCHER IS FOR TESTING, REMEMBER TO CHANGE IT!')
-        self.chromedriver_path = None
-        self.geckodriver_path = None
-        self.phantomjs_path=None
-        self.soft_js_load_delay=soft_js_load_delay
-        self.hard_js_load_delay=hard_js_load_delay
+
 
     def get_timeout(self):
         return self.timeout
@@ -79,57 +66,6 @@ class Web_Connector():
     def get_request_time(self):
         return self.request_time
 
-
-###################################
-###############DRIVER##############
-###################################
-
-    def download_browser_drivers(self):
-        platform= sys.platform.lower()
-        browser_driver_folder=f'{DRAX_FOLDER}{SPLITTER}Browser_Drivers{SPLITTER}'
-
-    def get_path_driver(self,browser):
-        platform= sys.platform.lower()
-        browser_driver_folder=f'{DRAX_FOLDER}{SPLITTER}Browser_Drivers{SPLITTER}'
-        for file in os.listdir(browser_driver_folder):
-            if file.startswith('chromedriver') and browser=='chrome':
-                if not self.chromedriver_path:
-                    self.chromedriver_path=f'{browser_driver_folder}{file}'
-                return self.chromedriver_path
-
-            elif file.startswith('gecko') and browser=='firefox':
-                if not self.geckodriver_path:
-                    self.geckodriver_path=f'{browser_driver_folder}{file}'
-                return self.geckodriver_path
-
-            elif file.startswith('phantomjs') and browser=='phantomjs':
-                if not self.phantomjs_path:
-                    self.phantomjs_path=f'{browser_driver_folder}{file}'
-                return self.phantomjs_path
-
-
-
-    def setup_driver(self):
-        if self.browser=='chrome':
-            options = webdriver.ChromeOptions()
-            options.add_argument('headless')
-            # removing dev-tools warnings
-            options.add_argument('--log-level=3')
-            driver = webdriver.Chrome(executable_path=self.get_path_driver(self.browser), options=options)
-            return driver,options
-        elif self.browser=='firefox':
-            options = webdriver.FirefoxOptions()
-            #you can add your mozilla binary path here:
-            #options.binary_location= '/path/to/programs/firefox/firefox'
-            options.add_argument('--headless')
-            # removing dev-tools warnings
-            options.add_argument('--log-level=3')
-            driver = webdriver.Firefox(executable_path=self.get_path_driver(self.browser), options=options)
-            return driver,options
-        elif self.browser=='phantomjs':
-            driver = webdriver.PhantomJS(executable_path=self.get_path_driver(self.browser))
-            options=None
-            return driver,options
 
 ###################################
 ###############TIMER###############
@@ -289,7 +225,7 @@ class Web_Connector():
 
 
     def print_status_code(self,status_code):
-        if status_code == 400:      print('Bad request')
+        if status_code   == 400:      print('Bad request')
         elif status_code == 401:    print('Unauthorized')
         elif status_code == 403:    print('Forbidden')
         elif status_code == 404:    print('Not found')
@@ -299,7 +235,6 @@ class Web_Connector():
         else:                       print('Client error response')
 
 
-#ncbi, uniprot , chemspider, lipidmaps, pubchem, vmh, eci, rcsb, foodb,
     def try_until_catch(self,url, data=None, original_response=False,exceptional_try_limit=None):
         req_start,req_end=None,None
         while not self.allow_request():
@@ -358,82 +293,10 @@ class Web_Connector():
             file.write(f'{url}\n')
         return None
 
-    def try_until_catch_selenium(self, url,exceptional_try_limit=None):
-        req_start,req_end=None,None
-        url = url.replace(' ', quote_plus(' '))
-        while not self.allow_request():
-            time.sleep(0.1)
-        c = 0
-        if exceptional_try_limit: try_limit=exceptional_try_limit
-        else: try_limit=self.try_limit
-        while c <= try_limit:
-            driver, options = self.setup_driver()
-            try:
-                req_start = time.time()
-                driver.get(url)
-                if self.is_broken_link(driver,url,c): c+=5
-                proper_response,url=self.proper_response(driver.page_source, url,c)
-                if not proper_response:
-                    c+=1
-                    driver.quit()
-                    raise ConnectionError
-                #for biocyc
-                if 'tab=showAll' in url:
-                    WebDriverWait(driver, self.hard_js_load_delay).until_not(EC.text_to_be_present_in_element((By.ID, 'showAll'),'Loading...'))
-                if 'tab=RXNS' in url:
-                    WebDriverWait(driver, self.hard_js_load_delay).until_not(EC.text_to_be_present_in_element((By.ID, 'RXNS'),'Loading...'))
-                req_end = time.time()
-                self.dynamic_politeness_timer(req_start, req_end,c)
-                return driver
-            except:
-                c += 1
-                driver.quit()
-                self.dynamic_politeness_timer(req_start,req_end,c)
-                randrange_retry_timer=self.get_randrange_retry_timer()
-                if not self.omit_errors(): print('Server error (selenium-try  '+str(c)+') while getting ' + url + ' , retrying again in ' + str(randrange_retry_timer) + ' seconds.')
-                time.sleep(randrange_retry_timer)
-        print('Couldn\'t open link: '+url)
-        with open(self.broken_link_file,'a+') as file:
-            file.write(f'{url}\n')
-        return None
-
-    def get_driver_selenium(self,url, script=None,xpath=None,original_response=False,timer=0,ids_to_load=[],exceptional_try_limit=None):
-        driver = self.try_until_catch_selenium(url,exceptional_try_limit)
-        if not driver: return None
-        if script:
-            if isinstance(script, str): script=[script]
-            if isinstance(script, list):
-                print('waiting')
-                for s in script: driver.execute_script(s)
-                WebDriverWait(driver,self.soft_js_load_delay)
-
-        #to "click" on the webpage
-        if xpath:
-            if isinstance(xpath, str): xpath=[xpath]
-            for x in range(len(xpath)):
-                try:
-                    xp=xpath[x]
-                    id_to_load= ids_to_load[x]
-                    button = driver.find_element_by_xpath(xp)
-                    button.click()
-                    if 'biocyc' in url:
-                        WebDriverWait(driver, self.hard_js_load_delay).until_not(EC.text_to_be_present_in_element((By.ID, id_to_load), 'Loading...'))
-                    elif timer:
-                        WebDriverWait(driver, timer)
-                except:
-                    time.sleep(self.soft_js_load_delay)
-        if original_response:   return driver
-        else:
-            res= driver.page_source
-            driver.quit()
-            return res
-
 
 
 if __name__ == '__main__':
     f=Web_Connector()
     url='https://biocyc.org/META/NEW-IMAGE?type=EC-NUMBER&object=EC-1.1.1.370'
     a=f.try_until_catch(url)
-    print(a)
-    a=f.get_driver_selenium(url)
     print(a)
