@@ -488,7 +488,9 @@ class Metacyc_SQLITE_Connector():
             'reactions.dat',
             'gene-links.dat',
             'genes.dat',
+            'README.md',
         ]
+        if not os.path.exists(self.metacyc_folder): return False
         for file in os.listdir(self.metacyc_folder):
             if file not in required_resources:
                 os.remove(f'{self.metacyc_folder}{file}')

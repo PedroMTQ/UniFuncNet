@@ -19,13 +19,11 @@ else:
     SPLITTER = '/'
 
 def run_test():
-    run_test_browser_drivers()
-    set_scrappable_dbs(['kegg','biocyc'])
     datetime_str = str(datetime.now().strftime("%Y-%m-%dT%H%M%S"))
     output_folder = os.getcwd() + SPLITTER + 'DRAX_OUTPUT_' + datetime_str + SPLITTER
     os.mkdir(output_folder)
     print(f'No output folder provided! Saving data to: {output_folder}')
-    searcher = Protein_Searcher(search_mode={'gpr'}, output_folder=output_folder,do_reaction_met_instances=True)
+    searcher = Protein_Searcher(search_mode={'pr'}, output_folder=output_folder,politeness_timer=2)
     searcher.run_searcher('1.1.1.178', 'enzyme_ec')
     searcher.output_results()
 
@@ -37,20 +35,7 @@ def run_test_web():
     print('Trying to catch url')
     a=f.try_until_catch(url)
     print(a)
-    print('Getting with selenium')
-    a=f.get_driver_selenium(url)
-    print(a)
 
-def run_test_browser_drivers():
-    from source.Utils.Web_Connector import Web_Connector
-    f=Web_Connector()
-    url='https://www.kegg.jp/'
-    try:
-        f.get_driver_selenium(url)
-        print('Passed selenium check')
-    except:
-        print('Did not manage to connect using selenium! Did you download the drivers?')
-        raise Exception
 
 def set_search_mode(searchers_list,search_mode):
     for searcher in searchers_list:
@@ -87,8 +72,6 @@ def check_validity_input(target_path):
 
 def run_searcher(target_path,output_folder,politeness_timer):
     start=time()
-    print('change')
-    #run_test_browser_drivers()
     print(f'Available databases:\n{",".join(SCRAPPABLE_DBS)}')
     current_time = datetime.now()
     print(f"DRAX started running at  {current_time}")
@@ -193,6 +176,7 @@ def main():
         if databases:
             databases=databases.split(',')
             set_scrappable_dbs(databases)
+        print(f'Time between requests - {politeness_timer} seconds')
         if os.path.exists(target_path):
             passed_check=False
             check_validity_input(target_path)
