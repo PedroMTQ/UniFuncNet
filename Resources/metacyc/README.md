@@ -8,7 +8,7 @@ https://biocyc.org/download.shtml
 When you obtain your license, download the `Metacyc flat files`. The file is usually named `meta.tar.gz`.
 
 Extract all the files in the folder `data` to `DRAX/Resources/metacyc/`.
-Your foulder should contain the following files:
+Your need the following files:
 - compounds.dat
 - proteins.dat
 - reactions.dat

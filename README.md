@@ -10,20 +10,16 @@ It was built to aid in the mapping of metabolism related entities, for example t
 1. `git clone git@github.com:PedroMTQ/DRAX.git`  
 2. Go to the cloned DRAX folder and run `conda env create -f drax_env.yml`
 3. Run `conda activate drax_env`
-4. Download the browser driver for your current OS and current browser version (e.g., [geckodriver](https://github.com/mozilla/geckodriver/releases) for Mozilla Firefox)
-5. Move downloaded browser driver to `DRAX/External_Tools/Browser_Drivers/`
+4. *optional* Request [Metacyc license](https://biocyc.org/download.shtml)
+5. *optional* Download the `Metacyc flat files`
+6. *optional* Export files in data to `DRAX/Resources/metacyc/`
+7. *optional* `DRAX/Resources/metacyc/` should contain: `compounds.dat`,`proteins.dat`,`reactions.dat`,`gene-links.dat`, and `genes.dat`,
 
-#### Browser drivers
-
-DRAX supports two browsers, Mozilla Firefox and Google Chrome, please download the driver for your current browser version and add it to `DRAX/Browser_Drivers`:
-- Mozilla Firefox please go to https://github.com/mozilla/geckodriver/releases
-- Google Chrome please go to https://chromedriver.chromium.org/downloads
 
 
 ## Using DRAX
 
 
-Running DRAX within a personal computer should be straightforward, however keep in mind that in order to scrape websites with Javascript, DRAX (more specifically the package `Selenium`) needs to use a browser. To install browsers in a server you may need admin access.
 
 You can run the code below to test the execution:
 
@@ -40,7 +36,7 @@ To avoid overloading these database websites, a 10 seconds pause between request
 DRAX accepts the following parameters:
 
 
-    python DRAX -i input_path -o output_folder -db biocyc,kegg,hmdb,rhea,uniprot,chemspider,inchi_key -pt 10
+    python DRAX -i input_path -o output_folder -db biocyc,kegg,hmdb,rhea,uniprot,pubchem -pt 10
 
     Mandatory arguments: --input_path / -i
     Optional arguments:  --output_folder / -o
@@ -51,18 +47,17 @@ Where each parameter corresponds to the following:
 
 - `input_path` - the input tsv file path.
 - `output_folder` - the output folder where the spreadsheets are stored
-- `databases ` - databases that DRAX can search in, by default `biocyc,kegg,hmdb,rhea,uniprot,chemspider,inchi_key`
+- `databases ` - databases that DRAX can search in, by default `biocyc,kegg,hmdb,rhea,uniprot,pubchem`
 - `politeness_timer` - time (seconds) between requests. Default is 10. Please be careful not to overleaf the corresponding databases, you might get blocked from doing future requests.
-
-
-
-
-
 
 Data is  retrieved according to the information provided, for example, if the user provides the KEGG gene ID hsa:150763, then, given that the gpr search mode is used, DRAX would fetch information on this gene, the KEGG protein entries connected to this gene (i.e., 2.3.1.15) and by extent the reactions these protein(s) catalyze (i.e., R00851,R02617,R09380).
 
 
 - `search_type` - starting point of the search, if the user aims to provide IDs for proteins, then it would be `protein_search`, and the same for the other types of biological instances
+
+### Running workflows
+
+For more information on the workflows go to the respective [folder](Workflows/)
 
 
 ### Formatting input file
