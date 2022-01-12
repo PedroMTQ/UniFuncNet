@@ -28,6 +28,21 @@ class Compound(Base_Component,CHEBI_SQLITE_Connector):
         try:    return next(self.get_detail('synonyms'))
         except: return ''
 
+    def get_top_n_synonyms(self,top_n=5):
+        res=[]
+        try:
+            synonyms = self.get_detail('synonyms', all_possible=True)
+            print(synonyms)
+            for i in range(top_n):
+                try:
+                    res.append(synonyms.pop(0))
+                except:
+                    break
+            print(res)
+            return res
+        except:
+            return res
+
     def add_chebi_ids(self):
         for chebi_id in self.get_detail('chebi',all_possible=True):
             chebi_mapping=self.fetch_chebi_id_info(chebi_id)
@@ -96,5 +111,5 @@ def test_instance_creator(test_string='test'):
 
 if __name__ == '__main__':
     #cpd=test_instance_creator()
-    cpd1=Compound({'chebi':'141550'})
-    cpd1.get_all_info()
+    cpd1=Compound({'chebi':{'141550','a','b'},'synonyms':{'a','b'}})
+    print(cpd1.get_detail('synonyms',all_possible=True))

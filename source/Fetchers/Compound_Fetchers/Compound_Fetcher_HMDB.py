@@ -108,6 +108,9 @@ class Compound_Fetcher_HMDB(Compound_Fetcher):
         inchi_key = soup.find('th', string='InChI Key')
         if inchi_key: inchi_key = remove_inchi_key_equal(inchi_key.findNext().text)
         res['inchi_key'] = inchi_key
+        inchi = soup.find('th', string='InChI Identifier')
+        if inchi: inchi = remove_inchi_key_equal(inchi.findNext().text)
+        res['inchi'] = inchi
         synonyms = []
         common_name = soup.find('th', string='Common Name')
         if common_name: common_name = common_name.findNext().text.lower()
@@ -150,7 +153,7 @@ class Compound_Fetcher_HMDB(Compound_Fetcher):
         self.convergence_args['soup']=None
 
 if __name__ == '__main__':
-    c=Compound_Fetcher_HMDB('HMDB03153')
+    c=Compound_Fetcher_HMDB('HMDB0002111')
     c.get_compound().get_all_info()
     #c=Compound_Fetcher_HMDB('HMDB0005794')
     #print(c.get_compound())

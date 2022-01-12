@@ -10,11 +10,14 @@ class Synonyms():
         self.bio_type=bio_type
         if synonyms:
             if isinstance(synonyms, list) or isinstance(synonyms,generator) or isinstance(synonyms,set):
-                self.possible_synonyms = {self.fix_synonym(syn):1 for syn in synonyms}
+                fixed_syns=[self.fix_synonym(syn) for syn in synonyms]
+                self.possible_synonyms = {syn:1 for syn in fixed_syns if syn}
             elif isinstance(synonyms, dict):
-                self.possible_synonyms = {self.fix_synonym(syn):int(synonyms[syn]) for syn in synonyms}
+                fixed_syns={self.fix_synonym(syn):int(synonyms[syn]) for syn in synonyms}
+                self.possible_synonyms = {syn:fixed_syns[syn] for syn in fixed_syns if syn}
             elif isinstance(synonyms,str):
-                self.possible_synonyms={self.fix_synonym(synonyms):1}
+                fixed_syns=[self.fix_synonym(synonyms) ]
+                self.possible_synonyms = {syn:1 for syn in fixed_syns if syn}
         else: self.possible_synonyms={}
 
     def __str__(self):
@@ -56,7 +59,9 @@ class Synonyms():
 
     def extend(self,list_synonyms):
         for syn in list_synonyms:
-            self.append(self.fix_synonym(syn))
+            fixed_syn=self.fix_synonym(syn)
+            if fixed_syn:
+                self.append(fixed_syn)
 
     def fix_synonym(self,synonym):
         if not synonym: return synonym
@@ -84,12 +89,21 @@ class Synonyms():
 
         return syn
 
+    def is_valid_synonym(self,synonym):
+        number_ints= sum(l.isdigit() for l in synonym)
+        if number_ints<len(synonym)/3: return True
+        return False
+
+
+
     def fix_synonym_compound(self,synonym):
         syn=self.fix_synonym_generic(synonym)
         match = re.match('a[n]?\s',synonym)
         if match:
             syn=syn[match.span()[1]:]
-        return syn
+        if self.is_valid_synonym(syn):
+            return syn
+        return None
 
     def fix_synonym_gene(self,synonym):
         syn=self.fix_synonym_generic(synonym)
@@ -101,4 +115,5 @@ class Synonyms():
 
 
 if __name__ == '__main__':
-    pass
+    syn1 = Synonyms({'a', 'b'},'Compound')
+    print(syn1)

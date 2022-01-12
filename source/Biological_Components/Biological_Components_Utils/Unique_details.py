@@ -62,6 +62,7 @@ def get_unique_details_compound():
         'pubchem_cid',
         'pubchem_sid',
         'inchi_key',
+        'inchi',
                        ]
     return res
 

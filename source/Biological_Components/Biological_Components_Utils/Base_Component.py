@@ -148,7 +148,7 @@ class Base_Component():
                     res = dict(detail)
                 for to_add in res:
                     count = res[to_add]
-                    if detail_type=='synonyms':                       self.set_synonyms(detail)
+                    if detail_type=='synonyms':                         self.set_synonyms(to_add)
                     elif detail_type.endswith('_instances'):            self.set_instances(instances_type=detail_type,instances_to_add=to_add,converged_in=converged_in)
                     elif detail_type == 'reaction_str':                 self.set_reaction(to_add)
                     elif detail_type == 'pathways':                     self.set_pathways(to_add)
@@ -333,7 +333,6 @@ class Base_Component():
             self.synonyms.append(syns,count)
         else:
             self.synonyms = Synonyms(syns,bio_type=self.__class__.__name__)
-
 
 #Databases IDs are actually instances of class Counter, which will define a compound's ID as the most frequent one from  a list of redundant IDs
 

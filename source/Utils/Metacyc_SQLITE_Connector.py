@@ -1,6 +1,6 @@
 
 
-from source.Utils.util import get_stoichiometry,standardize_reaction_str,SPLITTER,download_file_ftp,gunzip,RESOURCES_FOLDER,strip_tags
+from source.Utils.util import SPLITTER,RESOURCES_FOLDER,strip_tags,remove_inchi_key_equal
 import re
 import os
 import sqlite3
@@ -349,7 +349,7 @@ class Metacyc_SQLITE_Connector():
         db_headers=self.db_headers[table_name]
         headers_str=', '.join(db_headers)
         headers_str=f'{main_id_str}, {headers_str}'.upper()
-        fetch_command = f'SELECT {headers_str} FROM {table_name} WHERE {main_id_str}="{wanted_id}"'
+        fetch_command = f'SELECT {headers_str} FROM {table_name} WHERE {main_id_str}="{wanted_id.strip()}"'
         return fetch_command
 
     def convert_sql_to_dict(self,sql_result,table_name):
@@ -398,7 +398,7 @@ class Metacyc_SQLITE_Connector():
             if 'METACYCRXN' in temp: res['reaction_ids']=temp['METACYCRXN']
             return res
         except:
-            print(f'Failed retrieving {wanted_id} in {self.metacyc_db}.{table_name}')
+            print(f'Failed retrieving {repr(wanted_id)} in {self.metacyc_db}.{table_name}')
             return {}
 
     def fetch_metacyc_rxn_from_cpd(self,wanted_id):
@@ -412,7 +412,7 @@ class Metacyc_SQLITE_Connector():
             res=self.convert_sql_to_dict(res_fetch,table_name)
             return res['METACYCRXN']
         except:
-            print(f'Failed retrieving {wanted_id} in {self.metacyc_db}.{table_name}')
+            print(f'Failed retrieving {repr(wanted_id)} in {self.metacyc_db}.{table_name}')
             return {}
 
     def fetch_metacyc_rxn_from_ec(self,wanted_id):
@@ -426,7 +426,7 @@ class Metacyc_SQLITE_Connector():
             res=self.convert_sql_to_dict(res_fetch,table_name)
             return res['METACYCRXN']
         except:
-            print(f'Failed retrieving {wanted_id} in {self.metacyc_db}.{table_name}')
+            print(f'Failed retrieving {repr(wanted_id)} in {self.metacyc_db}.{table_name}')
             return {}
 
     def fetch_metacyc_from_uniprot(self,wanted_id):
@@ -440,7 +440,7 @@ class Metacyc_SQLITE_Connector():
             res=self.convert_sql_to_dict(res_fetch,table_name)
             return res['METACYCPRT']
         except:
-            print(f'Failed retrieving {wanted_id} in {self.metacyc_db}.{table_name}')
+            print(f'Failed retrieving {repr(wanted_id)} in {self.metacyc_db}.{table_name}')
             return {}
 
     def fetch_metacyc_id_info(self,wanted_id,table_name):
@@ -454,7 +454,7 @@ class Metacyc_SQLITE_Connector():
             res=self.convert_sql_to_dict(res_fetch,table_name)
             return res
         except:
-            print(f'Failed retrieving {wanted_id} in {self.metacyc_db}.{table_name}')
+            print(f'Failed retrieving {repr(wanted_id)} in {self.metacyc_db}.{table_name}')
             return {}
 
     def fetch_metacyc_derivatives(self,compound_name):
@@ -462,7 +462,8 @@ class Metacyc_SQLITE_Connector():
             return {}
         table_name='COMPOUNDS'
         main_id_str='METACYC'
-        fetch_command=f'SELECT METACYC, SYNONYMS FROM COMPOUNDS WHERE SYNONYMS LIKE "%{compound_name}%"'
+        compound_name_str=compound_name.strip()
+        fetch_command=f'SELECT METACYC, SYNONYMS FROM COMPOUNDS WHERE SYNONYMS LIKE "%{compound_name_str}%"'
         res=[]
         try:
             res_fetch = self.metacyc_execute(fetch_command).fetchall()
@@ -470,11 +471,11 @@ class Metacyc_SQLITE_Connector():
                 syns=syns.split(self.info_splitter)
                 res.append(cpd_id)
                 for syn in syns:
-                    if syn.lower()==compound_name.lower():
+                    if syn.lower()==compound_name_str.lower():
                         return [cpd_id]
             return res
         except:
-            print(f'Failed retrieving {compound_name} in {self.metacyc_db}.{table_name}')
+            print(f'Failed retrieving {repr(compound_name_str)} in {self.metacyc_db}.{table_name}')
             return res
 
 
@@ -527,6 +528,7 @@ class Metacyc_SQLITE_Connector():
                         line.startswith('SYSTEMATIC-NAME') or\
                         line.startswith('SYNONYMS') or\
                         line.startswith('CHEMICAL-FORMULA') or\
+                        line.startswith('INCHI') or\
                         line.startswith('INCHI-KEY') or\
                         line.startswith('SMILES') or\
                         line.startswith('DBLINKS'):
@@ -543,6 +545,8 @@ class Metacyc_SQLITE_Connector():
                         db_type = 'chemical_formula'
                     elif line_type in ['INCHI-KEY']:
                         db_type = 'inchi_key'
+                    elif line_type in ['INCHI']:
+                        db_type = 'inchi'
                     elif line_type in ['SMILES']:
                         db_type = 'smiles'
                     else:
@@ -602,6 +606,8 @@ class Metacyc_SQLITE_Connector():
                         if db_type == 'chemical_formula':
                             temp[db_type].append(line)
                         else:
+                            if db_type in ['inchi_key', 'inchi']:
+                                line = remove_inchi_key_equal(line)
                             temp[db_type].add(line)
 
         if 'chemical_formula' in temp:
@@ -903,19 +909,15 @@ if __name__ == '__main__':
     #s.metacyc_create_db()
     #print(s.fetch_metacyc_rxn_from_cpd('CPD-22368'))
     #s.test_db()
-    #print(s.fetch_metacyc_id_info('CPD-22368','compound'))
+    #print(s.fetch_metacyc_rxn_from_cpd('CPD0-2051'))
+    print(s.fetch_metacyc_id_info('CPD-16936','compound'))
+    #print(s.fetch_metacyc_id_info('CPD-7661','compound'))
     #print(s.fetch_metacyc_id_info('EG10368','gene'))
     #print(s.fetch_metacyc_id_info('CPLX-2401','protein'))
     #print(s.fetch_metacyc_id_info('MONOMER-2782','protein'))
-    print(s.fetch_metacyc_id_info('RXN-14380','reaction')['reaction_stoichiometry'])
-    print(s.fetch_metacyc_id_info('RXN66-82','reaction')['reaction_stoichiometry'])
     #print(s.fetch_metacyc_id_info('RXN-20993','reaction'))
     #print(s.fetch_metacyc_id_info('GDP-MANNOSE','compound'))
     #print(s.fetch_metacyc_intermediate_rxn_ids('ENZRXN-2911'))
     #print(s.fetch_metacyc_rxn_from_ec('5.3.1.26'))
     #print(s.fetch_metacyc_from_uniprot('Q88M11'))
     #print(s.fetch_metacyc_derivatives('oxygen'))
-    print(s.fetch_metacyc_id_info('RXN-14452','reaction'))
-    print(s.fetch_metacyc_id_info('RXN-15488','reaction'))
-    print(s.fetch_metacyc_id_info('RXN-15490','reaction'))
-

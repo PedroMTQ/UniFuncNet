@@ -4,7 +4,7 @@ from source.Utils.util import strip_tags
 from source.Pipelines.Pipelines_Utils.Global_Searcher import *
 from source.Fetchers.Compound_Fetchers.Compound_Fetcher_Metacyc import Compound_Fetcher_Metacyc
 from source.Fetchers.Compound_Fetchers.Compound_Fetcher_KEGG import Compound_Fetcher_KEGG
-from source.Fetchers.Compound_Fetchers.Compound_Fetcher_Chemspider import Compound_Fetcher_Chemspider
+from source.Fetchers.Compound_Fetchers.Compound_Fetcher_PubChem import Compound_Fetcher_PubChem
 from source.Fetchers.Compound_Fetchers.Compound_Fetcher_HMDB import Compound_Fetcher_HMDB
 from source.Fetchers.Compound_Fetchers.Compound_Fetcher_Rhea import Compound_Fetcher_Rhea
 from source.Utils.util import get_stoichiometry
@@ -29,15 +29,15 @@ class Compound_Searcher(Global_Searcher):
 
 
     def select_fetcher(self,db,query_id):
-        if db in SCRAPPABLE_DBS and not self.check_already_searched_memory(db,query_id):
+        #pubchem is a special case
+        if db in ['pubchem_cid', 'pubchem_sid', 'inchi', 'inchi_key'] and 'pubchem' in SCRAPPABLE_DBS:
+            return Compound_Fetcher_PubChem(query_id, db=db, memory_storage=self.memory_storage)
+        elif db in SCRAPPABLE_DBS and not self.check_already_searched_memory(db,query_id):
             print('Finding compound', db, query_id)
-
             if db == 'metacyc':         return  Compound_Fetcher_Metacyc(query_id, memory_storage=self.memory_storage)
             elif db == 'kegg':          return  Compound_Fetcher_KEGG(query_id, memory_storage=self.memory_storage)
-            elif db == 'chemspider':    return  Compound_Fetcher_Chemspider(query_id, memory_storage=self.memory_storage)
             elif db == 'hmdb':          return  Compound_Fetcher_HMDB(query_id, memory_storage=self.memory_storage)
             elif db == 'rhea':          return  Compound_Fetcher_Rhea(query_id, memory_storage=self.memory_storage)
-            elif db == 'inchi_key' and 'chemspider' in SCRAPPABLE_DBS:     return  Compound_Fetcher_Chemspider(query_id, memory_storage=self.memory_storage,search_by_inchi_key=True)
             else:                       return  Global_Fetcher()
 
     #############Searching the Databases#############
@@ -95,16 +95,15 @@ class Compound_Searcher(Global_Searcher):
         for i in reaction_stoichiometry:
             if isinstance(i,list):
                 stoi,met_id=i
+                match = self.get_compound_match(met_id, db)
+                if not match:
+                    print(f'Will now search for {met_id} in {db}')
+                    self.run_searcher(met_id, db)
+                    match = self.get_compound_match(met_id, db)
+                rn_with_instances[side].append([stoi, match])
             else:
                 side='right'
-            match=self.get_compound_match(met_id, db)
-            if not match:
-                print(f'Will now search for {met_id} in {db}')
-                self.run_searcher(met_id, db)
-                #####Third memory search#####
-                match = self.get_compound_match(met_id, db)
 
-            rn_with_instances[side].append([stoi, match])
         return rn_with_instances
 
     def reaction_met_instances(self, rn, rn_with_ids, db):
@@ -343,22 +342,25 @@ class Compound_Searcher(Global_Searcher):
 
     def run_searcher(self,bio_query,bio_db,convergence_search=False):
         print(f'STARTING COMPOUND SEARCHER {bio_query} in {bio_db}')
+        temp_args_to_search=[]
         args_to_search=[]
         temp_inst=None
         #we roll out the search by filling out our args_to_search varible with all the possible data from what is provided
         if bio_db=='synonyms':
-            args_to_search.append(['synonyms',bio_query])
-        if bio_db=='inchi_key':
-            args_to_search.append(['inchi_key',bio_query])
+            temp_args_to_search.append(['synonyms',bio_query])
+        if bio_db in ['pubchem_cid','pubchem_sid','inchi','inchi_key'] and 'pubchem' in SCRAPPABLE_DBS:
+            temp_args_to_search.append([bio_db,bio_query])
         if bio_db=='chebi':
-            args_to_search.append(['rhea', bio_query])
+            temp_args_to_search.append(['rhea', bio_query])
             chebi_to_others=self.fetch_chebi_id_info(bio_query)
             for chebi_db in chebi_to_others:
                 if chebi_db not in ['smiles','chemical_formula']: #we also have this info in the sql database, wont really change much, just avoid function calls since there's no fetcher for these
                     for chebi_db_id in chebi_to_others[chebi_db]:
-                        args_to_search.append([chebi_db,chebi_db_id])
+                        temp_args_to_search.append([chebi_db,chebi_db_id])
         if bio_db in SCRAPPABLE_DBS:
-            args_to_search.append([bio_db,bio_query])
+            temp_args_to_search.append([bio_db,bio_query])
+        for combo in temp_args_to_search:
+            if combo not in args_to_search: args_to_search.append(combo)
         #now we just keep searching for all the possible compounds
         self.run_searcher_ids(args_to_search,convergence_search=convergence_search)
         #current best match
@@ -382,24 +384,41 @@ class Compound_Searcher(Global_Searcher):
                 if s_id_arg and not self.check_already_searched_memory(dict_input_key=db_arg,dict_input_value=s_id_arg):
                     temp_inst,_ = self.find_compound(db_arg,s_id_arg,convergence_search=convergence_search)
                 self.add_to_already_tried_to_search(db_arg, s_id_arg)
+                if not temp_inst:
+                    temp_inst = self.get_compound_match(id_arg, db_arg)
                 if temp_inst:   self.add_to_args_to_search_ids(temp_inst, args_to_search)
 
     def add_to_args_to_search_ids(self,compound_instance,args_to_search):
+        temp_args_to_search=[]
         if compound_instance:
-            id_to_add = compound_instance.get_detail('chemspider')
-            if id_to_add and not self.check_already_searched_memory(dict_input_key='chemspider',dict_input_value=id_to_add):
-                args_to_search.append(['chemspider', id_to_add])
+            id_to_add = compound_instance.get_detail('pubchem_cid')
+            if id_to_add and not self.check_already_searched_memory(dict_input_key='pubchem_cid',dict_input_value=id_to_add):
+                temp_args_to_search.append(['pubchem_cid', id_to_add])
+
+            id_to_add = compound_instance.get_detail('pubchem_sid')
+            if id_to_add and not self.check_already_searched_memory(dict_input_key='pubchem_sid',dict_input_value=id_to_add):
+                temp_args_to_search.append(['pubchem_sid', id_to_add])
+
+            id_to_add = compound_instance.get_detail('inchi')
+            if id_to_add and not self.check_already_searched_memory(dict_input_key='inchi',dict_input_value=id_to_add):
+                temp_args_to_search.append(['inchi', id_to_add])
+
             id_to_add = compound_instance.get_detail('inchi_key')
             if id_to_add and not self.check_already_searched_memory(dict_input_key='inchi_key',dict_input_value=id_to_add):
-                args_to_search.append(['inchi_key', id_to_add])
+                temp_args_to_search.append(['inchi_key', id_to_add])
+
             for db in SCRAPPABLE_DBS:
                 id_to_add = compound_instance.get_detail(db)
                 if id_to_add and not self.check_already_searched_memory(dict_input_key=db,dict_input_value=id_to_add):
-                    args_to_search.append([db, id_to_add])
+                    temp_args_to_search.append([db, id_to_add])
+        for combo in temp_args_to_search:
+            if combo not in args_to_search:
+                args_to_search.append(combo)
 
     #we do this last to complement with dbs we haven't found the compound, we only do this using the initial compound as seed
     def add_to_args_to_search_synonyms(self,compound_instance,args_to_search):
         already_found=set()
+        temp_args_to_search=[]
         if compound_instance:
             for db in SCRAPPABLE_DBS:
                 current_id=compound_instance.get_detail(db)
@@ -410,7 +429,10 @@ class Compound_Searcher(Global_Searcher):
             all_syns=sorted(all_syns, key=len,reverse=True)
             for syn in all_syns:
                 if syn and not self.check_already_searched_memory(dict_input_key='synonyms', dict_input_value=syn):
-                    args_to_search.append(['synonyms',syn])
+                    temp_args_to_search.append(['synonyms',syn])
+        for combo in temp_args_to_search:
+            if combo not in args_to_search:
+                args_to_search.append(combo)
         return already_found
 
     def run_searcher_synonyms(self,args_to_search,already_found,convergence_search=False):
@@ -422,6 +444,8 @@ class Compound_Searcher(Global_Searcher):
             for s_id_arg in id_arg:
                 if s_id_arg and not self.check_already_searched_memory(dict_input_key=db_arg,dict_input_value=s_id_arg):
                     temp_inst,_ = self.find_compound(db_arg,s_id_arg,already_found=already_found,convergence_search=convergence_search)
+                    if not temp_inst:
+                        temp_inst=self.get_compound_match(id_arg,db_arg)
                     if temp_inst:
                         syns=temp_inst.get_detail('synonyms',all_possible=True)
                         #to avoid very long searches
@@ -435,4 +459,4 @@ if __name__ == '__main__':
     #searcher.reset_db(delete_all=True,force_reset=True)
     #res=searcher.find_compound_string('quercetin')
     #print(res)
-    r1=searcher.run_searcher('oxygen','synonyms')
+    r1=searcher.run_searcher('1S/C5H7NO2/c6-5-3(7)1-2-4(5)8/h5H,1-2,6H2','inchi')

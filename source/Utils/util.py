@@ -17,11 +17,10 @@ from gzip import open as gzip_open
 from types import GeneratorType as generator
 from sys import platform
 
-# to use pubchem API you can use requests.post
-# inchi='InChI=1S/C15H12N2O2/c16-15(18)17-11-7-3-1-5-9(11)13-14(19-13)10-6-2-4-8-12(10)17/h1-8,13-14H,(H2,16,18)'
-# r=requests.post('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchi/cids/JSON/',data={'inchi':inchi})
 
-SCRAPPABLE_DBS=['metacyc','kegg','hmdb','rhea','uniprot', 'chemspider', 'inchi_key']
+SCRAPPABLE_DBS=['metacyc','kegg','hmdb','rhea','uniprot','pubchem']
+#for pubchem
+SCRAPPABLE_DBS.extend(['pubchem_cid','pubchem_sid','inchi','inchi_key'])
 
 VALID_DIRECTIONS=set([
     'gp',
@@ -548,3 +547,7 @@ if __name__ == '__main__':
     rn='Acetyl-CoA + n Malonyl-CoA + 2n NADPH + 2n H+ <=> Long-chain fatty acid + n CO2 + 2n NADP+ + (n+1) CoA + n H2O'
     rn_ids='C00024 + n C00083 + 2n C00005 + 2n C00080 <=> C00638 + n C00011 + 2n C00006 + (n+1) C00010 + n C00001'
     get_stoichiometry(rn,rn_ids)
+    inchi='InChI=1S/C15H12N2O2/c16-15(18)17-11-7-3-1-5-9(11)13-14(19-13)10-6-2-4-8-12(10)17/h1-8,13-14H,(H2,16,18)'
+    import requests
+    r=requests.post('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchi/cids/JSON/',data={'inchi':inchi})
+    print(r.text)

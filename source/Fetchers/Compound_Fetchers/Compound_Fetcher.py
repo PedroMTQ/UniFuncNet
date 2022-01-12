@@ -58,7 +58,10 @@ class Compound_Fetcher(Global_Fetcher):
                                                                        extra_args=extra_args)
 
     def remove_unwanted_info(self,dict_to_change):
-        res=dict(dict_to_change)
+        res={}
+        for detail in dict_to_change:
+            if dict_to_change[detail]:
+                res[detail]=dict_to_change[detail]
         for detail in res:
             if isinstance(res[detail],str):
                 res[detail]={res[detail]}

@@ -674,6 +674,8 @@ class GSMM_expansion():
         if n_input:
             mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env} && python {mantis_folder} run_mantis -i {self.mantis_input} -o {self.mantis_output} -da heuristic'
             subprocess.run(mantis_setup_command,shell=True)
+        else:
+            print(f'Mantis already ran')
 
     def run_drax(self):
         print('Running DRAX')

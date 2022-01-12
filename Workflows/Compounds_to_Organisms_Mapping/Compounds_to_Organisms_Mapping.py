@@ -410,7 +410,7 @@ if __name__ == '__main__':
     else: politeness_timer=10
 
 
-    if input_samples and metabolites and output_folder:
+    if os.path.exists(input_samples) and os.path.exists(metabolites) and output_folder:
         Compounds_to_Organisms_Mapping(input_samples=input_samples,metabolites=metabolites,output_folder=output_folder,database=database,politeness_timer=politeness_timer)
     else:
         print('Missing input and output folders')
