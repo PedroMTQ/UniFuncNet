@@ -17,7 +17,7 @@ class CHEBI_SQLITE_Connector():
         if os.path.exists(self.chebi_db):
             self.chebi_start_sqlite_cursor()
         else:
-            self.metacyc_create_db()
+            self.chebi_create_db()
 
     def chebi_start_sqlite_cursor(self):
         self.chebi_sqlite_connection = sqlite3.connect(self.chebi_db)
@@ -134,7 +134,7 @@ class CHEBI_SQLITE_Connector():
                 line = file.readline()
         os.remove(input_path)
 
-    def metacyc_create_db(self):
+    def chebi_create_db(self):
         #this will probably need to be changed to an output_folder provided by the user
         outfile_path=f'{RESOURCES_FOLDER}chebi2others.tsv'
         if os.path.exists(self.chebi_db):
