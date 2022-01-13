@@ -35,6 +35,8 @@ class Compound_Fetcher_PubChem(Compound_Fetcher):
                     json_result = webpage.json()
         if json_result:
             return 'sid',json_result['IdentifierList']['SID'][0]
+        else:
+            return None,None
 
     def get_synonyms_pubchem(self,cpd_dict,cpd_type,id_type,pubchem_id):
         synonyms_url=f'https://pubchem.ncbi.nlm.nih.gov/rest/pug/{cpd_type}/{id_type}/{pubchem_id}/synonyms/json'
@@ -58,18 +60,21 @@ class Compound_Fetcher_PubChem(Compound_Fetcher):
                         'www.hmdb.ca/metabolites/':'hmdb',
                         'biocyc.org/compound?orgid=META&id=':'metacyc',
                         'drugbank.ca/drugs/':'drugbank',
-                        'ebi.ac.uk/chembl/compound_report_card/':'chembl'
+                        'ebi.ac.uk/chembl/compound_report_card/':'chembl',
+                        'inchikey=':'inchi_key',
+                        'InChI%3D':'inchi',
+                        'InChI=':'inchi',
                         }
             for db_link in all_db_links:
                 for w_db in wanted_dbs:
                     if w_db in db_link:
                         db_type=wanted_dbs[w_db]
                         if db_type not in cpd_dict: cpd_dict[db_type]=set()
-                        db_link=db_link.replace(w_db,'')
-                        db_link=db_link.replace('http://','')
-                        db_link=db_link.replace('https://','')
+                        db_link=db_link.split(w_db)[1]
                         db_link=db_link.replace('.html','')
-                        db_link=db_link.replace('www.','')
+                        #html encoding for "line feed"
+                        db_link=db_link.replace('%0A','')
+                        db_link=strip_tags(db_link)
                         cpd_dict[db_type].add(db_link)
                         break
 
@@ -80,6 +85,7 @@ class Compound_Fetcher_PubChem(Compound_Fetcher):
         else:
             id_type = self.db.split('_')[1]
             pubchem_id = self.compound_id
+        if not id_type or not pubchem_id: return None
         cpd_type='substance' if id_type=='sid' else 'compound'
         #has too much junk in the synonyms
         #self.get_synonyms_pubchem(cpd_dict,cpd_type,id_type,pubchem_id)
@@ -92,9 +98,9 @@ class Compound_Fetcher_PubChem(Compound_Fetcher):
 
 
 if __name__ == '__main__':
-    #search= Compound_Fetcher_PubChem('HONVBDHDLJUKLX-UHFFFAOYSA-N','inchi_key')
+    search= Compound_Fetcher_PubChem('HONVBDHDLJUKLX-UHFFFAOYSA-N','inchi_key')
     search= Compound_Fetcher_PubChem('962','pubchem_cid')
-    #search= Compound_Fetcher_PubChem('1S/C5H7NO2/c6-5-3(7)1-2-4(5)8/h5H,1-2,6H2','inchi')
+    search= Compound_Fetcher_PubChem('1S/C5H7NO2/c6-5-3(7)1-2-4(5)8/h5H,1-2,6H2','inchi')
     search.get_compound().get_all_info()
     print('###')
     search.get_compound().get_top_n_synonyms()

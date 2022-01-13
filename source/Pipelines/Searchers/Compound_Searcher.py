@@ -44,8 +44,8 @@ class Compound_Searcher(Global_Searcher):
     def find_info(self,db,query_id,convergence_search=False):
         if not query_id: return None,None
         fetcher=self.select_fetcher(db=db,query_id=query_id)
+        self.add_to_already_tried_to_search(db, query_id)
         if fetcher:
-            self.add_to_already_tried_to_search(db, query_id)
             fetcher_cpd=fetcher.get_compound()
             if fetcher_cpd:
                 if convergence_search:

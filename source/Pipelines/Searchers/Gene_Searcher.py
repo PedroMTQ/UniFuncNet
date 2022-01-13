@@ -27,8 +27,8 @@ class Gene_Searcher(Global_Searcher):
     def find_info(self,db,query_id,extra_args={}):
         if not query_id: return None,None
         fetcher=self.select_fetcher(db=db,query_id=query_id,extra_args=extra_args)
+        self.add_to_already_tried_to_search(db, query_id)
         if fetcher:
-            self.add_to_already_tried_to_search(db, query_id)
             fetcher_gene=fetcher.get_gene()
             if fetcher_gene:
                 #converge only occurs in the searchers- these are the global classes
