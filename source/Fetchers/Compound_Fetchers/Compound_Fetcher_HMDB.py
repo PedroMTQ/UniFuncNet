@@ -101,7 +101,7 @@ class Compound_Fetcher_HMDB(Compound_Fetcher):
             location_search = location_search.findNext()
             location = location_search.text.split('\n')
             if 'Not Available' in location: location=None
-            res['Location'] = location
+            res['location'] = location
         SMILES = soup.find('th', string='SMILES')
         if SMILES: SMILES = SMILES.findNext().text
         res['smiles'] = SMILES
@@ -153,7 +153,9 @@ class Compound_Fetcher_HMDB(Compound_Fetcher):
         self.convergence_args['soup']=None
 
 if __name__ == '__main__':
-    c=Compound_Fetcher_HMDB('HMDB0002111')
-    c.get_compound().get_all_info()
+    c=Compound_Fetcher_HMDB('HMDB00131759')
+    c=Compound_Fetcher_HMDB('HMDB00131836')
+    c=Compound_Fetcher_HMDB('HMDB00131837')
+
     #c=Compound_Fetcher_HMDB('HMDB0005794')
     #print(c.get_compound())

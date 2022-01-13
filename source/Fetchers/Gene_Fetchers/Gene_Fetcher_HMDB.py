@@ -57,7 +57,7 @@ class Gene_Fetcher_HMDB(Gene_Fetcher):
                 details[i]=None
 
         gene_instance = Gene({'synonyms':details['Gene Name'],
-                              'ncbi_genbank_nucleotide':details['GenBank Gene ID'],
+                              'ncbi_genbank_gene':details['GenBank Gene ID'],
                               'genecard':details['GeneCard ID'],
                               'genatlas':details['GenAtlas ID'],
                               'hgnc':details['HGNC ID'],

@@ -25,8 +25,7 @@ class Metacyc_SQLITE_Connector():
         if os.path.exists(self.metacyc_db):
             self.metacyc_start_sqlite_cursor()
         else:
-            check=self.check_all_resources()
-            if check:
+            if self.check_all_resources():
                 self.metacyc_create_db()
             else:
                 print(f'Missing metacyc files. Please download them and place them in {self.metacyc_folder}')
@@ -385,25 +384,26 @@ class Metacyc_SQLITE_Connector():
         return res
 
     def fetch_metacyc_intermediate_rxn_ids(self,wanted_id):
+        res={}
         if not os.path.exists(self.metacyc_db):
-            return {}
+            return res
         table_name='TABLEINTRXNIDS'
         main_id_str='INTRXNID'
         fetch_command=self.generate_fetch_command(wanted_id,table_name,main_id_str)
         try:
             res_fetch = self.metacyc_execute(fetch_command).fetchone()
             temp=self.convert_sql_to_dict(res_fetch,table_name)
-            res={}
             if 'METACYCPRT' in temp: res['protein_ids']=temp['METACYCPRT']
             if 'METACYCRXN' in temp: res['reaction_ids']=temp['METACYCRXN']
             return res
         except:
             print(f'Failed retrieving {repr(wanted_id)} in {self.metacyc_db}.{table_name}')
-            return {}
+            return res
 
     def fetch_metacyc_rxn_from_cpd(self,wanted_id):
+        res={}
         if not os.path.exists(self.metacyc_db):
-            return {}
+            return res
         table_name='TABLECPDRXN'
         main_id_str='METACYCCPD'
         fetch_command=self.generate_fetch_command(wanted_id,table_name,main_id_str)
@@ -413,11 +413,12 @@ class Metacyc_SQLITE_Connector():
             return res['METACYCRXN']
         except:
             print(f'Failed retrieving {repr(wanted_id)} in {self.metacyc_db}.{table_name}')
-            return {}
+            return res
 
     def fetch_metacyc_rxn_from_ec(self,wanted_id):
+        res={}
         if not os.path.exists(self.metacyc_db):
-            return {}
+            return res
         table_name='TABLEECRXN'
         main_id_str='EC'
         fetch_command=self.generate_fetch_command(wanted_id,table_name,main_id_str)
@@ -427,11 +428,12 @@ class Metacyc_SQLITE_Connector():
             return res['METACYCRXN']
         except:
             print(f'Failed retrieving {repr(wanted_id)} in {self.metacyc_db}.{table_name}')
-            return {}
+            return res
 
     def fetch_metacyc_from_uniprot(self,wanted_id):
+        res={}
         if not os.path.exists(self.metacyc_db):
-            return {}
+            return res
         table_name='TABLEUNIPROTMETACYC'
         main_id_str='UNIPROT'
         fetch_command=self.generate_fetch_command(wanted_id,table_name,main_id_str)
@@ -441,11 +443,12 @@ class Metacyc_SQLITE_Connector():
             return res['METACYCPRT']
         except:
             print(f'Failed retrieving {repr(wanted_id)} in {self.metacyc_db}.{table_name}')
-            return {}
+            return res
 
     def fetch_metacyc_id_info(self,wanted_id,table_name):
+        res={}
         if not os.path.exists(self.metacyc_db):
-            return {}
+            return res
         table_name=table_name.upper()+'S'
         main_id_str='METACYC'
         fetch_command=self.generate_fetch_command(wanted_id,table_name,main_id_str)
@@ -455,16 +458,16 @@ class Metacyc_SQLITE_Connector():
             return res
         except:
             print(f'Failed retrieving {repr(wanted_id)} in {self.metacyc_db}.{table_name}')
-            return {}
+            return res
 
     def fetch_metacyc_derivatives(self,compound_name):
+        res=[]
         if not os.path.exists(self.metacyc_db):
-            return {}
+            return res
         table_name='COMPOUNDS'
         main_id_str='METACYC'
         compound_name_str=compound_name.strip()
         fetch_command=f'SELECT METACYC, SYNONYMS FROM COMPOUNDS WHERE SYNONYMS LIKE "%{compound_name_str}%"'
-        res=[]
         try:
             res_fetch = self.metacyc_execute(fetch_command).fetchall()
             for cpd_id,syns in res_fetch:
@@ -495,9 +498,11 @@ class Metacyc_SQLITE_Connector():
             if file not in required_resources:
                 os.remove(f'{self.metacyc_folder}{file}')
         c=0
-        for i in  required_resources:
+        for i in required_resources:
             if i in os.listdir(self.metacyc_folder):
                 c+=1
+        print(os.listdir(self.metacyc_folder))
+        print(c)
         if len(required_resources)==c:
             return True
         return False
@@ -915,15 +920,15 @@ if __name__ == '__main__':
     #s.metacyc_create_db()
     #print(s.fetch_metacyc_rxn_from_cpd('CPD-22368'))
     #s.test_db()
-    #print(s.fetch_metacyc_rxn_from_cpd('CPD0-2051'))
+    print(s.fetch_metacyc_rxn_from_cpd('CPD0-2051'))
     print(s.fetch_metacyc_id_info('CPD-16936','compound'))
-    #print(s.fetch_metacyc_id_info('CPD-7661','compound'))
-    #print(s.fetch_metacyc_id_info('EG10368','gene'))
-    #print(s.fetch_metacyc_id_info('CPLX-2401','protein'))
-    #print(s.fetch_metacyc_id_info('MONOMER-2782','protein'))
-    #print(s.fetch_metacyc_id_info('RXN-20993','reaction'))
-    #print(s.fetch_metacyc_id_info('GDP-MANNOSE','compound'))
-    #print(s.fetch_metacyc_intermediate_rxn_ids('ENZRXN-2911'))
-    #print(s.fetch_metacyc_rxn_from_ec('5.3.1.26'))
-    #print(s.fetch_metacyc_from_uniprot('Q88M11'))
-    #print(s.fetch_metacyc_derivatives('oxygen'))
+    print(s.fetch_metacyc_id_info('CPD-7661','compound'))
+    print(s.fetch_metacyc_id_info('EG10368','gene'))
+    print(s.fetch_metacyc_id_info('CPLX-2401','protein'))
+    print(s.fetch_metacyc_id_info('MONOMER-2782','protein'))
+    print(s.fetch_metacyc_id_info('RXN-20993','reaction'))
+    print(s.fetch_metacyc_id_info('GDP-MANNOSE','compound'))
+    print(s.fetch_metacyc_intermediate_rxn_ids('ENZRXN-2911'))
+    print(s.fetch_metacyc_rxn_from_ec('5.3.1.26'))
+    print(s.fetch_metacyc_from_uniprot('Q88M11'))
+    print(s.fetch_metacyc_derivatives('oxygen'))

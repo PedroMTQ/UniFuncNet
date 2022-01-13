@@ -174,7 +174,7 @@ class Compound_Searcher(Global_Searcher):
 
 
 
-    def derivatives_HMDB_ids(self, compound,limit_mets=20,number_search_not_exact=200):
+    def derivatives_HMDB_ids(self, compound,limit_mets=20,number_search_not_exact=10):
         url = f'http://www.hmdb.ca/unearth/q?query={compound}&searcher=metabolites&button='
         webpage = self.get_with_fetcher(url)
         if not webpage: return None

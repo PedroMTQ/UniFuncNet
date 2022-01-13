@@ -278,7 +278,7 @@ class Rhea_SQLITE_Connector():
             alt_ids = alt_ids.split(',')
             alt_ids.insert(0,rhea_id)
             res.append(alt_ids)
-        return rhea_id
+        return res
 
     def fetch_reactions_rhea_from_chebi(self,chebi_id):
         res=set()
