@@ -494,7 +494,11 @@ class Metacyc_SQLITE_Connector():
         for file in os.listdir(self.metacyc_folder):
             if file not in required_resources:
                 os.remove(f'{self.metacyc_folder}{file}')
-        if len(required_resources)==len(os.listdir(self.metacyc_folder)):
+        c=0
+        for i in  required_resources:
+            if i in os.listdir(self.metacyc_folder):
+                c+=1
+        if len(required_resources)==c:
             return True
         return False
 
