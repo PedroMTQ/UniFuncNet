@@ -87,7 +87,7 @@ class Compound_Fetcher_HMDB(Compound_Fetcher):
                         'BioCyc ID': 'metacyc',
                         'BiGG ID': 'bigg',
                         'METLIN ID': 'metlin',
-                        'PubChem Compound': 'puchem_cid',
+                        'PubChem Compound': 'pubchem_cid',
                         'PDB ID': 'pdb',
                         'ChEBI ID': 'chebi'}
         url = f'http://www.hmdb.ca/metabolites/{self.compound_id}'

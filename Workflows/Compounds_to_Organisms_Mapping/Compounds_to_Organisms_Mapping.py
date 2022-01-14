@@ -175,9 +175,7 @@ class Compounds_to_Organisms_Mapping():
                 line = line.split('\t')
                 protein_annotations = line[6:]
                 for annot in protein_annotations:
-                    if annot.startswith('enzyme_ec') or \
-                            annot.startswith('kegg_reaction') or \
-                            annot.startswith('kegg_ko'):
+                    if annot.startswith('enzyme_ec'):
                         id_type, annotation = annot.split(':')
                         if id_type not in res: res[id_type] = set()
                         res[id_type].add(annotation)
@@ -252,28 +250,22 @@ class Compounds_to_Organisms_Mapping():
                 res[protein_id] = set()
                 if 'enzyme_ec' in proteins_info[protein_id]:
                     res[protein_id].update(proteins_info[protein_id]['enzyme_ec'])
-                if 'kegg_ko' in proteins_info[protein_id]:
-                    res[protein_id].update(proteins_info[protein_id]['kegg_ko'])
         return res
 
     def get_mapped_organisms(self,mapped_annotations, mantis_annotations):
         res = {}
         for ma in mantis_annotations:
             current_annotations = self.extract_mantis_ids(ma)
-            kegg_ko = current_annotations['kegg_ko']
             enzyme_ec = current_annotations['enzyme_ec']
             organism = ma.split('/')[-2]
             res[organism] = {'annotations': set(), 'protein_ids': set()}
             for protein_id in mapped_annotations:
                 protein_annotations = mapped_annotations[protein_id]
                 ec_intersection = protein_annotations.intersection(enzyme_ec)
-                ko_intersection = protein_annotations.intersection(kegg_ko)
                 if ec_intersection:
                     res[organism]['annotations'].update(ec_intersection)
                     res[organism]['protein_ids'].add(protein_id)
-                if ko_intersection:
-                    res[organism]['annotations'].update(ko_intersection)
-                    res[organism]['protein_ids'].add(protein_id)
+
         return res
 
     def get_unique_annotations(self,mapped_organisms):

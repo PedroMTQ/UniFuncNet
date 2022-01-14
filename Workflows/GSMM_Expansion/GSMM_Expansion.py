@@ -172,9 +172,7 @@ class GSMM_expansion():
                 line = line.split('\t')
                 protein_annotations = line[6:]
                 for annot in protein_annotations:
-                    if annot.startswith('enzyme_ec') or \
-                            annot.startswith('kegg_reaction') or \
-                            annot.startswith('kegg_ko'):
+                    if annot.startswith('enzyme_ec'):
                         id_type, annotation = annot.split(':')
                         if id_type not in res: res[id_type] = set()
                         res[id_type].add(annotation)
@@ -221,10 +219,9 @@ class GSMM_expansion():
         drax_ids=self.merge_ids_to_run(drax_ids)
         with open(self.drax_input, 'w+') as file:
             for id_type in drax_ids:
-                if id_type in ['kegg_ko','enzyme_ec','rhea']:
+                if id_type=='enzyme_ec':
                     for annot in drax_ids[id_type]:
-                        if not annot.endswith('-'):
-                            file.write(f'{annot}\t{id_type}\tprotein\tprc\n')
+                        file.write(f'{annot}\t{id_type}\tprotein\tprc\n')
 
 
     ###### network analysis
@@ -282,7 +279,7 @@ class GSMM_expansion():
 
         for reaction_id in reactions_drax:
             drax_reaction_id = f'RD_{reaction_id}'
-            if 'reaction_compounds' in reactions_dict[reaction_id]:
+            if 'reaction_compounds' in reactions_drax[reaction_id]:
 
                 reaction_cpds = reactions_drax[reaction_id]['reaction_compounds']
                 if ' => ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' => ', ' <=> ')
@@ -434,12 +431,8 @@ class GSMM_expansion():
         for protein_id in proteins_drax:
             protein_info=proteins_drax[protein_id]
             passed=False
-            if 'kegg_ko' in protein_info and 'kegg_ko' in mantis_annotations:
-                if protein_info['kegg_ko'].intersection(mantis_annotations['kegg_ko']):
-                    passed=True
-                elif protein_info['enzyme_ec'].intersection(mantis_annotations['enzyme_ec']):
-                    passed=True
-                if passed:
+            if 'enzyme_ec' in protein_info and 'enzyme_ec' in mantis_annotations:
+                if protein_info['enzyme_ec'].intersection(mantis_annotations['enzyme_ec']):
                     res[protein_id]=protein_info
         return res
 

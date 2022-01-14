@@ -17,7 +17,6 @@ DRAX_FOLDER = SPLITTER.join(DRAX_FOLDER) + SPLITTER
 RESOURCES_FOLDER=f'{DRAX_FOLDER}Resources{SPLITTER}'
 
 
-
 class Neo4j_Connector():
     def __init__(self,username=None,password=None,try_limit=10,db_name=None,uri=None,):
         # Database Credentials
@@ -34,71 +33,59 @@ class Neo4j_Connector():
         if not hasattr(self,'neo4j_driver'): self.neo4j_driver=None
         self.connect_to_neo4j()
         self.reset_db()
+        self.create_node_labels()
+        self.start_time=time.time()
+        self.drax_connections={}
+        self.insert_step=10
+
+    def create_node_labels(self):
+        self.node_labels={
+             None:'identifier',
+            'synonyms':'Synonym',
+            'pathway':'Pathway',
+            'reaction_lass':'Class',
+            'protein_class':'Class',
+            'location':'Location',
+            'chemical_formula':'Chemical_formula',
+            'reaction_str':'Reaction_str',
+            'reaction_compounds':'compound',
+            'in_complex':'protein',
+            'has_subunits':'protein',
+            'genes_connected':'gene',
+            'proteins_connected':'protein',
+            'reactions_connected':'reaction',
+
+        }
 
     def reset_db(self):
         reset_db_command = 'MATCH (n) DETACH DELETE n'
         self.run_command_neo4j(reset_db_command)
         print('DATABASE RESET')
 
-    def get_all_node_types(self,drax_output_folder):
-        '''
-        class
-        IDS
-        _connected
-        reaction_compounds
-        in_complex
-        has_subunits
-        chemical_formula
-        reaction_str
-        synonyms
-
-        '''
-        drax_files=['Compounds.tsv','Reactions.tsv','Proteins.tsv','Genes.tsv',]
-        res = set()
-
-        for df in drax_files:
-            df_path=f'{drax_output_folder}{df}'
-
-            with open(df_path) as file:
-                for line in file:
-                    line = line.strip('\n').split('\t')
-                    #removing internal id
-                    line.pop(0)
-                    for i in line:
-                        id_type = i.split(':')[0]
-                        res.add(id_type)
-        exceptional_id_types=[
-            'reaction_compounds',
-            '_connected',
-            '_class',
-            'in_complex',
-            'has_subunits',
-            'location',
-            'chemical_formula',
-            'reaction_str',
-            'pathways',
-        ]
-        for i in res:
-            print(i)
-
-
     def create_constraints(self):
-        return [' CONSTRAINT ON (Identifier:Identifier) ASSERT Identifier.Identifier IS UNIQUE',
-                     ' CONSTRAINT ON (Synonym:Synonym) ASSERT Synonym.Synonym IS UNIQUE',
-                     #since these sequences can be very long, if we add the constraint (and thus also index them) then we might run into a neo4j(lucerna) limitation.
-                     #by removing indexing, sequences will take longer to be retrieved but wont crash neo4j. The solution here is to index elastic search indexes instead and then retrieve the sequences from elastic search
-                     ' CONSTRAINT ON (Pathway:Pathway) ASSERT Pathway.Pathway IS UNIQUE',
+        return [ ' CONSTRAINT ON (Synonym:Synonym) ASSERT Synonym.Synonym IS UNIQUE',
+                 ' CONSTRAINT ON (Pathway:Pathway) ASSERT Pathway.Pathway IS UNIQUE',
+                 ' CONSTRAINT ON (Class:Class) ASSERT Class.Class IS UNIQUE',
+                 ' CONSTRAINT ON (Location:Location) ASSERT Location.Location IS UNIQUE',
+                 ' CONSTRAINT ON (Chemical_formula:Chemical_formula) ASSERT Chemical_formula.Chemical_formula IS UNIQUE',
+                 ' CONSTRAINT ON (Reaction_str:Reaction_str) ASSERT Reaction_str.Reaction_str IS UNIQUE',
         ]
 
     def create_indexes(self):
-        return [' INDEX ON :Protein(node_type)',
+        return [
+                #main nodes
+                ' INDEX ON :Protein(node_type)',
                 ' INDEX ON :Reaction(node_type)',
                 ' INDEX ON :Gene(node_type)',
                 ' INDEX ON :Compound(node_type)',
+                #sub nodes
                 ' INDEX ON :Identifier(Identifier)',
                 ' INDEX ON :Synonym(Synonym)',
                 ' INDEX ON :Pathway(Pathway)',
-                ' INDEX ON :Class(Pathway)',
+                ' INDEX ON :Class(Class)',
+                ' INDEX ON :Location(Location)',
+                ' INDEX ON :Chemical_formula(Chemical_formula)',
+                ' INDEX ON :Reaction_str(Reaction_str)',
                 ]
 
     def drop_constraints(self):
@@ -122,8 +109,8 @@ class Neo4j_Connector():
                 self.bolt_connections = 0
                 # Connect to the neo4j database server
                 self.neo4j_driver = GraphDatabase.driver(self.uri, auth=(self.username, self.password),encrypted=False)
-                #self.add_constraints()
-                #self.add_indexes()
+                self.add_constraints()
+                self.add_indexes()
                 self.first_connection=False
             except:
                 print('Couldn\'t connect Neo4j! Crashing here')
@@ -133,7 +120,6 @@ class Neo4j_Connector():
 
     def close_connection_neo4j(self):
         self.neo4j_driver.close()
-
 
     def reconnect_neo4j(self):
         c=0
@@ -147,24 +133,33 @@ class Neo4j_Connector():
         print('Couldn"t reconnect to neo4j! Check this urgently')
 
     def add_indexes(self):
-        active_indexes = [i['labelsOrTypes'] for i in
-                              self.run_command_neo4j('CALL db.indexes() YIELD labelsOrTypes RETURN labelsOrTypes')]
+        active_indexes = [i['labelsOrTypes'] for i in self.run_command_neo4j('CALL db.indexes() YIELD labelsOrTypes RETURN labelsOrTypes')]
+        list_commands=[]
         for c in self.create_indexes():
             processed_c=c.split(':')[1].split('(')[0]
             if [processed_c] not in active_indexes:
-                self.run_command_neo4j('CREATE ' + c)
+                list_commands.append(f'CREATE {c}')
+        if list_commands:
+
+            list_commands=' '.join(list_commands)
+            self.run_command_neo4j(list_commands)
+
 
     def add_constraints(self):
         active_constraints = [i['description'] for i in self.run_command_neo4j('CALL db.constraints() YIELD description RETURN description')]
         active_constraints=[i.lower().split('assert')[1].split('is unique')[0] for i in active_constraints]
         active_constraints=[i.strip().strip('(').strip(')').strip() for i in active_constraints]
+        list_commands=[]
         for c in self.create_constraints():
             processed_c=c.lower().split('assert')[1].split('is unique')[0]
             processed_c=processed_c.strip().strip('(').strip(')').strip()
             processed_c=processed_c.split('.')[1]
             processed_c+='.'+processed_c
             if processed_c not in active_constraints:
-                self.run_command_neo4j('CREATE ' + c)
+                list_commands.append(f'CREATE {c}')
+        if list_commands:
+            list_commands = ' '.join(list_commands)
+            self.run_command_neo4j(list_commands)
 
     def is_broken_connection(self,connection_error):
         if 'Failed to read from defunct connection Address' in connection_error or\
@@ -173,16 +168,7 @@ class Neo4j_Connector():
             return True
         return False
 
-    def change_password_error(self,error_message):
-        new_password_error='If this is the first time you are using Neo4j, this is to ensure you are not using the default credentials in production'
-        if new_password_error in str(error_message):
-            new_passaword_command=f'ALTER CURRENT USER SET PASSWORD FROM neo4j TO {self.password}'
-            res = self.neo4j_driver.session(database='system').run(new_passaword_command)
-
-            self.run_command_neo4j(new_passaword_command)
-            self.reconnect_neo4j()
-
-    def run_command_neo4j(self,command_to_run,return_output=False):
+    def run_command_neo4j_legacy(self,command_to_run,return_output=False):
         if command_to_run:
             if isinstance(command_to_run,list):
                 to_run=''.join(command_to_run)
@@ -194,69 +180,212 @@ class Neo4j_Connector():
             while c<=self.try_limit:
                 try:
                     #NEED TO MAKE A PERMANENT SESSION
-                    res= self.neo4j_driver.session(database=self.db_name).run(to_run)
-                    if c>0: print('neo4j managed to run command!')
-                    if 'return' in to_run.lower() or return_output:
-                        return res.data()
-                    else:
-                        res.consume()
-                        return
+                    with self.neo4j_driver.session(database=self.db_name) as session:
+                        res=session.run(to_run)
+                        if c>0: print('neo4j managed to run command!')
+                        if 'return' in to_run.lower() or return_output:
+                            return res.data()
+                        else:
+                            res.consume()
+                            return
+                        session.commit()
                 except Exception as e:
                     if self.is_broken_connection(str(e)):
                         self.reconnect_neo4j()
                     else:
-                        self.change_password_error(e)
                         c+=1
                         print('Error,  ' + str(e) + '   ,while executing neo4j command\n', to_run)
             print('neo4j didnt run command so it will crash here!\n',to_run)
             raise Exception
 
-    def get_all_nodes(self,node_type=None):
+    def run_command_neo4j(self,command_to_run,return_output=False,batch=None):
+
+        with self.neo4j_driver.session(database=self.db_name) as session:
+            res=session.run(command_to_run,batch=batch)
+            if 'return' in command_to_run.lower() or return_output:
+                return res.data()
+            else:
+                res.consume()
+                return
+            session.commit()
+
+
+    def yield_drax_tsv(self, drax_tsv):
+        if os.path.exists(drax_tsv):
+            with open(drax_tsv) as file:
+                line = file.readline()
+                for line in file:
+                    line = line.strip('\n').split('\t')
+                    internal_id = line.pop(0).split(':')[1]
+                    temp={}
+                    for i in line:
+                        id_type = i.split(':')[0]
+                        annot = i.replace(id_type + ':', '')
+                        if id_type not in temp: temp[id_type] = set()
+                        temp[id_type].add(annot)
+                    yield internal_id,temp
+
+    def process_node_info(self,node_info):
         res={}
-        if node_type:
-            command='MATCH (n:'+node_type+') RETURN ID(n),n.node_type'
-        else:
-            command='MATCH (n) WHERE ' \
-                    ' n:Gene or ' \
-                    ' n:Protein or ' \
-                    ' n:Reaction or ' \
-                    ' n:Compound or ' \
-                    ' RETURN ID(n),n.node_type'
-        command_res=self.run_command_neo4j(command)
-        if command_res:
-            for n in command_res:
-                nt=n['n.node_type']
-                n_id=n['ID(n)']
-                if nt not in res: res[nt]=set()
-                res[nt].add(n_id)
+        c=0
+        for detail in node_info:
+            detail_neo4j=self.node_labels.get(detail)
+            if not detail_neo4j: detail_neo4j=self.node_labels[detail_neo4j]
+            if detail_neo4j not in ['gene','protein','reaction','compound']:
+                for current_detail in node_info[detail]:
+                    temp_command=[]
+                    if isinstance(current_detail,str):  current_detail_str=self.replace_detail(current_detail)
+                    else: current_detail_str=current_detail
+                    if detail_neo4j=='Identifier':
+                        temp={'database':detail,'id':current_detail_str}
+                        res[detail_neo4j].append(temp)
+
+                    elif detail_neo4j=='Synonym':
+                        temp = {detail_neo4j: current_detail_str}
+                        if detail_neo4j not in res: res[detail_neo4j]=[]
+                        res[detail_neo4j].append(temp)
+
+                    elif detail_neo4j=='Pathway':
+                        temp = {detail_neo4j: current_detail_str}
+                        if detail_neo4j not in res: res[detail_neo4j]=[]
+                        res[detail_neo4j].append(temp)
+
+                    elif detail_neo4j=='Class':
+                        temp = {detail_neo4j: current_detail_str}
+                        if detail_neo4j not in res: res[detail_neo4j]=[]
+                        res[detail_neo4j].append(temp)
+
+                    elif detail_neo4j=='Location':
+                        temp = {detail_neo4j: current_detail_str}
+                        if detail_neo4j not in res: res[detail_neo4j]=[]
+                        res[detail_neo4j].append(temp)
+
+                    elif detail_neo4j=='Chemical_formula':
+                        temp = {detail_neo4j: current_detail_str}
+                        if detail_neo4j not in res: res[detail_neo4j]=[]
+                        res[detail_neo4j].append(temp)
+
+                    elif detail_neo4j=='Reaction_str':
+                        temp = {detail_neo4j: current_detail_str}
+                        if detail_neo4j not in res: res[detail_neo4j]=[]
+                        res[detail_neo4j].append(temp)
+
         return res
 
-    def get_searchables(self,node_id,node_type=None):
-        res = {}
-        if node_type:
-            command = 'MATCH (n:' + node_type + ')--(i) WHERE ID(n)='+str(node_id)+' AND (i:Identifier OR i:Synonym) RETURN PROPERTIES(i)'
-        else:
-            command = 'MATCH (n)--(i) WHERE ID(n)='+str(node_id)+' AND (i:Identifier OR i:Synonym) RETURN PROPERTIES(i)'
-        command_res = self.run_command_neo4j(command)
-        if command_res:
-            for n in command_res:
-                properties=n['PROPERTIES(i)']
-                if 'ID' in properties:
-                    id_db = properties['Database']
-                    n_id = properties['ID']
-                    if id_db not in res: res[id_db] = set()
-                    if 'Searched_on' in properties: searched=True
-                    else:         searched=False
-                    if not searched:
-                        res[id_db].add(n_id)
-                elif 'Synonym' in properties:
-                    n_syn= properties['Synonym']
-                    if 'synonyms' not in res: res['synonyms']= set()
-                    res['synonyms'].add(n_syn)
-        return res
+    def fill_out_nodes(self,chunk):
+        for node in chunk:
+            for sub_node in node['node_data']:
+                print(sub_node)
+        raise Exception
+
+
+    def generate_chunks_drax_output(self, drax_wielder,node_type):
+        step=self.insert_step
+        temp=[]
+        for node_id,node_info in drax_wielder:
+            sub_nodes=self.process_node_info(node_info)
+            node_data = {'drax_id': node_id, 'node_type': node_type,'node_data':sub_nodes}
+            if len(temp)<step:
+                temp.append(node_data)
+            else:
+                yield temp
+                temp = []
+                temp.append(node_data)
+
+        yield temp
+
+
+    def export_drax_to_neo4j(self,drax_output_folder):
+        if not drax_output_folder.endswith(SPLITTER):
+            drax_output_folder+=SPLITTER
+        drax_output_files=['gene']
+        #drax_output_files=['gene','protein','reaction','compound']
+        for node_type in drax_output_files:
+            output_str=f'{node_type[0].upper()}{node_type[1:]}s'
+            node_type=f'{node_type[0].upper()}{node_type[1:]}'
+            drax_tsv_file=f'{drax_output_folder}{output_str}.tsv'
+            generator_drax_output= self.yield_drax_tsv(drax_tsv_file)
+            generator_insert = self.generate_chunks_drax_output(generator_drax_output,node_type)
+            for chunk in generator_insert:
+                available_data=[]
+                print(chunk)
+                self.fill_out_nodes(chunk)
+
+                command_to_run=f'WITH $batch as chunk UNWIND chunk as chunk_data ' \
+                               f'CREATE (n:{node_type}  {{node_type: chunk_data.node_type ,drax_id: chunk_data.drax_id}}) ' \
+                               f'WITH n, chunk_data.node_data as node_data_chunk '
+
+                identifiers_command= f'UNWIND node_data_chunk.Identifier as ids ' \
+                               f'MERGE (n)-[:HAS_ID]->(sn:Identifier {{id: ids.id, database: ids.database}}) '
+                others_command=f'WITH n, node_data_chunk ' \
+                               f'UNWIND node_data_chunk.Synonym as synonyms ' \
+                               f'MERGE (n)-[:HAS_SYNONYM]->(sn:Synonym {{node_type: synonyms.Synonym}}) ' \
+
+
+                print(command_to_run+others_command)
+                res=self.run_command_neo4j(command_to_run=command_to_run,batch=chunk)
+                print(res)
+
+
+                #self.generate_node_neo4j(node_type,node_id,node_info)
+                #self.create_dict_neo4j(node_type,node_id,node_info)
+
+    def create_dict_neo4j(self,node_type,node_id,node_info):
+        res={}
+        for detail in node_info:
+            detail_neo4j=self.node_labels.get(detail)
+            if not detail_neo4j: detail_neo4j=self.node_labels[detail_neo4j]
+            if detail_neo4j not in ['gene','protein','reaction','compound']:
+                for current_detail in node_info[detail]:
+                    if isinstance(current_detail,str):  current_detail_str=self.replace_detail(current_detail)
+                    else: current_detail_str=current_detail
+                    if detail_neo4j=='Identifier':
+                        temp_command.append(f' ')
+
+        create_command=f'CREATE (n0:{node_type} {{node_type: "{node_type}", drax_id: "{node_id}"}}) WITH n0 '
+        unwind_command = f'UNWIND $SUBNODES as subnodes MERGE (n{c}:{detail_neo4j} {{ Database:"{detail}", {detail_neo4j}: "{current_detail_str}" }}) '
+
+
+    def generate_node_neo4j(self,node_type,node_id,node_info):
+        list_commands=[]
+        creation_main_node =f'CREATE (n0:{node_type} {{node_type: "{node_type}", drax_id: "{node_id}"}}) WITH n0 '
+        list_commands.append(creation_main_node)
+        c=1
+        for detail in node_info:
+            detail_neo4j=self.node_labels.get(detail)
+            if not detail_neo4j: detail_neo4j=self.node_labels[detail_neo4j]
+            if detail_neo4j not in ['gene','protein','reaction','compound']:
+                for current_detail in node_info[detail]:
+                    temp_command=[]
+                    if isinstance(current_detail,str):  current_detail_str=self.replace_detail(current_detail)
+                    else: current_detail_str=current_detail
+                    if detail_neo4j=='Identifier':
+                        temp_command.append(f' MERGE (n{c}:{detail_neo4j} {{ Database:"{detail}", {detail_neo4j}: "{current_detail_str}" }}) ')
+                    else:
+                        temp_command.append(f' MERGE (n{c}:{detail_neo4j} {{ {detail_neo4j}: "{current_detail_str}" }}) ')
+                    temp_command.append(f' WITH n0,n{c} MERGE (n0)-[r:HAS_{detail_neo4j.upper()}]->(n{c}) ')
+                    if temp_command:
+                        temp_command=''.join(temp_command)
+                        list_commands.append(temp_command)
+                        c+=1
+            else:
+                if node_id not in self.drax_connections:
+                    self.drax_connections[node_id]={}
+                if detail_neo4j not in self.drax_connections[node_id]:
+                    self.drax_connections[node_id][detail_neo4j]=set()
+                self.drax_connections[node_id][detail_neo4j].update(node_info[detail])
+        return_id=' RETURN ID(n0) AS neo4j_id '
+        list_commands.append(return_id)
+        merged_command=' '.join(list_commands)
+        print(merged_command)
+        self.run_command_neo4j(merged_command)
 
 
 
+
+
+
+    #legacy?
 
 ####ELASTIC SEARCH####
     def save_detail_ElasticSearch(self,detail_type,detail):
@@ -273,6 +402,9 @@ class Neo4j_Connector():
 
     def reset_db_ElasticSearch(self):
         return self.ElasticSearch_driver.reset_db()
+
+
+
 
 
     def add_set_convergence(self,node_instance,detail,current_detail):
@@ -301,73 +433,28 @@ class Neo4j_Connector():
         res = res.replace('\'', '\\\'')
         return res
 
-    ####OVERRIDDEN FUNCTIONS####
-    #these will be overridden by memory keeper class when not using as __main__
     def get_instance_node_id_neo4j(self,node_id,node_type):
         if not hasattr(self,'neo4j_connector_memory' ):
-            self.neo4j_connector_memory=[]
-        for n in self.neo4j_connector_memory:
+            self.neo4j_connector_memory={}
+        if node_type not in self.neo4j_connector_memory:
+            self.neo4j_connector_memory[node_type]=[]
+        for n in self.neo4j_connector_memory[node_type]:
             if n.get_detail('internal_id')== node_id:
                 return n
 
 
-    def add_instance(self,instance_to_add):
+    def add_instance(self,instance_to_add,node_type):
         if not hasattr(self,'neo4j_connector_memory' ):
-            self.neo4j_connector_memory=[]
-        self.neo4j_connector_memory.append(instance_to_add)
+            self.neo4j_connector_memory={}
+        if node_type not in self.neo4j_connector_memory:
+            self.neo4j_connector_memory[node_type]=[]
+        self.neo4j_connector_memory[node_type].append(instance_to_add)
 
 
-####ADD NODE FROM INSTANCE####
-    def save_instance_neo4j(self,node_instance):
-        if not node_instance: return
-        #if not self.exists_item(node_instance): return
-        node_type=get_instance_type(node_instance)
-        match=self.find_matches_neo4j_instance(node_instance)
-        if match and match.check_if_same_instances(node_instance):
-            if node_instance.needs_saving():
-                self.update_node_neo4j(node_instance)
-            return node_instance
-        elif match and not match.check_if_same_instances(node_instance):
-            match.unite_instances(node_instance)
-            if match.needs_saving() or node_instance.needs_saving():
-                self.update_node_neo4j(match)
-            #self.remove_item(node_instance)
-            return match
-        else:
-            self.create_node_neo4j(node_instance)
-            self.add_instance(node_instance)
-            return node_instance
 
 
 ####CREATE NODE FROM INSTANCE####
 
-    def create_node_neo4j(self,node_instance):
-        if node_instance.needs_saving():
-            node_type=get_instance_type(node_instance)
-            if   node_type=='Compound':
-                self.create_node_neo4j_cpd(node_instance)
-            elif node_type=='Gene':
-                self.create_node_neo4j_gene(node_instance)
-            elif node_type=='Protein':
-                self.create_node_neo4j_protein(node_instance)
-            elif node_type=='Reaction':
-                self.create_node_neo4j_reaction(node_instance)
-            elif node_type == 'Organism':
-                self.create_node_neo4j_organism(node_instance)
-
-    def update_node_neo4j(self,node_instance):
-        if node_instance.needs_saving():
-            node_type=get_instance_type(node_instance)
-            if   node_type=='Compound':
-                self.update_node_neo4j_cpd(node_instance)
-            elif node_type=='Gene':
-                self.update_node_neo4j_gene(node_instance)
-            elif node_type=='Protein':
-                self.update_node_neo4j_protein(node_instance)
-            elif node_type=='Reaction':
-                self.update_node_neo4j_reaction(node_instance)
-            elif node_type=='Organism':
-                self.update_node_neo4j_organism(node_instance)
 
 
     def generate_neo4j_cpd(self,node_instance):
@@ -1040,42 +1127,22 @@ class Neo4j_Connector():
         return node_instance
 
 
+def test(neo4_driver):
+    c1={'chebi': {'38665'}, 'chemical_formula': {'C8H19O2PS2', 'C8H19O2P1S2'}, 'inchi': {'1S/C8H19O2PS2/c1-4-7-12-11(9,10-6-3)13-8-5-2/h4-8H2,1-3H3'}, 'inchi_key': {'VJYFKVYYMZPMAB-UHFFFAOYSA-N'}, 'kegg': {'C18687'}, 'metacyc': {'CPD-22347'}, 'pubchem_cid': {'3289'}, 'smiles': {'CCCSP(=O)(OCC)SCCC', 'CCCSP(SCCC)(=O)OCC'}, 'synonyms': {'o-ethyl s,s-dipropyl phosphorodithioate', 'ethoprophos', 'ethoprop', 'o-ethyl s,s-dipropyl dithiophosphate'}}
+    c2={'chebi': {'8082'}, 'chemical_formula': {'C8H8O2'}, 'inchi': {'1S/C8H8O2/c1-7(9)10-8-5-3-2-4-6-8/h2-6H,1H3'}, 'inchi_key': {'IPBVNPXQWQGGJP-UHFFFAOYSA-N'}, 'kegg': {'C15583', 'C00548'}, 'metacyc': {'CPD-22363'}, 'pubchem_cid': {'31229'}, 'smiles': {'CC(=O)Oc1ccccc1', 'CC(OC1(\\C=C/C=C\\C=1))=O'}, 'synonyms': {'phenol acetate', 'phenyl acetate', 'acetic acid,phenyl ester', 'acetylphenol'}}
+    list_instances={'compound':[c1,c2]}
 
-
-    def remove_unconnected_nodes(self):
-        delete_unconnected_nodes = 'MATCH (n) WHERE size((n)--())=0 DELETE (n)'
-        self.run_command_neo4j(delete_unconnected_nodes)
-
-
-    def remove_node_neo4j(self,node_id,node_type=''):
-        node_id_to_remove=str(node_id)
-        #this deletes the node and its relationships
-        if not node_type:            c_node_type = ''
-        else:                        c_node_type = ':' + node_type
-        delete_node_command = 'MATCH (n1' + c_node_type + ')-[r]->() WHERE ID(n1)=' + node_id_to_remove + ' DETACH DELETE n1 '
-        self.run_command_neo4j(delete_node_command)
-        print('Sucessfully deleted node ' + node_id_to_remove)
-
-
-    def remove_node_detail_neo4j(self,node_id,bio_query,bio_db,node_type):
-        #this is used for the remove_detail in the instances (will only be used when the instance is already saved in memory)
-        if bio_db=='synonyms':
-            total_command = 'MATCH (n1:'+node_type+')-[r]->(n2) WHERE ID(n1)=' + node_id + ' AND n2.Synonym="'+bio_query+'" DELETE r'
-        else:
-            total_command = 'MATCH (n1:'+node_type+')-[r]->(n2) WHERE ID(n1)=' + node_id + ' AND n2.ID="'+bio_query+'" AND n2.Database="'+bio_db+'" DELETE r'
-        self.run_command_neo4j(total_command)
-        #removing nodes that became unconnected
-        delete_unconnected_nodes = 'MATCH (n) WHERE size((n)--())=0 DELETE (n)'
-        self.run_command_neo4j(delete_unconnected_nodes)
 
 
 
 
 if __name__ == '__main__':
+    import time
     # Database Credentials
     uri = 'bolt://localhost:7687'
     username = 'neo4j'
     password = 'drax_neo4j'
     neo4j_driver = Neo4j_Connector(username, password,db_name='neo4j',uri=uri)
     drax_output_folder='/home/pedroq/Desktop/test_drax/out/'
-    neo4j_driver.get_all_node_types(drax_output_folder)
+    neo4j_driver.export_drax_to_neo4j(drax_output_folder)
+
