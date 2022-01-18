@@ -293,15 +293,24 @@ class Rhea_SQLITE_Connector():
                res.add(master_id)
         return res
 
+    def rhea_fetch_all_reactions(self):
+        res=set()
+        fetch_command = f"SELECT RHEA FROM RHEAREACTIONS"
+        res_fetch=self.rhea_execute(fetch_command).fetchall()
+        for master_id in res_fetch:
+            res.add(master_id[0])
+        return res
+
+
 
 
 if __name__ == '__main__':
     s=Rhea_SQLITE_Connector()
 
-    r=s.fetch_reactions_rhea_from_chebi('16459')
-    print(f'found {len(r)} for this id')
-    r=s.fetch_rhea_id_info('10000')
-    print(r)
+    #r=s.fetch_reactions_rhea_from_chebi('16459')
+    #print(f'found {len(r)} for this id')
+    #r=s.fetch_rhea_id_info('10000')
+    #print(r)
     #this is an alternative id for 10000
     #r=s.fetch_rhea_id_info('10001')
     #print(r)
@@ -310,3 +319,4 @@ if __name__ == '__main__':
     #r=s.fetch_rhea_from_id('enzyme_ec','3.5.1.50')
     #print(r)
 
+    print(s.rhea_fetch_all_reactions())

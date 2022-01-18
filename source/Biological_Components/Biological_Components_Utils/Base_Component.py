@@ -59,9 +59,10 @@ class Base_Component():
         line=[]
         for d_key in self.get_details_list(remove_from_list=[ 'internal_id',]):
             if d_key=='reaction_with_instances':
-                reaction_compounds=self.get_reaction_internal_id()
+                reaction_compounds,stoichiometry=self.get_reaction_internal_id()
                 if reaction_compounds:
                     line.append(f'reaction_compounds:{reaction_compounds}')
+                    line.append(f'stoichiometry:{stoichiometry}')
             elif d_key in ['protein_instances',
                            'reaction_instances',
                            'gene_instances',

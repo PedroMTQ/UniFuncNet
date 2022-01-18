@@ -25,15 +25,18 @@ class Reaction(Base_Component):
         if not self.reaction_with_instances: return None
         reaction_dict=self.get_detail('reaction_with_instances')
         res=[]
+        stoichiometry=[]
         for side in reaction_dict:
             for stoi,compound in reaction_dict[side]:
                 if compound:
                     compound_id = str(compound.internal_id)
                 else: compound_id=str(compound)
                 res.append([stoi,compound_id])
+                stoichiometry.append(str(stoi))
         try:
-            return l_rn_ids_to_str(self.get_reaction(),res,without_stoichiometry=True)
-        except: return None
+            stoichiometry=','.join(stoichiometry)
+            return l_rn_ids_to_str(self.get_reaction(),res,without_stoichiometry=True),stoichiometry
+        except: return None,None
 
     ###MATCHING AND UNITING###
 

@@ -915,20 +915,30 @@ class Metacyc_SQLITE_Connector():
                         if len(reaction_stoichiometry)<2:
                             print(m_id,reaction_stoichiometry)
 
+    def metacyc_fetch_all_proteins(self):
+        res=set()
+        fetch_command = f'SELECT METACYC FROM PROTEINS'
+        res_fetch=self.metacyc_execute(fetch_command).fetchall()
+        for master_id in res_fetch:
+            res.add(master_id[0])
+        return res
+
+
 if __name__ == '__main__':
     s=Metacyc_SQLITE_Connector()
     #s.metacyc_create_db()
     #print(s.fetch_metacyc_rxn_from_cpd('CPD-22368'))
     #s.test_db()
-    print(s.fetch_metacyc_rxn_from_cpd('CPD0-2051'))
-    print(s.fetch_metacyc_id_info('CPD-16936','compound'))
-    print(s.fetch_metacyc_id_info('CPD-7661','compound'))
-    print(s.fetch_metacyc_id_info('EG10368','gene'))
-    print(s.fetch_metacyc_id_info('CPLX-2401','protein'))
-    print(s.fetch_metacyc_id_info('MONOMER-2782','protein'))
-    print(s.fetch_metacyc_id_info('RXN-20993','reaction'))
-    print(s.fetch_metacyc_id_info('GDP-MANNOSE','compound'))
-    print(s.fetch_metacyc_intermediate_rxn_ids('ENZRXN-2911'))
-    print(s.fetch_metacyc_rxn_from_ec('5.3.1.26'))
-    print(s.fetch_metacyc_from_uniprot('Q88M11'))
-    print(s.fetch_metacyc_derivatives('oxygen'))
+    #print(s.fetch_metacyc_rxn_from_cpd('CPD0-2051'))
+    #print(s.fetch_metacyc_id_info('CPD-16936','compound'))
+    #print(s.fetch_metacyc_id_info('CPD-7661','compound'))
+    #print(s.fetch_metacyc_id_info('EG10368','gene'))
+    #print(s.fetch_metacyc_id_info('CPLX-7653','protein'))
+    #print(s.fetch_metacyc_id_info('MONOMER-2782','protein'))
+    #print(s.fetch_metacyc_id_info('RXN-20993','reaction'))
+    #print(s.fetch_metacyc_id_info('GDP-MANNOSE','compound'))
+    #print(s.fetch_metacyc_intermediate_rxn_ids('ENZRXN-2911'))
+    #print(s.fetch_metacyc_rxn_from_ec('5.3.1.26'))
+    #print(s.fetch_metacyc_from_uniprot('Q88M11'))
+    #print(s.fetch_metacyc_derivatives('oxygen'))
+    print(s.metacyc_fetch_all_proteins())

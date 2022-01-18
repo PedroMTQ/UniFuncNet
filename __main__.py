@@ -73,7 +73,7 @@ def check_validity_input(target_path):
 def run_searcher(target_path,output_folder,politeness_timer):
     start=time()
     print(f'Available databases:\n{",".join(SCRAPPABLE_DBS)}')
-    current_time = datetime.now()
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print(f"DRAX started running at  {current_time}")
 
     gene_searcher= Gene_Searcher(output_folder=output_folder,politeness_timer=politeness_timer)
