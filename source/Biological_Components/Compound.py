@@ -3,7 +3,7 @@ from source.Utils.util import  unite_possible_ids,\
                             test_match_possible_ids,\
                             score_match_possible_ids
 
-from source.Biological_Components.Biological_Components_Utils.Base_Component import *
+from source.Biological_Components.utils.Base_Component import *
 from source.Utils.CHEBI_SQLITE_Connector import CHEBI_SQLITE_Connector
 
 # External modules

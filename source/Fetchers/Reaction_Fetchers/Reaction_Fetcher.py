@@ -1,5 +1,5 @@
 #DRAX modules
-from source.Fetchers.Fetchers_Utils.Global_Fetcher import *
+from source.Fetchers.Global_Fetcher import *
 from source.Utils.util import get_stoichiometry,sub_prod_to_reaction
 
 
@@ -11,7 +11,7 @@ class Reaction_Fetcher(Global_Fetcher):
         self.reaction=None
         self.convergence_args={}
         if not self.memory_storage:
-            from source.Pipelines.Searchers.Reaction_Searcher import Reaction_Searcher
+            from source.Searchers.Reaction_Searcher import Reaction_Searcher
             self.memory_storage = Reaction_Searcher()
 
     def get_reaction(self):

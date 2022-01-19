@@ -1,4 +1,4 @@
-from source.Fetchers.Fetchers_Utils.Global_Fetcher import *
+from source.Fetchers.Global_Fetcher import *
 
 class Gene_Fetcher(Global_Fetcher):
     def __init__(self,gene_id,extra_args={},memory_storage=None):
@@ -9,7 +9,7 @@ class Gene_Fetcher(Global_Fetcher):
         self.convergence_args={}
         #if no memory_storage is present from one of the pipelines or previous fetchers we assign it one and initialize the memory
         if not self.memory_storage:
-            from source.Pipelines.Searchers.Gene_Searcher import Gene_Searcher
+            from source.Searchers.Gene_Searcher import Gene_Searcher
             self.memory_storage = Gene_Searcher()
 
     def add_gene(self):

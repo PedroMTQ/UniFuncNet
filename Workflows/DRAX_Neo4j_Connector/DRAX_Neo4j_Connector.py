@@ -17,7 +17,7 @@ DRAX_FOLDER = SPLITTER.join(DRAX_FOLDER) + SPLITTER
 RESOURCES_FOLDER=f'{DRAX_FOLDER}Resources{SPLITTER}'
 
 
-class Neo4j_Connector():
+class DRAX_Neo4j_Connector():
     def __init__(self,username=None,password=None,try_limit=10,db_name=None,uri=None,):
         # Database Credentials
         port = '7687'
@@ -316,7 +316,8 @@ class Neo4j_Connector():
             sub_nodes=self.process_node_info(node_info)
             node_data = {'drax_id': node_id, 'node_type': node_type,'node_data':sub_nodes}
             if node_type=='Reaction':
-                sign=self.get_sign(node_info['reaction_str'])
+                print(node_info)
+                sign=self.get_sign(node_info['reaction_compounds'])
                 if sign=='<=>': reversible=True
                 else: reversible=False
                 node_data['reversible']=reversible
@@ -370,7 +371,7 @@ class Neo4j_Connector():
         elif '=>' in reaction_str: return '=>'
         elif '<=' in reaction_str: return '<='
 
-    def get_reaction_compounds(self,drax_id,reaction_str,stoichiometry):
+    def get_reaction_compounds_neo4j(self,drax_id,reaction_str,stoichiometry):
         res=[]
         stoichiometry = stoichiometry.pop()
         stoichiometry = stoichiometry.split(',')
@@ -383,15 +384,41 @@ class Neo4j_Connector():
         right_side=right_side.split('+')
         right_side=[i.strip() for i in right_side]
         res={'IS_SUBSTRATE':[],'IS_PRODUCT':[]}
-        for cpd_id in right_side:
+        for cpd_id in left_side:
             current_stoichiometry=stoichiometry.pop(0)
             item={'start_drax_id':drax_id,'end_drax_id':cpd_id,'stoichiometry':current_stoichiometry}
             res['IS_SUBSTRATE'].append(item)
-        for cpd_id in left_side:
+        for cpd_id in right_side:
             current_stoichiometry=stoichiometry.pop(0)
             item={'start_drax_id':drax_id,'end_drax_id':cpd_id,'stoichiometry':current_stoichiometry}
             res['IS_PRODUCT'].append(item)
         return res
+
+    def get_reaction_compounds_tsv(self,nodes_dict):
+        for node in nodes_dict:
+            reaction_compounds=[]
+            stoichiometry=[]
+            node_info=nodes_dict[node]
+            substrates= node_info.pop('IS_SUBSTRATE')
+            products= node_info.pop('IS_PRODUCT')
+            reaction_str= node_info.pop('reaction_str').pop()
+            reaction_sign = self.get_sign(reaction_str)
+            for stoi,cpd in substrates:
+                stoichiometry.append(stoi)
+                reaction_compounds.append(cpd)
+                reaction_compounds.append('+')
+            reaction_compounds.pop(-1)
+            reaction_compounds.append(reaction_sign)
+            for stoi,cpd in products:
+                stoichiometry.append(stoi)
+                reaction_compounds.append(cpd)
+                reaction_compounds.append('+')
+            reaction_compounds.pop(-1)
+            reaction_compounds=' '.join(reaction_compounds)
+            stoichiometry=','.join(stoichiometry)
+            nodes_dict[node]['reaction_compounds']=reaction_compounds
+            nodes_dict[node]['stoichiometry']=stoichiometry
+
 
 
 
@@ -408,7 +435,7 @@ class Neo4j_Connector():
                         if connection_type =='reaction_compounds':
                             if 'stoichiometry' in node_info:
                                 stoichiometry=node_info['stoichiometry']
-                                reaction_compounds=self.get_reaction_compounds(drax_id,connection_id,stoichiometry)
+                                reaction_compounds=self.get_reaction_compounds_neo4j(drax_id,connection_id,stoichiometry)
                                 for connection_label in reaction_compounds:
                                     if connection_label not in res: res[connection_label] = []
                                     for item in reaction_compounds[connection_label]:
@@ -467,14 +494,6 @@ class Neo4j_Connector():
         self.connect_nodes_drax(drax_output_folder)
 
     def parse_consensus_tsv(self,input_file, wanted_ids):
-        '''
-        :param input_file: consensus_annotation.tsv from mantis
-        :param wanted_id: id type to retrieve, e.g., 'kegg_ko'
-        :return:
-        dictionary with sequence IDs as keys (e.g., protein1).
-        These in turn will be linked to yet another dictionary with the id types are keys (e.g., 'kegg_ko').
-        This last dictionary will contain a set of identifiers (e.g., 'K0001').
-        '''
         res = {i:set() for i in wanted_ids}
         with open(input_file) as file:
             file.readline()
@@ -497,28 +516,165 @@ class Neo4j_Connector():
                 unwind_res[db].append(item)
         return unwind_res
 
-    def parse_fetch_results(self,db,fetch_results,res):
+    def parse_fetch_annotations_results(self,db,fetch_results,res):
         for i in fetch_results:
-            if db not in res: res[db]={}
+            #if db not in res: res[db]={}
             db_id=i['db_id']
             drax_id=i['drax_id']
-            if db_id not in res[db]: res[db][db_id]=set()
-            res[db][db_id].add(drax_id)
+            #if db_id not in res[db]: res[db][db_id]=set()
+            #res[db][db_id].add(drax_id)
+            res.add(drax_id)
+
+    def parse_fetch_node_results(self,fetch_results,res):
+        for i in fetch_results:
+            relationship=i['r'][1]
+            stoichiometry=i['r.stoichiometry']
+            n1_node_type=i['n1']['node_type']
+            n1_drax_id=i['n1']['drax_id']
+            n2_node_type = i['n2'].get('node_type')
+            n2_drax_id = i['n2'].get('drax_id')
+            if not n2_drax_id:
+                n2_drax_id = i['n2'].get('node_info')
+
+            if relationship =='CONNECTED_TO':
+                relationship=f'{n2_node_type.lower()}s_connected'
+            elif relationship=='HAS_SUBUNIT':
+                relationship='has_subunits'
+            elif relationship=='IN_COMPLEX':
+                relationship='in_complex'
+            elif relationship.startswith('HAS'):
+                relationship=relationship.replace('HAS_','')
+            if n1_drax_id not in res:
+                res[n1_drax_id]={}
+
+            if relationship not in res[n1_drax_id]:
+                if relationship in ['IS_SUBSTRATE','IS_PRODUCT']:
+                    if n1_node_type!='Compound':
+                        res[n1_drax_id][relationship]=[]
+                else:
+                    res[n1_drax_id][relationship]=set()
+            if relationship in ['IS_SUBSTRATE', 'IS_PRODUCT']:
+                if n1_node_type != 'Compound':
+                    res[n1_drax_id][relationship].append([stoichiometry,n2_drax_id])
+            else:
+                res[n1_drax_id][relationship].add(n2_drax_id)
 
 
-    def get_mantis_network(self,mantis_annotations):
+    def get_nodes_info(self,node_type,nodes_list):
+        unwind_items=[]
+        res={}
+        for drax_id in nodes_list:
+            unwind_items.append({'drax_id':drax_id})
+        for chunk in self.yield_list(unwind_items):
+            command_to_run = f'WITH $batch as chunk UNWIND chunk as chunk_data ' \
+                             f'MATCH (n1:{node_type} {{drax_id: chunk_data.drax_id}})-[r]-(n2) RETURN n1,n2,r,r.stoichiometry'
+            fetch_results = self.run_command_neo4j(command_to_run=command_to_run, batch=chunk)
+            self.parse_fetch_node_results(fetch_results, res)
+        if node_type=='Reaction':
+            self.get_reaction_compounds_tsv(res)
+        return res
+
+    def export_neo4j_to_tsv(self,output_tsv_folder,genes_info,proteins_info,reactions_info,compounds_info):
+        if not output_tsv_folder.endswith(SPLITTER):
+            output_tsv_folder=f'{output_tsv_folder}{SPLITTER}'
+        if not os.path.exists(output_tsv_folder):
+            os.mkdir(output_tsv_folder)
+
+        output_tsvs=[['g',genes_info],['p',proteins_info],['r',reactions_info],['c',compounds_info]]
+        top_line='SOURCE\tINTERACTION\tTARGET\n'
+
+        with open(f'{output_tsv_folder}Graph.sif', 'w+') as file:
+
+            for source_type,info_dict in output_tsvs:
+                for drax_id in info_dict:
+                    line_info=info_dict[drax_id]
+                    for db in line_info:
+                        if db=='reaction_compounds':
+                            for target_id in line_info[db].split():
+                                try:
+                                    int(target_id)
+                                    target_type='c'
+                                    line=f'{drax_id}\t{source_type}{target_type}\t{target_id}\n'
+                                    file.write(line)
+                                except:
+                                    pass
+                        elif db.endswith('_connected'):
+                            target_type=db.lower()[0]
+                            for target_id in line_info[db]:
+                                line = f'{drax_id}\t{source_type}{target_type}\t{target_id}\n'
+                                file.write(line)
+
+                        elif db in ['in_complex','has_subunits']:
+                            if db=='in_complex': target_type='pcplx'
+                            elif db=='has_subunits': target_type='psubu'
+                            for target_id in line_info[db]:
+                                line = f'{drax_id}\t{source_type}{target_type}\t{target_id}\n'
+                                file.write(line)
+
+    def export_neo4j_to_sif(self,output_tsv_folder,genes_info,proteins_info,reactions_info,compounds_info):
+        if not output_tsv_folder.endswith(SPLITTER):
+            output_tsv_folder=f'{output_tsv_folder}{SPLITTER}'
+        if not os.path.exists(output_tsv_folder):
+            os.mkdir(output_tsv_folder)
+
+        output_tsvs=[['Genes',genes_info],['Proteins',proteins_info],['Reactions',reactions_info],['Compounds',compounds_info]]
+        for tsv_name,info_dict in output_tsvs:
+            with open(f'{output_tsv_folder}{tsv_name}.tsv','w+') as file:
+                for drax_id in info_dict:
+                    line=[f'internal_id:{drax_id}']
+                    line_info=info_dict[drax_id]
+                    for db in line_info:
+                        if db in ['reaction_compounds','stoichiometry']:
+                            line.append(f'{db}:{line_info[db]}')
+                        else:
+                            for db_id in line_info[db]:
+                                line.append(f'{db}:{db_id}')
+                    line.append('\n')
+                    line='\t'.join(line)
+                    file.write(line)
+
+
+    def get_all_nodes_info(self,protein_ids):
+        proteins_info = self.get_nodes_info('Protein', protein_ids)
+        reaction_ids = set()
+        compound_ids = set()
+        gene_ids = set()
+        for node in proteins_info:
+            reaction_ids.update(proteins_info[node].get('reactions_connected'))
+        for node in proteins_info:
+            if 'genes_connected' in proteins_info[node]:
+                gene_ids.update(proteins_info[node]['genes_connected'])
+        reactions_info = self.get_nodes_info('Reaction', reaction_ids)
+        for node in reactions_info:
+            if 'reaction_compounds' in reactions_info[node]:
+                reaction_compounds=reactions_info[node].get('reaction_compounds')
+                reaction_compounds=reaction_compounds.split()
+                for i in reaction_compounds:
+                    try:
+                        int(i)
+                        compound_ids.add(i)
+                    except: pass
+        compounds_info=self.get_nodes_info('Compound', compound_ids)
+        genes_info=self.get_nodes_info('Gene', gene_ids)
+        return genes_info,proteins_info,reactions_info,compounds_info
+
+    def get_mantis_network(self,mantis_annotations,output_tsv_folder):
         self.start_time=time.time()
         available_indexes=self.get_available_indexes()
         mantis_annotations=self.parse_consensus_tsv(mantis_annotations,available_indexes)
-        res={}
+        #res={}
+        protein_ids=set()
         for db in mantis_annotations:
             for chunk in self.yield_list(mantis_annotations[db]):
                 command_to_run = f'WITH $batch as chunk UNWIND chunk as chunk_data ' \
-                                f'MATCH (n:{db} {{node_info: chunk_data.node_info}})--(n2) RETURN chunk_data.node_info as db_id,n2.drax_id as drax_id'
+                                 f'MATCH (n:{db} {{node_info: chunk_data.node_info}})<--(n2) RETURN chunk_data.node_info as db_id,n2.drax_id as drax_id'
                 fetch_results=self.run_command_neo4j(command_to_run=command_to_run, batch=chunk)
-                self.parse_fetch_results(db,fetch_results,res)
-        for db in res:
-            print(db,res[db])
+                self.parse_fetch_annotations_results(db,fetch_results,protein_ids)
+        genes_info,proteins_info,reactions_info,compounds_info=self.get_all_nodes_info(protein_ids)
+        self.export_neo4j_to_tsv(output_tsv_folder,genes_info,proteins_info,reactions_info,compounds_info)
+        self.export_neo4j_to_sif(output_tsv_folder,genes_info,proteins_info,reactions_info,compounds_info)
+
+
 
     ####ELASTIC SEARCH####
     def save_detail_ElasticSearch(self,detail_type,detail):
@@ -547,13 +703,15 @@ if __name__ == '__main__':
     uri = 'bolt://localhost:7687'
     username = 'neo4j'
     password = 'drax_neo4j'
-    neo4j_driver = Neo4j_Connector(username, password,db_name='neo4j',uri=uri)
+    neo4j_driver = DRAX_Neo4j_Connector(username, password,db_name='neo4j',uri=uri)
     drax_output_folder='/home/pedroq/Desktop/test_drax/out3/'
-    mantis_input_tsv='/home/pedroq/Desktop/test_drax/test_mantis1.tsv'
+    mantis_input_tsv='/home/pedroq/Desktop/test_drax/test_mantis2.tsv'
+    output_tsv_folder='/home/pedroq/Desktop/test_drax/network_mantis/'
     #neo4j_driver.reset_db()
-    #neo4j_driver.export_drax_to_neo4j(drax_output_folder)
-    neo4j_driver.get_mantis_network(mantis_input_tsv)
 
+    neo4j_driver.export_drax_to_neo4j(drax_output_folder)
+    neo4j_driver.get_mantis_network(mantis_input_tsv,output_tsv_folder)
+    #nodes_info = neo4j_driver.get_nodes_info('Reaction', ['24'])
+    #print(nodes_info)
 
-
-    print('time',time.time()-neo4j_driver.start_time)
+    #print('time',time.time()-neo4j_driver.start_time)

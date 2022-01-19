@@ -4,7 +4,7 @@ from source.Utils.util import   list_has_common_items,\
                                 test_match_possible_ids,\
                                 score_match_possible_ids,\
                                 get_instance_type
-from source.Biological_Components.Biological_Components_Utils.Base_Component import *
+from source.Biological_Components.utils.Base_Component import *
 
 
 

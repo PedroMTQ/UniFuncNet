@@ -362,7 +362,7 @@ class Metacyc_SQLITE_Connector():
                 if db=='reaction_stoichiometry':
                     temp=[]
                     for i in range(len(db_res)):
-                        if db_res[i] in ['<-','<->','->']:
+                        if db_res[i] in ['<=','<=>','=>']:
                             temp.append(db_res[i])
                         else:
                             #some reactions have undefined stoichiometry
@@ -501,8 +501,6 @@ class Metacyc_SQLITE_Connector():
         for i in required_resources:
             if i in os.listdir(self.metacyc_folder):
                 c+=1
-        print(os.listdir(self.metacyc_folder))
-        print(c)
         if len(required_resources)==c:
             return True
         return False
@@ -803,6 +801,8 @@ class Metacyc_SQLITE_Connector():
             sign_index=reaction_dict.pop('sign_index')
         if 'reaction_stoichiometry' in reaction_dict :
             reaction_stoichiometry=reaction_dict.pop('reaction_stoichiometry')
+        if not direction:
+            direction='<=>'
         if direction and sign_index and reaction_stoichiometry:
             reaction_stoichiometry.insert(sign_index, direction)
         if reaction_stoichiometry:
@@ -889,11 +889,11 @@ class Metacyc_SQLITE_Connector():
                             last_cpd[0]=line
                         elif db_type == 'direction':
                             if 'RIGHT-TO-LEFT' in line:
-                                line='<-'
+                                line='<='
                             elif 'LEFT-TO-RIGHT' in line:
-                                line='->'
+                                line='=>'
                             elif 'REVERSIBLE' in line:
-                                line='<->'
+                                line='<=>'
                             temp[db_type] = line
                         else:
                             if db_type=='enzyme_ec': line=line.replace('EC-','')
@@ -910,9 +910,10 @@ class Metacyc_SQLITE_Connector():
                 for m_id in metacyc_ids:
                     res=self.fetch_metacyc_id_info(m_id,gen_type)
                     if gen_type=='reaction':
-                        reaction_stoichiometry=res['reaction_stoichiometry']
-
-                        if len(reaction_stoichiometry)<2:
+                        reaction_stoichiometry=res.get('reaction_stoichiometry')
+                        if not reaction_stoichiometry:
+                            print(m_id,reaction_stoichiometry)
+                        elif len(reaction_stoichiometry)<2:
                             print(m_id,reaction_stoichiometry)
 
     def metacyc_fetch_all_proteins(self):
@@ -928,17 +929,17 @@ if __name__ == '__main__':
     s=Metacyc_SQLITE_Connector()
     #s.metacyc_create_db()
     #print(s.fetch_metacyc_rxn_from_cpd('CPD-22368'))
-    #s.test_db()
+    s.test_db()
     #print(s.fetch_metacyc_rxn_from_cpd('CPD0-2051'))
     #print(s.fetch_metacyc_id_info('CPD-16936','compound'))
     #print(s.fetch_metacyc_id_info('CPD-7661','compound'))
     #print(s.fetch_metacyc_id_info('EG10368','gene'))
     #print(s.fetch_metacyc_id_info('CPLX-7653','protein'))
     #print(s.fetch_metacyc_id_info('MONOMER-2782','protein'))
-    #print(s.fetch_metacyc_id_info('RXN-20993','reaction'))
+    #print(s.fetch_metacyc_id_info('DNA-DIRECTED-RNA-POLYMERASE-RXN','reaction'))
     #print(s.fetch_metacyc_id_info('GDP-MANNOSE','compound'))
     #print(s.fetch_metacyc_intermediate_rxn_ids('ENZRXN-2911'))
     #print(s.fetch_metacyc_rxn_from_ec('5.3.1.26'))
     #print(s.fetch_metacyc_from_uniprot('Q88M11'))
     #print(s.fetch_metacyc_derivatives('oxygen'))
-    print(s.metacyc_fetch_all_proteins())
+    #print(s.metacyc_fetch_all_proteins())

@@ -4,7 +4,7 @@ from source.Utils.util import       l_rn_ids_to_str,\
                                     unite_possible_ids,\
                                     list_has_common_items,\
                                     score_match_possible_ids
-from source.Biological_Components.Biological_Components_Utils.Base_Component import *
+from source.Biological_Components.utils.Base_Component import *
 
 
 

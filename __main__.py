@@ -6,10 +6,10 @@ from sys import platform
 import uuid
 
 from source.Utils.util import SCRAPPABLE_DBS,set_scrappable_dbs,VALID_DIRECTIONS,print_version
-from source.Pipelines.Searchers.Gene_Searcher import  Gene_Searcher
-from source.Pipelines.Searchers.Protein_Searcher import  Protein_Searcher
-from source.Pipelines.Searchers.Compound_Searcher import  Compound_Searcher
-from source.Pipelines.Searchers.Reaction_Searcher import  Reaction_Searcher
+from source.Searchers.Gene_Searcher import  Gene_Searcher
+from source.Searchers.Protein_Searcher import  Protein_Searcher
+from source.Searchers.Compound_Searcher import  Compound_Searcher
+from source.Searchers.Reaction_Searcher import  Reaction_Searcher
 #https://patorjk.com/software/taag/#p=display&f=Alpha&t=DRAX
 from time import time
 

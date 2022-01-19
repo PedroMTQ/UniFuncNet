@@ -1,4 +1,4 @@
-# Running the DRAX_to_Neo4j workflow
+# Running the DRAX_Neo4j_Connector workflow
 
 
 
@@ -16,7 +16,11 @@ To run Neo4j in DRAX do the following:
 3. Go to your Neo4j folder and run  `./bin/neo4j console`. Now your Neo4j database should be running in the background.
 4. Install the Neo4j driver in your environment with `conda install -c conda-forge neo4j-python-driver`
 5. Go to http://localhost:7474/browser/ and set up your database (basically, set a username and password)
-6. run the workflow with `python GSMM_Expansion.py -i drax_input.tsv -o output_folder -db kegg,rhea,biocyc,hmdb -username <neo4j_username> --password <neo4j_password>`
+
+
+
+##NEEDS TO BE FINISHED
+6. run the workflow with `python DRAX_Neo4j_Connector.py -i drax_input.tsv -o output_folder -db kegg,rhea,biocyc,hmdb -username <neo4j_username> --password <neo4j_password>`
 
 You can now execute the workflow!
 

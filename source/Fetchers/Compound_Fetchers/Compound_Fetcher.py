@@ -1,4 +1,4 @@
-from source.Fetchers.Fetchers_Utils.Global_Fetcher import *
+from source.Fetchers.Global_Fetcher import *
 from types import GeneratorType as generator
 from source.Utils.util import remove_inchi_key_equal
 
@@ -13,7 +13,7 @@ class Compound_Fetcher(Global_Fetcher):
         self.convergence_args={}
         #if no memory_storage is present from one of the pipelines or previous fetchers we assign it one and initialize the memory
         if not self.memory_storage:
-            from source.Pipelines.Searchers.Compound_Searcher import Compound_Searcher
+            from source.Searchers.Compound_Searcher import Compound_Searcher
             self.memory_storage = Compound_Searcher()
 
     def add_compound(self):

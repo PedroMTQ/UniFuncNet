@@ -1,4 +1,4 @@
-from source.Fetchers.Fetchers_Utils.Global_Fetcher import *
+from source.Fetchers.Global_Fetcher import *
 
 
 
@@ -10,7 +10,7 @@ class Protein_Fetcher(Global_Fetcher):
         self.protein=None
         self.convergence_args={}
         if not self.memory_storage:
-            from source.Pipelines.Searchers.Protein_Searcher import Protein_Searcher
+            from source.Searchers.Protein_Searcher import Protein_Searcher
             self.memory_storage = Protein_Searcher()
 
     def add_protein(self):
