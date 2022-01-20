@@ -273,6 +273,7 @@ class Rhea_SQLITE_Connector():
         if not id_type_sql or not input_id: return res
         fetch_command = f"SELECT RHEA,ALTIDS FROM RHEAREACTIONS WHERE {id_type_sql} = '{input_id}'"
         res_fetch=self.rhea_execute(fetch_command).fetchall()
+        print('HERE',input_id,res_fetch)
         if not res_fetch: return res
         for rhea_id,alt_ids in res_fetch:
             alt_ids = alt_ids.split(',')

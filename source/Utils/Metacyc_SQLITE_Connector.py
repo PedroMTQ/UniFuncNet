@@ -7,7 +7,7 @@ import sqlite3
 from string import punctuation
 from re import match
 
-stoichiometry_regex=re.compile('[n|N]')
+stoichiometry_regex=re.compile('[n|N]\+?\d?')
 
 class Metacyc_SQLITE_Connector():
     def __init__(self):
@@ -351,9 +351,13 @@ class Metacyc_SQLITE_Connector():
         fetch_command = f'SELECT {headers_str} FROM {table_name} WHERE {main_id_str}="{wanted_id.strip()}"'
         return fetch_command
 
-    def convert_sql_to_dict(self,sql_result,table_name):
-        sql_result=sql_result[1:]
+    def convert_sql_to_dict(self,sql_result,wanted_id,table_name):
         res={}
+        if not sql_result:
+            print(f'Failed retrieving {repr(wanted_id)} in {self.metacyc_db}.{table_name}')
+            return res
+
+        sql_result=sql_result[1:]
         for i in range(len(self.db_headers[table_name])):
             db=self.db_headers[table_name][i]
             db_res=sql_result[i]
@@ -361,21 +365,14 @@ class Metacyc_SQLITE_Connector():
                 db_res=db_res.split(self.info_splitter)
                 if db=='reaction_stoichiometry':
                     temp=[]
-                    for i in range(len(db_res)):
-                        if db_res[i] in ['<=','<=>','=>']:
-                            temp.append(db_res[i])
+                    while db_res:
+                        if db_res[0] in ['<=','<=>','=>']:
+                            temp.append(db_res.pop(0))
                         else:
                             #some reactions have undefined stoichiometry
-                            if stoichiometry_regex.match(db_res[i]) and len(db_res[i])==1:
-                                stoi=db_res[i]
-                                cpd_id=db_res[i+1]
-                                temp.append([stoi,cpd_id])
-                            else:
-                                try:
-                                    stoi=int(db_res[i])
-                                    cpd_id=db_res[i+1]
-                                    temp.append([stoi,cpd_id])
-                                except: pass
+                            stoi=db_res.pop(0)
+                            cpd_id=db_res.pop(0)
+                            temp.append([stoi,cpd_id])
                     if len(temp)>1:
                         res[db]=temp
                 else:
@@ -390,15 +387,11 @@ class Metacyc_SQLITE_Connector():
         table_name='TABLEINTRXNIDS'
         main_id_str='INTRXNID'
         fetch_command=self.generate_fetch_command(wanted_id,table_name,main_id_str)
-        try:
-            res_fetch = self.metacyc_execute(fetch_command).fetchone()
-            temp=self.convert_sql_to_dict(res_fetch,table_name)
-            if 'METACYCPRT' in temp: res['protein_ids']=temp['METACYCPRT']
-            if 'METACYCRXN' in temp: res['reaction_ids']=temp['METACYCRXN']
-            return res
-        except:
-            print(f'Failed retrieving {repr(wanted_id)} in {self.metacyc_db}.{table_name}')
-            return res
+        res_fetch = self.metacyc_execute(fetch_command).fetchone()
+        temp = self.convert_sql_to_dict(res_fetch,wanted_id, table_name)
+        if 'METACYCPRT' in temp: res['protein_ids'] = temp['METACYCPRT']
+        if 'METACYCRXN' in temp: res['reaction_ids'] = temp['METACYCRXN']
+        return res
 
     def fetch_metacyc_rxn_from_cpd(self,wanted_id):
         res={}
@@ -407,13 +400,10 @@ class Metacyc_SQLITE_Connector():
         table_name='TABLECPDRXN'
         main_id_str='METACYCCPD'
         fetch_command=self.generate_fetch_command(wanted_id,table_name,main_id_str)
-        try:
-            res_fetch = self.metacyc_execute(fetch_command).fetchone()
-            res=self.convert_sql_to_dict(res_fetch,table_name)
-            return res['METACYCRXN']
-        except:
-            print(f'Failed retrieving {repr(wanted_id)} in {self.metacyc_db}.{table_name}')
-            return res
+        res_fetch = self.metacyc_execute(fetch_command).fetchone()
+        res = self.convert_sql_to_dict(res_fetch,wanted_id, table_name)
+        if 'METACYCRXN' in res: return res['METACYCRXN']
+        return res
 
     def fetch_metacyc_rxn_from_ec(self,wanted_id):
         res={}
@@ -422,13 +412,10 @@ class Metacyc_SQLITE_Connector():
         table_name='TABLEECRXN'
         main_id_str='EC'
         fetch_command=self.generate_fetch_command(wanted_id,table_name,main_id_str)
-        try:
-            res_fetch = self.metacyc_execute(fetch_command).fetchone()
-            res=self.convert_sql_to_dict(res_fetch,table_name)
-            return res['METACYCRXN']
-        except:
-            print(f'Failed retrieving {repr(wanted_id)} in {self.metacyc_db}.{table_name}')
-            return res
+        res_fetch = self.metacyc_execute(fetch_command).fetchone()
+        res = self.convert_sql_to_dict(res_fetch,wanted_id, table_name)
+        if 'METACYCRXN' in res: return res['METACYCRXN']
+        return res
 
     def fetch_metacyc_from_uniprot(self,wanted_id):
         res={}
@@ -437,13 +424,11 @@ class Metacyc_SQLITE_Connector():
         table_name='TABLEUNIPROTMETACYC'
         main_id_str='UNIPROT'
         fetch_command=self.generate_fetch_command(wanted_id,table_name,main_id_str)
-        try:
-            res_fetch = self.metacyc_execute(fetch_command).fetchone()
-            res=self.convert_sql_to_dict(res_fetch,table_name)
-            return res['METACYCPRT']
-        except:
-            print(f'Failed retrieving {repr(wanted_id)} in {self.metacyc_db}.{table_name}')
-            return res
+        res_fetch = self.metacyc_execute(fetch_command).fetchone()
+        res = self.convert_sql_to_dict(res_fetch,wanted_id, table_name)
+        if 'METACYCPRT' in res: return res['METACYCPRT']
+        return res
+
 
     def fetch_metacyc_id_info(self,wanted_id,table_name):
         res={}
@@ -452,13 +437,9 @@ class Metacyc_SQLITE_Connector():
         table_name=table_name.upper()+'S'
         main_id_str='METACYC'
         fetch_command=self.generate_fetch_command(wanted_id,table_name,main_id_str)
-        try:
-            res_fetch = self.metacyc_execute(fetch_command).fetchone()
-            res=self.convert_sql_to_dict(res_fetch,table_name)
-            return res
-        except:
-            print(f'Failed retrieving {repr(wanted_id)} in {self.metacyc_db}.{table_name}')
-            return res
+        res_fetch = self.metacyc_execute(fetch_command).fetchone()
+        res = self.convert_sql_to_dict(res_fetch,wanted_id, table_name)
+        return res
 
     def fetch_metacyc_derivatives(self,compound_name):
         res=[]
@@ -808,6 +789,8 @@ class Metacyc_SQLITE_Connector():
         if reaction_stoichiometry:
             reaction_dict['reaction_stoichiometry']=reaction_stoichiometry
 
+
+
     def parse_reactions(self):
         input_file=f'{self.metacyc_folder}reactions.dat'
         line_type = None
@@ -911,10 +894,14 @@ class Metacyc_SQLITE_Connector():
                     res=self.fetch_metacyc_id_info(m_id,gen_type)
                     if gen_type=='reaction':
                         reaction_stoichiometry=res.get('reaction_stoichiometry')
+
                         if not reaction_stoichiometry:
                             print(m_id,reaction_stoichiometry)
                         elif len(reaction_stoichiometry)<2:
                             print(m_id,reaction_stoichiometry)
+                        else:
+                            if reaction_stoichiometry[-1] in ['=>','<=>','<=']:
+                                print(m_id, reaction_stoichiometry)
 
     def metacyc_fetch_all_proteins(self):
         res=set()
@@ -937,6 +924,8 @@ if __name__ == '__main__':
     #print(s.fetch_metacyc_id_info('CPLX-7653','protein'))
     #print(s.fetch_metacyc_id_info('MONOMER-2782','protein'))
     #print(s.fetch_metacyc_id_info('DNA-DIRECTED-RNA-POLYMERASE-RXN','reaction'))
+    #print(s.fetch_metacyc_id_info('ALDXANAU-RXN','reaction'))
+    #print(s.fetch_metacyc_id_info('RXN0-2605','reaction'))
     #print(s.fetch_metacyc_id_info('GDP-MANNOSE','compound'))
     #print(s.fetch_metacyc_intermediate_rxn_ids('ENZRXN-2911'))
     #print(s.fetch_metacyc_rxn_from_ec('5.3.1.26'))

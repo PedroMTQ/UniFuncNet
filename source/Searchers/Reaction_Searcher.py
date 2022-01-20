@@ -54,9 +54,11 @@ class Reaction_Searcher(Global_Searcher):
             db_arg= current_arg[0]
             id_arg= current_arg[1]
             if isinstance(id_arg,str) or isinstance(id_arg,int): id_arg={id_arg}
+            print('run_searcher')
             for s_id_arg in id_arg:
                 if s_id_arg and not self.check_already_searched_memory(dict_input_key=db_arg,dict_input_value=s_id_arg):
                     temp_inst = self.find_reaction(db_arg,s_id_arg)
+                    print('##############',temp_inst)
                 self.add_to_already_tried_to_search(db_arg, s_id_arg)
                 if temp_inst:   self.add_to_args_to_search(temp_inst, args_to_search)
         return self.get_reaction_match(bio_query,bio_db)
@@ -79,9 +81,10 @@ class Reaction_Searcher(Global_Searcher):
                 if id_to_add and not self.check_already_searched_memory(dict_input_key='hmdb',dict_input_value=id_to_add):
                     args_to_search.append(['hmdb', id_to_add])
 
-                id_to_add = reaction_instance.get_detail('rhea')
-                if id_to_add and not self.check_already_searched_memory(dict_input_key='rhea',dict_input_value=id_to_add):
-                    args_to_search.append(['rhea', id_to_add])
+                rhea_ids = reaction_instance.get_detail('rhea',all_possible=True)
+                for id_to_add in rhea_ids:
+                    if id_to_add and not self.check_already_searched_memory(dict_input_key='rhea',dict_input_value=id_to_add):
+                        args_to_search.append(['rhea', id_to_add])
 
 
 

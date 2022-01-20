@@ -316,7 +316,6 @@ class DRAX_Neo4j_Connector():
             sub_nodes=self.process_node_info(node_info)
             node_data = {'drax_id': node_id, 'node_type': node_type,'node_data':sub_nodes}
             if node_type=='Reaction':
-                print(node_info)
                 sign=self.get_sign(node_info['reaction_compounds'])
                 if sign=='<=>': reversible=True
                 else: reversible=False
@@ -605,8 +604,8 @@ class DRAX_Neo4j_Connector():
                                 file.write(line)
 
                         elif db in ['in_complex','has_subunits']:
-                            if db=='in_complex': target_type='pcplx'
-                            elif db=='has_subunits': target_type='psubu'
+                            if db=='in_complex': target_type='cplx'
+                            elif db=='has_subunits': target_type='subu'
                             for target_id in line_info[db]:
                                 line = f'{drax_id}\t{source_type}{target_type}\t{target_id}\n'
                                 file.write(line)
@@ -640,7 +639,8 @@ class DRAX_Neo4j_Connector():
         compound_ids = set()
         gene_ids = set()
         for node in proteins_info:
-            reaction_ids.update(proteins_info[node].get('reactions_connected'))
+            if 'reactions_connected' in proteins_info[node]:
+                reaction_ids.update(proteins_info[node].get('reactions_connected'))
         for node in proteins_info:
             if 'genes_connected' in proteins_info[node]:
                 gene_ids.update(proteins_info[node]['genes_connected'])
@@ -704,12 +704,12 @@ if __name__ == '__main__':
     username = 'neo4j'
     password = 'drax_neo4j'
     neo4j_driver = DRAX_Neo4j_Connector(username, password,db_name='neo4j',uri=uri)
-    drax_output_folder='/home/pedroq/Desktop/test_drax/out3/'
-    mantis_input_tsv='/home/pedroq/Desktop/test_drax/test_mantis2.tsv'
+    drax_output_folder='/home/pedroq/Desktop/test_drax/out/'
+    mantis_input_tsv='/home/pedroq/Desktop/test_drax/test_mantis1.tsv'
     output_tsv_folder='/home/pedroq/Desktop/test_drax/network_mantis/'
     #neo4j_driver.reset_db()
 
-    neo4j_driver.export_drax_to_neo4j(drax_output_folder)
+    #neo4j_driver.export_drax_to_neo4j(drax_output_folder)
     neo4j_driver.get_mantis_network(mantis_input_tsv,output_tsv_folder)
     #nodes_info = neo4j_driver.get_nodes_info('Reaction', ['24'])
     #print(nodes_info)
