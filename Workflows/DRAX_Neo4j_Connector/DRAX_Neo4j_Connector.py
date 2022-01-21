@@ -492,21 +492,20 @@ class DRAX_Neo4j_Connector():
         self.create_nodes_drax(drax_output_folder)
         self.connect_nodes_drax(drax_output_folder)
 
-    def parse_consensus_tsv(self,input_file, wanted_ids):
+    def parse_tsv(self,input_file, wanted_ids):
         res = {i:set() for i in wanted_ids}
         with open(input_file) as file:
             file.readline()
             for line in file:
                 line = line.strip('\n')
                 line = line.split('\t')
-                separator = line.index('|')
-                annotations = line[separator + 1:]
-                for db_annot in annotations:
-                    db = db_annot.split(':')[0]
-                    # to avoid bad splitting when dealing with descriptions
-                    annot = db_annot[len(db) + 1:]
-                    if db in res:
-                        res[db].add(annot)
+                for line_tab in line:
+                    if ':' in line_tab:
+                        db = line_tab.split(':')[0]
+                        if db in res:
+                            # to avoid bad splitting when dealing with descriptions
+                            annot = line_tab[len(db) + 1:]
+                            res[db].add(annot)
         res={i:res[i] for i in res if res[i]}
         unwind_res={i:[] for i in res}
         for db in res:
@@ -658,14 +657,13 @@ class DRAX_Neo4j_Connector():
         genes_info=self.get_nodes_info('Gene', gene_ids)
         return genes_info,proteins_info,reactions_info,compounds_info
 
-    def get_mantis_network(self,mantis_annotations,output_tsv_folder):
+    def get_network_from_annotations(self,input_tsv,output_tsv_folder):
         self.start_time=time.time()
         available_indexes=self.get_available_indexes()
-        mantis_annotations=self.parse_consensus_tsv(mantis_annotations,available_indexes)
-        #res={}
+        input_annotations=self.parse_tsv(input_tsv,available_indexes)
         protein_ids=set()
-        for db in mantis_annotations:
-            for chunk in self.yield_list(mantis_annotations[db]):
+        for db in input_annotations:
+            for chunk in self.yield_list(input_annotations[db]):
                 command_to_run = f'WITH $batch as chunk UNWIND chunk as chunk_data ' \
                                  f'MATCH (n:{db} {{node_info: chunk_data.node_info}})<--(n2) RETURN chunk_data.node_info as db_id,n2.drax_id as drax_id'
                 fetch_results=self.run_command_neo4j(command_to_run=command_to_run, batch=chunk)
@@ -710,7 +708,7 @@ if __name__ == '__main__':
     #neo4j_driver.reset_db()
 
     #neo4j_driver.export_drax_to_neo4j(drax_output_folder)
-    neo4j_driver.get_mantis_network(mantis_input_tsv,output_tsv_folder)
+    neo4j_driver.get_network_from_annotations(mantis_input_tsv,output_tsv_folder)
     #nodes_info = neo4j_driver.get_nodes_info('Reaction', ['24'])
     #print(nodes_info)
 

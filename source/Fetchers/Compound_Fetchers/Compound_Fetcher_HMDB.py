@@ -7,7 +7,6 @@ class Compound_Fetcher_HMDB(Compound_Fetcher):
         Compound_Fetcher.__init__( self, compound_id,memory_storage)
         self.db='hmdb'
         self.set_convergence_args()
-
         self.compound=self.get_compound_hmdb()
         self.add_compound()
 

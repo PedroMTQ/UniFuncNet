@@ -57,37 +57,33 @@ class Compounds_to_Organisms_Mapping():
             base_prefix=f'{current_prefix}{SPLITTER}'
         return base_prefix
 
-    def create_mantis_config(self,mantis_folder):
-        with open(f'{mantis_folder}MANTIS.config','w+') as file:
+    def create_mantis_config(self,mantis_cfg):
+        with open(mantis_cfg,'w+') as file:
             for db in self.unwanted_mantis_dbs:
                 file.write(f'{db}_ref_folder=NA\n')
 
     def run_mantis_setup(self):
-        mantis_folder=f'{RESOURCES_FOLDER}mantis{SPLITTER}'
-        Path(mantis_folder).mkdir(parents=True, exist_ok=True)
-        if not os.listdir(mantis_folder):
-            mantis_url = 'https://github.com/PedroMTQ/mantis.git'
-            #with open(self.workflow_console_out, 'a+') as file:
-            #    subprocess.run(f'git clone {mantis_url} {mantis_folder}',shell=True, stdout=file,stderr=file)
-            subprocess.run(f'git clone {mantis_url} {mantis_folder}',shell=True)
+        mantis_cfg=f'{RESOURCES_FOLDER}mantis.cfg'
         activate_mantis_env = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env}'
         process = subprocess.run(activate_mantis_env, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if process.stderr:
             print('Could not find mantis_env environment, creating environment')
-            conda_create_env_command = f'conda env create -f {mantis_folder}mantis_env.yml'
-            #with open(self.workflow_console_out, 'a+') as file:
-            #    subprocess.run(conda_create_env_command, shell=True,stdout=file,stderr=file)
+            conda_create_env_command = f'conda create -n mantis_env'
             subprocess.run(conda_create_env_command, shell=True)
+            activate_mantis_env = f'. {self.conda_prefix}/etc/profile.d/conda.sh &&' \
+                                  f' conda activate {self.mantis_env} &&' \
+                                  f' conda config --add channels defaults &&' \
+                                  f' conda config --add channels bioconda &&' \
+                                  f' conda config --add channels conda-forge &&' \
+                                  f' conda install -c bioconda mantis_pfa'
+            process = subprocess.run(activate_mantis_env, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
         else:
             pass
-        self.create_mantis_config(mantis_folder)
-        mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env} && python {mantis_folder} setup_databases'
-        #with open(self.workflow_console_out, 'a+') as file:
-        #    subprocess.run(mantis_setup_command,shell=True,stdout=file,stderr=file)
+        self.create_mantis_config(mantis_cfg)
+        mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env} && mantis setup -mc {mantis_cfg}'
         subprocess.run(mantis_setup_command,shell=True)
-        mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env} && python {mantis_folder} check_installation'
-        #with open(self.workflow_console_out, 'a+') as file:
-        #    subprocess.run(mantis_setup_command,shell=True,stdout=file,stderr=file)
+        mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env} && mantis check -mc {mantis_cfg}'
         subprocess.run(mantis_setup_command,shell=True)
 
     def create_mantis_input(self):
@@ -105,11 +101,15 @@ class Compounds_to_Organisms_Mapping():
         return res
 
     def run_mantis(self):
-        mantis_folder=f'{RESOURCES_FOLDER}mantis{SPLITTER}'
+        print('Running Mantis')
+        mantis_cfg=f'{RESOURCES_FOLDER}mantis.cfg'
         n_input=self.create_mantis_input()
         if n_input:
-            mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env} && python {mantis_folder} run_mantis -i {self.mantis_input} -o {self.mantis_output} -da heuristic'
+            mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env} && mantis run -i {self.mantis_input} -o {self.mantis_output} -da heuristic -mc {mantis_cfg}'
             subprocess.run(mantis_setup_command,shell=True)
+        else:
+            print(f'Mantis already ran')
+
 
     def run_drax(self):
         self.create_mantis_input()
@@ -117,7 +117,7 @@ class Compounds_to_Organisms_Mapping():
             run_drax_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && python {DRAX_FOLDER} -i {self.drax_input} -o {self.drax_output} -pt {self.politeness_timer}'
             subprocess.run(run_drax_command,shell=True)
         else:
-            print(f'We found files in {self.mantis_output}, so DRAX will not run again')
+            print(f'We found files in {self.drax_output}, so DRAX will not run again')
 
     def compile_input_drax(self):
         with open(self.drax_input, 'w+') as out_file:

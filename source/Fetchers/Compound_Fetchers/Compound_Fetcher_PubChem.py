@@ -102,5 +102,4 @@ if __name__ == '__main__':
     search= Compound_Fetcher_PubChem('962','pubchem_cid')
     search= Compound_Fetcher_PubChem('1S/C5H7NO2/c6-5-3(7)1-2-4(5)8/h5H,1-2,6H2','inchi')
     search.get_compound().get_all_info()
-    print('###')
     search.get_compound().get_top_n_synonyms()

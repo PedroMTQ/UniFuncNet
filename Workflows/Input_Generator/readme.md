@@ -2,7 +2,7 @@
 
 This workflow is used to create an universal DRAX input tsv file.
 
-It basically collects all available KOs,enzyme ECs, Metacyc protein ids and Rhea reactions, and saves a DRAX input tsv with those IDs with the 'global' search mode.
+It collects all available KOs,enzyme ECs, Metacyc protein ids and Rhea reactions, and saves a DRAX input tsv with those IDs with the 'global' search mode.
 
 
 

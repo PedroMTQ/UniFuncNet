@@ -42,23 +42,23 @@ class Protein_Fetcher(Global_Fetcher):
     def find_gene(self,query_id=None,extra_args={}):
         memory_type=get_instance_type(self.memory_storage)
         if 'Gene_Searcher' in memory_type:
-            return self.memory_storage.find_gene(db=self.db,query_id=query_id,extra_args=extra_args)
+            return self.memory_storage.run_searcher(bio_db=self.db,bio_query=query_id,extra_args=extra_args)
         else:
-            return self.memory_storage.gene_searcher.find_gene(db=self.db,query_id=query_id,extra_args=extra_args)
+            return self.memory_storage.gene_searcher.run_searcher(bio_db=self.db,query_id=query_id,extra_args=extra_args)
 
     def find_protein(self,query_id=None,extra_args={},convergence_search=False):
         memory_type=get_instance_type(self.memory_storage)
         if 'Protein_Searcher' in memory_type:
-            return self.memory_storage.find_protein(db=self.db,query_id=query_id,extra_args=extra_args,convergence_search=convergence_search)
+            return self.memory_storage.run_searcher(bio_db=self.db,bio_query=query_id,extra_args=extra_args,convergence_search=convergence_search)
         else:
-            return self.memory_storage.protein_searcher.find_protein(db=self.db,query_id=query_id,extra_args=extra_args,convergence_search=convergence_search)
+            return self.memory_storage.protein_searcher.run_searcher(bio_db=self.db,bio_query=query_id,extra_args=extra_args,convergence_search=convergence_search)
 
     def find_reaction(self,query_id=None,extra_args={}):
         memory_type=get_instance_type(self.memory_storage)
         if memory_type=='Reaction_Searcher':
-            return self.memory_storage.find_reaction(db=self.db,query_id=query_id,extra_args=extra_args)
+            return self.memory_storage.run_searcher(bio_db=self.db,bio_query=query_id,extra_args=extra_args)
         else:
-            return self.memory_storage.reaction_searcher.find_reaction(db=self.db,query_id=query_id,extra_args=extra_args)
+            return self.memory_storage.reaction_searcher.run_searcher(bio_db=self.db,bio_query=query_id,extra_args=extra_args)
         
     def get_wanted_org_kegg_codes(self):
         memory_type=get_instance_type(self.memory_storage)

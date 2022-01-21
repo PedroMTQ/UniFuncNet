@@ -46,7 +46,7 @@ class Reaction_Searcher(Global_Searcher):
             else:
                 return None, None
 
-    def run_searcher(self,bio_query,bio_db):
+    def run_searcher(self,bio_query,bio_db,extra_args={}):
         args_to_search=[[bio_db, bio_query]]
         temp_inst=None
         while args_to_search:
@@ -54,11 +54,9 @@ class Reaction_Searcher(Global_Searcher):
             db_arg= current_arg[0]
             id_arg= current_arg[1]
             if isinstance(id_arg,str) or isinstance(id_arg,int): id_arg={id_arg}
-            print('run_searcher')
             for s_id_arg in id_arg:
                 if s_id_arg and not self.check_already_searched_memory(dict_input_key=db_arg,dict_input_value=s_id_arg):
-                    temp_inst = self.find_reaction(db_arg,s_id_arg)
-                    print('##############',temp_inst)
+                    temp_inst = self.find_reaction(db_arg,s_id_arg,extra_args=extra_args)
                 self.add_to_already_tried_to_search(db_arg, s_id_arg)
                 if temp_inst:   self.add_to_args_to_search(temp_inst, args_to_search)
         return self.get_reaction_match(bio_query,bio_db)

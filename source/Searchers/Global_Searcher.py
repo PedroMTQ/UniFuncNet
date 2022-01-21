@@ -235,16 +235,16 @@ class Global_Searcher(Memory_Keeper,Metacyc_SQLITE_Connector,Rhea_SQLITE_Connect
     ###Function inheritance###
 
     def find_protein(self, db, query_id, extra_args={},convergence_search=False):
-        return self.protein_searcher.find_protein(db=db, query_id=query_id, extra_args=extra_args,convergence_search=convergence_search)
+        return self.protein_searcher.run_searcher(db=db, query_id=query_id, extra_args=extra_args,convergence_search=convergence_search)
 
     def find_gene(self, db, query_id, extra_args={}):
-        return self.gene_searcher.find_gene(db=db, query_id=query_id, extra_args=extra_args)
+        return self.gene_searcher.run_searcher(db=db, query_id=query_id, extra_args=extra_args)
 
     def find_reaction(self, db, query_id, extra_args={}):
-        return self.reaction_searcher.find_reaction(db=db, query_id=query_id, extra_args=extra_args)
+        return self.reaction_searcher.run_searcher(db=db, query_id=query_id, extra_args=extra_args)
 
     def find_compound(self,db,query_id):
-        return self.compound_searcher.find_compound(db=db,query_id=query_id)
+        return self.compound_searcher.run_searcher(db=db,query_id=query_id)
 
     def reaction_met_instances(self, rn, rn_with_ids, db):
         if self.is_valid_search_mode({'gprc','prc','rc','cr','crp','crpg','global'}):

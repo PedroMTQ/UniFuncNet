@@ -341,7 +341,7 @@ class Compound_Searcher(Global_Searcher):
         return None,None
 
     def run_searcher(self,bio_query,bio_db,convergence_search=False):
-        print(f'STARTING COMPOUND SEARCHER {bio_query} in {bio_db}')
+        print(f'Starting compound search {bio_query} in {bio_db}')
         temp_args_to_search=[]
         args_to_search=[]
         temp_inst=None

@@ -59,12 +59,12 @@ class Gene_Searcher(Global_Searcher):
 
 
     #global search
-    def run_searcher(self,bio_query,bio_db):
+    def run_searcher(self,bio_query,bio_db,extra_args={}):
         """
         The only common ID in all DBs is Uniprot ID so this is the central point
         If a uniprot Id is provided we start with that, otherwise we go to the other dbs and extract the uniprot Id and go from there
         """
-        print(f'STARTING GENE SEARCHER {bio_query} in {bio_db}')
+        print(f'Starting gene search {bio_query} in {bio_db}')
         args_to_search=[]
         temp_inst=None
 
@@ -85,7 +85,7 @@ class Gene_Searcher(Global_Searcher):
             if isinstance(id_arg,str) or isinstance(id_arg,int): id_arg={id_arg}
             for s_id_arg in id_arg:
                 if s_id_arg and not self.check_already_searched_memory(dict_input_key=db_arg,dict_input_value=s_id_arg):
-                    temp_inst = self.find_gene(db_arg,s_id_arg)
+                    temp_inst = self.find_gene(db_arg,s_id_arg,extra_args=extra_args)
                 self.add_to_already_tried_to_search(db_arg, s_id_arg)
                 if temp_inst:   self.add_to_args_to_search(temp_inst, args_to_search)
         return self.get_gene_match(bio_query,bio_db)
@@ -93,6 +93,7 @@ class Gene_Searcher(Global_Searcher):
 
 
     def get_db_id_from_uniprot(self,uniprot_id,db):
+        if 'uniprot' not in SCRAPPABLE_DBS: return None
         if db=='metacyc': return self.fetch_metacyc_from_uniprot(uniprot_id)
         if db=='hmdb': return self.get_db_id_from_uniprot_hmdb(uniprot_id)
         if db=='kegg': return self.get_db_id_from_uniprot_kegg(uniprot_id)
