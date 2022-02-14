@@ -374,7 +374,6 @@ class Compounds_to_Organisms_Mapping():
 
     def output_results(self):
         compounds = f'{self.drax_output}Compounds.tsv'
-        genes = f'{self.drax_output}Genes.tsv'
         proteins = f'{self.drax_output}Proteins.tsv'
         reactions = f'{self.drax_output}Reactions.tsv'
         compounds_info = self.read_drax_tsv(compounds)
