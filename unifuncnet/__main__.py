@@ -315,12 +315,14 @@ def main():
     else:
         search_modes_str='; '.join(VALID_DIRECTIONS)
         print('Executing command:\n', ' '.join(sys.argv))
-        parser = argparse.ArgumentParser(description='____________  ___  __   __\n'+
-                                                        '|  _  \ ___ \/ _ \ \ \ / /\n'+
-                                                        '| | | | |_/ / /_\ \ \ V / \n'+
-                                                        '| | | |    /|  _  | /   \ \n'+
-                                                        '| |/ /| |\ \| | | |/ /^\ \\\n'+
-                                                        f'|___/ \_| \_\_| |_/\/   \/, a biological database scraper.\nThese are the valid search directions:{search_modes_str}',
+        #https://patorjk.com/software/taag/#p=display&f=Doom&t=UniFuncNet
+        drax_styled=f' _   _       _______                _   _      _\n' \
+                    '| | | |     (_)  ___|              | \ | |    | |\n' \
+                    '| | | |_ __  _| |_ _   _ _ __   ___|  \| | ___| |_\n' \
+                    '| | | | \'_ \| |  _| | | | \'_ \ / __| . ` |/ _ \ __|\n' \
+                    '| |_| | | | | | | | |_| | | | | (__| |\  |  __/ |_\n' \
+                    ' \___/|_| |_|_\_|  \__,_|_| |_|\___\_| \_/\___|\__|, a biological network annotator.'
+        parser = argparse.ArgumentParser(description=drax_styled,
                                          formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('-i', '--input_path', help='[required]\tTSV file path with a list of identifiers.')
         parser.add_argument('-o', '--output_folder', help='[required]\tOutput folder path for the information collected from the different sources')
