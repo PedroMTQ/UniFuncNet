@@ -6,14 +6,25 @@ It was built to aid in the mapping of metabolism related entities, for example t
 
 ## Installation
 
+Installing `unifuncnet` from the `conda-forge` channel can be achieved by adding `conda-forge` to your channels with:
 
-1. `git clone git@github.com:PedroMTQ/UniFuncNet.git`  
-2. Go to the cloned UniFuncNet folder and run `conda env create -f unifuncnet_env.yml`
-3. Run `conda activate unifuncnet_env`
-4. *optional* Request [Metacyc license](https://metacyc.org/download.shtml)
-5. *optional* Download the `Metacyc flat files`
-6. *optional* Export files in data to `UniFuncNet/Resources/metacyc/`
-7. *optional* `UniFuncNet/Resources/metacyc/` should contain: `compounds.dat`,`proteins.dat`,`reactions.dat`,`gene-links.dat`, and `genes.dat`,
+```
+conda config --add channels conda-forge
+conda config --set channel_priority strict
+```
+
+Once the `conda-forge` channel has been enabled, `unifuncnet` can be installed with:
+
+```
+conda install unifuncnet
+```
+
+### Download Metacyc's cada (optional but recommended)
+
+1. Request [Metacyc license](https://metacyc.org/download.shtml)
+2. Download the `Metacyc flat files`
+3. Export files in data to `UniFuncNet/Resources/metacyc/`
+4. `UniFuncNet/Resources/metacyc/` should contain: `compounds.dat`,`proteins.dat`,`reactions.dat`,`gene-links.dat`, and `genes.dat`,
 
 **Using Metacyc is technically optional (as all databases) but since it contains high quality information, using it is usually desirable**
 
@@ -52,6 +63,12 @@ Data is  retrieved according to the information provided, for example, if the us
 
 
 - `search_type` - starting point of the search, if the user aims to provide IDs for proteins, then it would be `protein_search`, and the same for the other types of biological instances
+
+
+### Exporting UniFuncNet's output to Neo4j
+
+I have included an API that reads UniFuncNet's output and exports it to a Neo4j database which you can then query. To use it see the respective [workflow](Workflows/UniFuncNet_Neo4j_Connector).
+
 
 ### Running workflows
 

@@ -4,7 +4,7 @@
 
 ## Required installation
 
-This workflow requires [Neo4j graph database](https://neo4j.com/product/neo4j-graph-database/), either the [enterprise](https://neo4j.com/download-center/#enterprise) or [community](https://neo4j.com/download-center/#community) edition.
+This workflow requires the [Neo4j graph database](https://neo4j.com/product/neo4j-graph-database/), either the [enterprise](https://neo4j.com/download-center/#enterprise) or [community](https://neo4j.com/download-center/#community) edition.
 The community edition is more limited, however, it will fit within the scope of this workflow, i.e., exporting UniFuncNet's data to Neo4j.
 
 Since only one database can be created per Neo4j community edition instance, this workflow always deletes previous databases in the Neo4j database instance.
