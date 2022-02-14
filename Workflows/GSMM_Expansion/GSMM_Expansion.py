@@ -14,17 +14,23 @@ if platform.startswith('win'):
 else:
     SPLITTER = '/'
 
-DRAX_FOLDER = os.path.abspath(os.path.dirname(__file__)).split(SPLITTER)[0:-2]
+DRAX_FOLDER = os.path.abspath(os.path.dirname(__file__)).split(SPLITTER)[0:-1]
 DRAX_FOLDER = SPLITTER.join(DRAX_FOLDER) + SPLITTER
 RESOURCES_FOLDER=f'{DRAX_FOLDER}Resources{SPLITTER}'
 
 
-class GSMM_expansion():
-    def __init__(self,input_folder,output_folder,database=None,only_connected=False,politeness_timer=10):
+class GSMM_Expansion():
+    def __init__(self,input_folder,output_folder,metacyc_ref=None,database=None,only_connected=False,politeness_timer=10):
         if not input_folder.endswith('/'):input_folder+='/'
         self.input_folder=input_folder
         if not output_folder.endswith('/'):output_folder+='/'
         self.output_folder=output_folder
+        self.metacyc_ref=metacyc_ref
+        self.database=database
+        if database:
+            if 'metacyc' not in database:
+                self.metacyc_ref=None
+
         self.carveme_models = f'{self.output_folder}models{SPLITTER}'
         self.drax_input = f'{self.output_folder}drax_input.tsv'
         self.drax_output = f'{self.output_folder}drax_output{SPLITTER}'
@@ -43,7 +49,6 @@ class GSMM_expansion():
         self.compounds_match={'searched':set(),'matched':{}}
         #only expand network if some of the nodes are connected to the initial gsmm
         self.only_connected=only_connected
-        self.database=database
         self.politeness_timer=politeness_timer
         for p in [self.output_folder,self.carveme_models,self.drax_output,self.mantis_output,self.workflow_output]:
             Path(p).mkdir(parents=True, exist_ok=True)
@@ -85,7 +90,7 @@ class GSMM_expansion():
                         db_type='rhea_reaction'
                         identifier=identifier.split('#')[0]
                     elif db_type=='biocyc':
-                        db_type='biocyc_reaction'
+                        db_type='metacyc_reaction'
                     elif db_type=='bigg.reaction' or db_type=='seed.reaction' or db_type=='metanetx.reaction' or db_type=='SBO':
                         identifier = None
                     else:
@@ -101,7 +106,7 @@ class GSMM_expansion():
                 line = file.readline()
         c=0
         for reaction_id in res:
-            if 'reactome_reaction' in res[reaction_id] and 'enzyme_ec' not in res[reaction_id]  and 'kegg_reaction' not in res[reaction_id]  and 'rhea_reaction' not in res[reaction_id]  and 'biocyc_reaction' not in res[reaction_id]:
+            if 'reactome_reaction' in res[reaction_id] and 'enzyme_ec' not in res[reaction_id]  and 'kegg_reaction' not in res[reaction_id]  and 'rhea_reaction' not in res[reaction_id]  and 'metacyc_reaction' not in res[reaction_id]:
                 c+=1
 
         all_ids = {}
@@ -119,7 +124,7 @@ class GSMM_expansion():
                       f'{len([i for i in res if "kegg_reaction" in res[i]])} of these with a KEGG ID, '\
                       f'{len([i for i in res if "enzyme_ec" in res[i]])} of these with an enzyme EC ID, '\
                       f'{len([i for i in res if "rhea_reaction" in res[i]])} of these with a Rhea ID, '\
-                      f'{len([i for i in res if "biocyc_reaction" in res[i]])} of these with a Biocyc ID, and '\
+                      f'{len([i for i in res if "metacyc_reaction" in res[i]])} of these with a Metacyc ID, and '\
                       f'{len([i for i in res if "reactome_reaction" in res[i]])} of these with a Reactome ID.\n'
                 file.write(outline)
 
@@ -172,8 +177,9 @@ class GSMM_expansion():
                 line = line.split('\t')
                 protein_annotations = line[6:]
                 for annot in protein_annotations:
-                    if annot.startswith('enzyme_ec'):
-                        id_type, annotation = annot.split(':')
+                    if annot.startswith('enzyme_ec') or annot.startswith('metacyc'):
+                        id_type = annot.split(':')[0]
+                        annotation = annot[len(id_type)+1:]
                         if id_type not in res: res[id_type] = set()
                         res[id_type].add(annotation)
                 line = file.readline()
@@ -219,7 +225,7 @@ class GSMM_expansion():
         drax_ids=self.merge_ids_to_run(drax_ids)
         with open(self.drax_input, 'w+') as file:
             for id_type in drax_ids:
-                if id_type=='enzyme_ec':
+                if id_type in ['enzyme_ec','metacyc']:
                     for annot in drax_ids[id_type]:
                         file.write(f'{annot}\t{id_type}\tprotein\tprc\n')
 
@@ -434,6 +440,9 @@ class GSMM_expansion():
             if 'enzyme_ec' in protein_info and 'enzyme_ec' in mantis_annotations:
                 if protein_info['enzyme_ec'].intersection(mantis_annotations['enzyme_ec']):
                     res[protein_id]=protein_info
+            if 'metacyc' in protein_info and 'metacyc' in mantis_annotations:
+                if protein_info['metacyc'].intersection(mantis_annotations['metacyc']):
+                    res[protein_id]=protein_info
         return res
 
     def remove_proteins_without_reaction(self,proteins_dict):
@@ -476,11 +485,11 @@ class GSMM_expansion():
             if 'kegg' in reactions_dict[i]  and 'kegg_reaction' in model_ids:
                 if reactions_dict[i]['kegg'].intersection(model_ids['kegg_reaction']):
                     passed = True
-            if 'biocyc' in reactions_dict[i] and 'biocyc' in model_ids:
-                if reactions_dict[i]['biocyc'].intersection(model_ids['biocyc']):
+            if 'metacyc' in reactions_dict[i] and 'metacyc_reaction' in model_ids:
+                if reactions_dict[i]['metacyc'].intersection(model_ids['metacyc_reaction']):
                     passed = True
             if not passed:
-                if 'kegg' in reactions_dict[i] or 'biocyc' in reactions_dict[i]:
+                if 'kegg' in reactions_dict[i] or 'metacyc' in reactions_dict[i]:
                     res[i] = reactions_dict[i]
 
         return res
@@ -600,6 +609,12 @@ class GSMM_expansion():
                 file.write(f'{db}_ref_folder=NA\n')
 
 
+    def create_mantis_config_metacyc(self,mantis_cfg):
+        with open(mantis_cfg,'w+') as file:
+            for db in self.unwanted_mantis_dbs:
+                file.write(f'{db}_ref_folder=NA\n')
+            file.write(f'custom_ref={self.metacyc_ref}\n')
+
     def run_carveme(self):
         print('Running CarveMe')
         activate_carveme_env = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.carveme_env}'
@@ -645,6 +660,7 @@ class GSMM_expansion():
         subprocess.run(mantis_setup_command, shell=True)
         mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env} && mantis check -mc {mantis_cfg}'
         subprocess.run(mantis_setup_command, shell=True)
+        self.create_mantis_config_metacyc(mantis_cfg)
 
     def create_mantis_input(self):
         res=0
@@ -676,9 +692,9 @@ class GSMM_expansion():
         self.create_mantis_input()
         if not os.listdir(self.drax_output):
             if self.database:
-                run_drax_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && python {DRAX_FOLDER} -i {self.drax_input} -o {self.drax_output} -db {self.database} -pt {self.politeness_timer}'
+                run_drax_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && drax -i {self.drax_input} -o {self.drax_output} -db {self.database} -pt {self.politeness_timer}'
             else:
-                run_drax_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && python {DRAX_FOLDER} -i {self.drax_input} -o {self.drax_output} -pt {self.politeness_timer}'
+                run_drax_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && drax -i {self.drax_input} -o {self.drax_output} -pt {self.politeness_timer}'
 
             subprocess.run(run_drax_command,shell=True)
         else:
@@ -806,27 +822,3 @@ class GSMM_expansion():
 
 
 
-if __name__ == '__main__':
-    #if True:
-    #    GSMM_expansion(input_folder='/home/pedroq/Desktop/test_expansion/samples', output_folder='/home/pedroq/Desktop/test_expansion/out',only_connected=False)
-    #else:
-    print('Executing command:\n', ' '.join(sys.argv))
-    parser = argparse.ArgumentParser(description='This workflow suggests new connections for Carveme metabolic models\n',formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-i', '--input_folder', help='[required]\tInput folder with protein sequences fastas')
-    parser.add_argument('-o', '--output_folder', help='[required]\tOutput directory')
-    parser.add_argument('-db','--database', help='[optional]\tDatabases to be used in DRAX')
-    parser.add_argument('-pt', '--politeness_timer', help='[optional]\tTime (seconds) between requests. Default is 10. Please be careful not to overleaf the corresponding databases, you might get blocked from doing future requests.')
-    parser.add_argument('-oc','--only_connected', action='store_true', help='[optional]\tExpand network with only nodes that are connected to the original network (this is off by default)')
-    args = parser.parse_args()
-    input_folder = args.input_folder
-    output_folder = args.output_folder
-    database = args.database
-    politeness_timer = args.politeness_timer
-    only_connected = args.only_connected
-    if politeness_timer: politeness_timer=int(politeness_timer)
-    else: politeness_timer=10
-
-    if input_folder and output_folder:
-        GSMM_expansion(input_folder=input_folder,output_folder=output_folder,database=database,only_connected=only_connected,politeness_timer=politeness_timer)
-    else:
-        print('Missing input and output folders')

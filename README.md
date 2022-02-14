@@ -15,19 +15,17 @@ It was built to aid in the mapping of metabolism related entities, for example t
 6. *optional* Export files in data to `DRAX/Resources/metacyc/`
 7. *optional* `DRAX/Resources/metacyc/` should contain: `compounds.dat`,`proteins.dat`,`reactions.dat`,`gene-links.dat`, and `genes.dat`,
 
-
+**Using Metacyc is technically optional (as all databases) but since it contains high quality information, using it is usually desirable**
 
 ## Using DRAX
 
-
-
 You can run the code below to test the execution:
 
-    python DRAX --example
+    drax --example
 
 A typical run would look like:
 
-    python DRAX -i input.tsv
+    drax -i input.tsv
 
 
 
@@ -36,7 +34,7 @@ To avoid overloading these database websites, a 10 seconds pause between request
 DRAX accepts the following parameters:
 
 
-    python DRAX -i input_path -o output_folder -db metacyc,kegg,hmdb,rhea,uniprot,pubchem -pt 10
+    drax -i input_path -o output_folder -db metacyc,kegg,hmdb,rhea,uniprot,pubchem -pt 10
 
     Mandatory arguments: --input_path / -i
     Optional arguments:  --output_folder / -o
@@ -65,29 +63,31 @@ For more information on the workflows go to the respective [folder](Workflows/)
 The input file should be a tab separated file that looks something like this:
 
 
-| ID                          | ID type    | entity type | search mode |
-|-----------------------------|------------|-------------|-------------|
-| HS08548                     | metacyc     | gene        |             |
-| HMDBP00087                  | hmdb       | gene        | gp          |
-| hsa:150763                  | kegg       | gene        | global      |
-| P19367                      | uniprot    | gene        |             |
-| 2.7.1.1                     | enzyme_ec  | protein     | pr          |
-| 2.7.1.2                     | kegg       | protein     | pg          |
-| 2.7.1.3                     | metacyc     | protein     | prc         |
-| HMDBP00609                  | hmdb       | protein     |             |
-| K00844                      | kegg_ko    | protein     |             |
-| P19367                      | uniprot    | protein     | prc,pg      |
-| PROTOHEMEFERROCHELAT-RXN    | metacyc     | reaction    |             |
-| 14073                       | hmdb       | reaction    |             |
-| R02887                      | kegg       | reaction    | rpg,rc      |
-| 10000                       | rhea       | reaction    | rp          |          
-| CPD-520                     | metacyc     | compound    |             |
-| 27531                       | chebi      | compound    | cp          |
-| 937                         | chemspider | compound    | cprg        |
-| HMDB0000538                 | hmdb       | compound    | c           |
-| C00093                      | kegg       | compound    |             |
-| XLYOFNOQVPJJNP-UHFFFAOYSA-N | inchi_key  | compound    |             |
-| water                       | synonyms   | compound    | cr          |
+| ID                          | ID type   | entity type | search mode |
+|-----------------------------|-----------|-------------|-------------|
+| HS08548                     | metacyc   | gene        |             |
+| HMDBP00087                  | hmdb      | gene        | gp          |
+| hsa:150763                  | kegg      | gene        | global      |
+| P19367                      | uniprot   | gene        |             |
+| 2.7.1.1                     | enzyme_ec | protein     | pr          |
+| 2.7.1.2                     | kegg      | protein     | pg          |
+| 2.7.1.3                     | metacyc   | protein     | prc         |
+| FERREDOXIN-MONOMER          | metacyc   | protein     | prc         |
+| HMDBP00609                  | hmdb      | protein     |             |
+| K00844                      | kegg_ko   | protein     |             |
+| P19367                      | uniprot   | protein     | prc,pg      |
+| PROTOHEMEFERROCHELAT-RXN    | metacyc   | reaction    |             |
+| 14073                       | hmdb      | reaction    |             |
+| R02887                      | kegg      | reaction    | rpg,rc      |
+| 10000                       | rhea      | reaction    | rp          |          
+| CPD-520                     | metacyc   | compound    |             |
+| 27531                       | chebi     | compound    | cp          |
+| 962                         | pubchem   | compound    | cprg        |
+| HMDB0000538                 | hmdb      | compound    | c           |
+| C00093                      | kegg      | compound    |             |
+| XLYOFNOQVPJJNP-UHFFFAOYSA-N | inchi_key | compound    |             |
+| h1H20A                      | inchi     | compound    |             |
+| water                       | synonyms  | compound    | cr          |
 
 Each column is described below:
 
@@ -153,7 +153,7 @@ Several IDs are allowed per biological instance:
 
 ### Output
 
-DRAX outputs 5 tsv files: `Compounds.tsv`,`Reactions.tsv`,`Proteins.tsv`,`Genes.tsv`, and `Graph.tsv`
+DRAX outputs 5 tsv files: `Compounds.tsv`,`Reactions.tsv`,`Proteins.tsv`,`Genes.tsv`, and `Graph.sif`
 Each of the first 4 files contain multiple instances (e.g., compound) with a tab-separated list of identifiers or other relevant information.
 Specifically, all instances contain an `internal_id` which can be used for graph-based approaches cross-linking (e.g., `manuscript.py`), and often a list of identifiers and synonyms.
 In the case of reactions, proteins and genes, cross-linking is available in the form of `<instance>_connected`. For example, if the user searches for all reactions of a set of proteins, then the retrieved proteins would have a list of `reactions_connected:<reaction internal_id>` depicting which reactions this protein is connected to. The same would apply for other search modes or search starting points.
@@ -170,11 +170,11 @@ Using the example above as an example (with input the enzyme EC 2.7.8.26), the o
 As can be seen, the protein (i.e., `internal_id:270`) shown above is connected to the reaction `25550` which in turn is described as the following interaction between compounds: 10310 + 6731 => 21252 + 24415 + 8385. These compounds are then listed in the `Compounds.tsv` as shown above. For visualization purposess only a small transcript is shown above.
 
 
-The `Graph.tsv` file contains edges between nodes (i.e. entities). For example since the protein with the internal id 270 is connected to the reaction with the internal id 25550, then there will be an edge between the **source** node 270 and the **target** node 25550. The third column in this file contains the type of interaction, which in this case would be from protein to reaction, i.e., **pr**.
+The `Graph.sif` file contains edges between nodes (i.e. entities). For example since the protein with the internal id 270 is connected to the reaction with the internal id 25550, then there will be an edge between the **source** node 270 and the **target** node 25550. The third column in this file contains the type of interaction, which in this case would be from protein to reaction, i.e., **pr**.
 
 ### Example run
 
-![example_run](Figures/example.png)
+![example_run](Images/example.png)
 
 The example contains two inputs: in the first input line the KEGG gene edh:EcDH1\_1436 with the search mode "gp", and a second input line with the ChEBI compound ID 17968 with the search mode "crp". DRAX starts by searching for information regarding the seed gene KEGG ID edh:EcDH1\_1436, parsing the result, creating a gene entity, and retrieving the connected proteins IDs (i.e., here UniProt IDs, P76458 and P23673). Since the search mode is "gp",DRAX will do a new web query and search for the protein IDs in the available databases. DRAX now retrieves information on these two proteins and creates two protein entities (one for each UniProt ID), and stops here. The connections between the gene seed entity and the protein entities constitute direct connections.
 In the second seed input, DRAX receives the ChEBI compound ID 17968, which it then cross-links to other databases through a ChEBI SQL database. This cross-linking connects the ChEBI ID 17968 to the metacyc ID BUTYRIC\_ACID, KEGG ID C00246 and HMDB ID HMDB0039. DRAX then searches for information on these three compound IDs on each respective database, retrieving also information on the reactions these compounds are involved in. The information from each database is then merged internally into one single compound entity. Since the search mode is "crp", DRAX starts a new round of data retrieval, querying each database for each reaction connected to the previous compound entity. During this reaction data retrieval, DRAX also searches for information on all other compounds involved in these reactions (not shown in figure, but, e.g., for the reaction "Butanoyl-CoA + Acetate <=> Butanoic acid + Acetyl-CoA", DRAX will not search for information on the seed compound "Butanoic acid" since it was previously searched, but it will search for information on the "Butanoyl-CoA", "Acetate", and "Acetyl-CoA" compounds). During this reaction search, DRAX finds information on the proteins linked to these reactions, and, since the search mode is "crp", it then searches for information on these proteins. Among these proteins, there are two proteins (i.e., P76458 and P23673) which have been previously searched and so DRAX does not repeat the same web query, it simply connects the reaction entities to these already existing protein entities. Having finished reading the inputs, DRAX then outputs all this information, linking entities in a graph-based manner (notice how the two seed input IDs are connected in the output graph).

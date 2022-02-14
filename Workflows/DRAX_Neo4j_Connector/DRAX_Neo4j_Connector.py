@@ -1,18 +1,23 @@
+try:
+    from neo4j import GraphDatabase
+except:
+    print('Install neo4j python driver with:\t conda install -c conda-forge neo4j-python-driver')
+    raise Exception
+
 import re
 import sys
 import os
 import subprocess
 from pathlib import Path
 import argparse
-from neo4j import GraphDatabase
-
+import time
 
 if sys.platform.startswith('win'):
     SPLITTER = '\\'
 else:
     SPLITTER = '/'
 
-DRAX_FOLDER = os.path.abspath(os.path.dirname(__file__)).split(SPLITTER)[0:-2]
+DRAX_FOLDER = os.path.abspath(os.path.dirname(__file__)).split(SPLITTER)[0:-1]
 DRAX_FOLDER = SPLITTER.join(DRAX_FOLDER) + SPLITTER
 RESOURCES_FOLDER=f'{DRAX_FOLDER}Resources{SPLITTER}'
 
@@ -316,10 +321,11 @@ class DRAX_Neo4j_Connector():
             sub_nodes=self.process_node_info(node_info)
             node_data = {'drax_id': node_id, 'node_type': node_type,'node_data':sub_nodes}
             if node_type=='Reaction':
-                sign=self.get_sign(node_info['reaction_compounds'])
-                if sign=='<=>': reversible=True
-                else: reversible=False
-                node_data['reversible']=reversible
+                if 'reaction_compounds' in node_info:
+                    sign=self.get_sign(node_info['reaction_compounds'])
+                    if sign=='<=>': reversible=True
+                    else: reversible=False
+                    node_data['reversible']=reversible
             if len(temp)<step:
                 temp.append(node_data)
             else:
@@ -488,9 +494,14 @@ class DRAX_Neo4j_Connector():
         self.start_time=time.time()
         if not drax_output_folder.endswith(SPLITTER):
             drax_output_folder+=SPLITTER
+        print('Creating node labels')
         self.create_node_labels(drax_output_folder)
+        print('Creating nodes')
         self.create_nodes_drax(drax_output_folder)
+        print('Connecting nodes')
         self.connect_nodes_drax(drax_output_folder)
+        print(f'Finished creating Neo4j DB in {time()-self.start_time}')
+
 
     def parse_tsv(self,input_file, wanted_ids):
         res = {i:set() for i in wanted_ids}
@@ -695,21 +706,4 @@ class DRAX_Neo4j_Connector():
 
 
 
-if __name__ == '__main__':
-    import time
-    # Database Credentials
-    uri = 'bolt://localhost:7687'
-    username = 'neo4j'
-    password = 'drax_neo4j'
-    neo4j_driver = DRAX_Neo4j_Connector(username, password,db_name='neo4j',uri=uri)
-    drax_output_folder='/home/pedroq/Desktop/test_drax/out/'
-    mantis_input_tsv='/home/pedroq/Desktop/test_drax/test_mantis1.tsv'
-    output_tsv_folder='/home/pedroq/Desktop/test_drax/network_mantis/'
-    #neo4j_driver.reset_db()
 
-    #neo4j_driver.export_drax_to_neo4j(drax_output_folder)
-    neo4j_driver.get_network_from_annotations(mantis_input_tsv,output_tsv_folder)
-    #nodes_info = neo4j_driver.get_nodes_info('Reaction', ['24'])
-    #print(nodes_info)
-
-    #print('time',time.time()-neo4j_driver.start_time)

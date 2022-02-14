@@ -11,12 +11,12 @@ Please also make sure that when you install drax, you leave the environment with
 To execute this workflow simply do `python Compounds_to_Organisms_Mapping.py -i input_folder -o output_folder -met metabolites.tsv -db kegg,rhea,biocyc,hmdb`.
 
 The `input_folder` variable should be a folder with one or more protein sequences fastas. 
-The `metabolites.tsv` contains a list of metabolites. Each line can contain either metabolites names or ChEBI IDs. This file would look something like this:
+The `metabolites.tsv` contains a list of metabolites. Each line should contain two columns, the first one should have the ID, the second the ID type, e.g.:
 
-|  |  |
-|  :-------------: | :-------------: |
-| indole  | 35581 |
-| 1-hexanol  | 87393 |
+|  |         |
+|  :-------------: |:-------:|
+| 35581  |  chebi  |
+| 1-hexanol  | synonym |
 
 
 

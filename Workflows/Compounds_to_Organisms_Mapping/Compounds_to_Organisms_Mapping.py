@@ -11,7 +11,7 @@ if sys.platform.startswith('win'):
 else:
     SPLITTER = '/'
 
-DRAX_FOLDER = os.path.abspath(os.path.dirname(__file__)).split(SPLITTER)[0:-2]
+DRAX_FOLDER = os.path.abspath(os.path.dirname(__file__)).split(SPLITTER)[0:-1]
 DRAX_FOLDER = SPLITTER.join(DRAX_FOLDER) + SPLITTER
 RESOURCES_FOLDER=f'{DRAX_FOLDER}Resources{SPLITTER}'
 
@@ -19,12 +19,17 @@ RESOURCES_FOLDER=f'{DRAX_FOLDER}Resources{SPLITTER}'
 
 class Compounds_to_Organisms_Mapping():
 
-    def __init__(self,input_samples,metabolites,output_folder,database=None,politeness_timer=10):
+    def __init__(self,input_samples,metabolites,output_folder,metacyc_ref=None,database=None,politeness_timer=10):
             if not input_samples.endswith('/'):input_samples+='/'
             self.input_folder=input_samples
             if not output_folder.endswith('/'):output_folder+='/'
             self.output_folder=output_folder
             self.metabolites=metabolites
+            self.metacyc_ref=metacyc_ref
+            self.database=database
+            if database:
+                if 'metacyc' not in database:
+                    self.metacyc_ref = None
 
             self.unwanted_mantis_dbs = ['nog', 'ncbi', 'tcdb']
             self.mantis_env='mantis_env'
@@ -40,7 +45,7 @@ class Compounds_to_Organisms_Mapping():
             self.report={}
 
             self.conda_prefix = self.get_conda_prefix()
-            self.database=database
+
             self.politeness_timer=politeness_timer
             for p in [self.output_folder,self.drax_output,self.mantis_output,self.workflow_output]:
                 Path(p).mkdir(parents=True, exist_ok=True)
@@ -61,6 +66,13 @@ class Compounds_to_Organisms_Mapping():
         with open(mantis_cfg,'w+') as file:
             for db in self.unwanted_mantis_dbs:
                 file.write(f'{db}_ref_folder=NA\n')
+
+    def create_mantis_config_metacyc(self,mantis_cfg):
+        with open(mantis_cfg,'w+') as file:
+            for db in self.unwanted_mantis_dbs:
+                file.write(f'{db}_ref_folder=NA\n')
+            file.write(f'custom_ref={self.metacyc_ref}\n')
+
 
     def run_mantis_setup(self):
         mantis_cfg=f'{RESOURCES_FOLDER}mantis.cfg'
@@ -85,6 +97,8 @@ class Compounds_to_Organisms_Mapping():
         subprocess.run(mantis_setup_command,shell=True)
         mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env} && mantis check -mc {mantis_cfg}'
         subprocess.run(mantis_setup_command,shell=True)
+        self.create_mantis_config_metacyc(mantis_cfg)
+
 
     def create_mantis_input(self):
         res=0
@@ -114,8 +128,14 @@ class Compounds_to_Organisms_Mapping():
     def run_drax(self):
         self.create_mantis_input()
         if not os.listdir(self.drax_output):
-            run_drax_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && python {DRAX_FOLDER} -i {self.drax_input} -o {self.drax_output} -pt {self.politeness_timer}'
+            if self.database:
+                run_drax_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && python {DRAX_FOLDER} -i {self.drax_input} -o {self.drax_output} -pt {self.politeness_timer} -db {self.database}'
+            else:
+                run_drax_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && python {DRAX_FOLDER} -i {self.drax_input} -o {self.drax_output} -pt {self.politeness_timer}'
+
+
             subprocess.run(run_drax_command,shell=True)
+
         else:
             print(f'We found files in {self.drax_output}, so DRAX will not run again')
 
@@ -124,16 +144,10 @@ class Compounds_to_Organisms_Mapping():
             with open(self.metabolites) as met_file:
                 for line in met_file:
                     line=line.strip('\n').split('\t')
-                    line_dict={}
-                    for db_id in line:
-                        try:
-                            int(db_id)
-                            db_type='chebi'
-                        except:
-                            db_type='synonyms'
-                        outline=[db_id,db_type,'compound','crp,prc','\n']
-                        outline='\t'.join(outline)
-                        out_file.write(outline)
+                    db_id,db_type=line
+                    outline=[db_id,db_type,'compound','crp','\n']
+                    outline='\t'.join(outline)
+                    out_file.write(outline)
 
 
     ###### parsing functions
@@ -175,8 +189,9 @@ class Compounds_to_Organisms_Mapping():
                 line = line.split('\t')
                 protein_annotations = line[6:]
                 for annot in protein_annotations:
-                    if annot.startswith('enzyme_ec'):
-                        id_type, annotation = annot.split(':')
+                    if annot.startswith('enzyme_ec') or annot.startswith('metacyc'):
+                        id_type = annot.split(':')[0]
+                        annotation = annot[len(id_type)+1:]
                         if id_type not in res: res[id_type] = set()
                         res[id_type].add(annotation)
                 line = file.readline()
@@ -209,22 +224,23 @@ class Compounds_to_Organisms_Mapping():
 
         compounds = set()
         for reaction_id in reactions_info:
-            reaction_cpds = reactions_info[reaction_id]['reaction_compounds']
-            if ' => ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' => ', ' <=> ')
-            if ' <= ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' <= ', ' <=> ')
-            drax_reactants, drax_products = reaction_cpds.split('<=>')
-            drax_reactants, drax_products = [j.strip() for j in drax_reactants.split('+')], [j.strip() for j in
-                                                                                             drax_products.split('+')]
-            reaction_cpds = set(drax_reactants + drax_products)
-            metabolites_in_reactions = reaction_cpds.intersection(mapped_internal)
-            if metabolites_in_reactions:
-                res[reaction_id] = metabolites_in_reactions
-            compounds.update(metabolites_in_reactions)
+            if 'reaction_compounds' in reactions_info[reaction_id]:
+                reaction_cpds = reactions_info[reaction_id]['reaction_compounds']
+                if ' => ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' => ', ' <=> ')
+                if ' <= ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' <= ', ' <=> ')
+                drax_reactants, drax_products = reaction_cpds.split('<=>')
+                drax_reactants, drax_products = [j.strip() for j in drax_reactants.split('+')], [j.strip() for j in drax_products.split('+')]
+                reaction_cpds = set(drax_reactants + drax_products)
+                metabolites_in_reactions = reaction_cpds.intersection(mapped_internal)
+                if metabolites_in_reactions:
+                    res[reaction_id] = metabolites_in_reactions
+                compounds.update(metabolites_in_reactions)
         outline=f'DRAX managed to link {len(compounds)} metabolites to a total of {len(res)} reactions.'
         print(outline)
         return res
 
     def get_mapped_proteins(self,linked_reactions, reactions_info):
+        print('linked_reactions',linked_reactions)
         res = {}
         unconnected = set()
         total_proteins_connected=set()
@@ -244,19 +260,24 @@ class Compounds_to_Organisms_Mapping():
 
     def get_mapped_annotations(self,linked_proteins, proteins_info):
         res = {}
+        print('linked_proteins',linked_proteins)
         for reaction_id in linked_proteins:
             current_proteins=linked_proteins[reaction_id]
             for protein_id in current_proteins:
                 res[protein_id] = set()
                 if 'enzyme_ec' in proteins_info[protein_id]:
                     res[protein_id].update(proteins_info[protein_id]['enzyme_ec'])
+                if 'metacyc' in proteins_info[protein_id]:
+                    res[protein_id].update(proteins_info[protein_id]['metacyc'])
         return res
 
     def get_mapped_organisms(self,mapped_annotations, mantis_annotations):
+
         res = {}
         for ma in mantis_annotations:
             current_annotations = self.extract_mantis_ids(ma)
             enzyme_ec = current_annotations['enzyme_ec']
+            metacyc = current_annotations['metacyc']
             organism = ma.split('/')[-2]
             res[organism] = {'annotations': set(), 'protein_ids': set()}
             for protein_id in mapped_annotations:
@@ -264,6 +285,10 @@ class Compounds_to_Organisms_Mapping():
                 ec_intersection = protein_annotations.intersection(enzyme_ec)
                 if ec_intersection:
                     res[organism]['annotations'].update(ec_intersection)
+                    res[organism]['protein_ids'].add(protein_id)
+                metacyc_intersection = protein_annotations.intersection(metacyc)
+                if metacyc_intersection:
+                    res[organism]['annotations'].update(metacyc_intersection)
                     res[organism]['protein_ids'].add(protein_id)
 
         return res
@@ -381,28 +406,3 @@ class Compounds_to_Organisms_Mapping():
         self.run_drax()
         self.output_results()
 
-if __name__ == '__main__':
-    #if True:
-    #    Compounds_to_Organisms_Mapping(input_samples='/home/pedroq/Desktop/test_mapping/samples/', metabolites='/home/pedroq/Desktop/test_mapping/metabolites.tsv',output_folder='/home/pedroq/Desktop/test_mapping/out',database=None)
-    #else:
-    print('Executing command:\n', ' '.join(sys.argv))
-    parser = argparse.ArgumentParser(description='This workflow suggests new connections for Carveme metabolic models\n',formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-i','--input_samples', help='[required]\tInput folder with protein sequences fastas')
-    parser.add_argument('-m', '--metabolites', help='[required]\tMetabolites list (synonyms or ChEBI IDs), with each metabolite in a separate line')
-    parser.add_argument('-o', '--output_folder', help='[required]\tOutput directory')
-    parser.add_argument('-pt', '--politeness_timer', help='[optional]\tTime (seconds) between requests. Default is 10. Please be careful not to overleaf the corresponding databases, you might get blocked from doing future requests.')
-    parser.add_argument('-db','--database', help='[optional]\tDatabases to be used in DRAX')
-    args = parser.parse_args()
-    input_samples = args.input_samples
-    metabolites = args.metabolites
-    output_folder = args.output_folder
-    politeness_timer = args.politeness_timer
-    database = args.database
-    if politeness_timer: politeness_timer=int(politeness_timer)
-    else: politeness_timer=10
-
-
-    if os.path.exists(input_samples) and os.path.exists(metabolites) and output_folder:
-        Compounds_to_Organisms_Mapping(input_samples=input_samples,metabolites=metabolites,output_folder=output_folder,database=database,politeness_timer=politeness_timer)
-    else:
-        print('Missing input and output folders')

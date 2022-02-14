@@ -13,7 +13,7 @@ if sys.platform.startswith('win'):
 else:
     SPLITTER = '/'
 
-DRAX_FOLDER = os.path.abspath(os.path.dirname(__file__)).split(SPLITTER)[0:-2]
+DRAX_FOLDER = os.path.abspath(os.path.dirname(__file__)).split(SPLITTER)[0:-1]
 DRAX_FOLDER = SPLITTER.join(DRAX_FOLDER) + SPLITTER
 RESOURCES_FOLDER=f'{DRAX_FOLDER}Resources{SPLITTER}'
 
@@ -37,17 +37,30 @@ class Input_Generator(Rhea_SQLITE_Connector,Metacyc_SQLITE_Connector):
     def get_ecs(self,file_path):
         res = set()
         with open(file_path) as file:
-            json_modules = json.load(file)['children'][0]['children']
-            for main_path in json_modules:
-                sub_pathways = main_path['children']
-                for sub_path in sub_pathways:
-                    modules = sub_path['children']
-                    for module in modules:
-                        sub_sub_description = module['name']
-                        sub_sub_ec = sub_sub_description.split()[0]
-                        if '-' not in sub_sub_ec:
-                            res.add(sub_sub_ec)
+            json_modules = json.load(file)['children']
+            for level_1 in json_modules:
+                level_1_name = level_1['name'].split()[0]
+                level_1_description = level_1['name'].replace(level_1_name, '').strip()
+
+                level_1_children = level_1['children']
+                for level_2 in level_1_children:
+                    level_2_name = level_2['name'].split()[0]
+                    level_2_description = level_2['name'].replace(level_2_name, '').strip()
+                    level_2_children = level_2['children']
+
+                    for level_3 in level_2_children:
+                        level_3_name = level_3['name'].split()[0]
+                        level_3_description = level_3['name'].replace(level_3_name, '').strip()
+                        level_3_children = level_3['children']
+
+                        for level_4 in level_3_children:
+                            level_4_name = level_4['name'].split()[0]
+                            level_4_description = level_4['name'].replace(level_4_name, '').strip()
+                            if not level_4_name.endswith('-'):
+                                res.add(level_4_name)
+
         return res
+
 
     def get_kos(self,file_path):
         res = set()
@@ -71,19 +84,31 @@ class Input_Generator(Rhea_SQLITE_Connector,Metacyc_SQLITE_Connector):
 
     def yield_all_lines(self,pickle_path):
         for db_id in self.rhea_fetch_all_reactions():
-            yield f'{db_id}\trhea\treaction\tglobal\n'
+            yield f'{db_id}\trhea\treaction\tcrp\n'
         for db_id in self.metacyc_fetch_all_proteins():
-            yield f'{db_id}\tmetacyc\tprotein\tglobal\n'
+            yield f'{db_id}\tmetacyc\tprotein\tprc\n'
         ecs_kos=self.load_metrics(pickle_path)
         for db in ecs_kos:
             for db_id in ecs_kos[db]:
-                yield f'{db_id}\t{db}\tprotein\tglobal\n'
+                yield f'{db_id}\t{db}\tprotein\tprc\n'
+
+    def yield_all_kos(self,pickle_path):
+        ecs_kos=self.load_metrics(pickle_path)
+        for db_id in ecs_kos['kegg_ko']:
+            yield f'{db_id}\tkegg_ko\tprotein\tprc\n'
 
     def generate_universal_input(self,pickle_path):
         if not os.path.exists(pickle_path):
             self.generate_pickle_ecs_kos(pickle_path, ec_json, ko_json)
         with open(self.output_path,'w+') as file:
             for drax_line in self.yield_all_lines(pickle_path):
+                file.write(drax_line)
+
+    def generate_ko_input(self,pickle_path):
+        if not os.path.exists(pickle_path):
+            self.generate_pickle_ecs_kos(pickle_path, ec_json, ko_json)
+        with open(self.output_path,'w+') as file:
+            for drax_line in self.yield_all_kos(pickle_path):
                 file.write(drax_line)
 
     def parse_tsv(self,input_file):
@@ -103,18 +128,7 @@ class Input_Generator(Rhea_SQLITE_Connector,Metacyc_SQLITE_Connector):
                             res[db].add(annot)
         return res
 
-    #this is not general enough
-    def generate_input_from_annotations(self,input_annotations):
-        parsed_annotations=self.parse_tsv(input_annotations)
-        with open(self.output_path, 'w+') as file:
-            for id_type in parsed_annotations:
-                for annot in parsed_annotations[id_type]:
-                    if id_type in ['kegg_ko','metacyc','cog','kegg_module']:
-                        file.write(f'{annot}\t{id_type}\tprotein\tprc\n')
-                    elif id_type in ['kegg_reaction']:
-                        file.write(f'{annot}\t{id_type}\treaction\tcrp\n')
-                    else:
-                        pass
+
 
 
 
@@ -124,11 +138,10 @@ if __name__ == '__main__':
     ec_json = 'ko01000.json'
     # from https://www.genome.jp/kegg-bin/show_brite?ko00001.keg
     ko_json = 'ko00001.json'
+    #output_path=f'universal_input.tsv'
+    output_path=f'kegg_ko_input.tsv'
 
-
-    output_path=f'universal_input.tsv'
-    mantis_tsv=f'/home/pedroq/Desktop/test_mantis/test2/consensus_annotation.tsv'
     s=Input_Generator(output_path)
-    s.generate_universal_input(pickle_path)
+    s.generate_ko_input(pickle_path)
 
 
