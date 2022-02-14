@@ -56,7 +56,7 @@ setup(
         "Operating System :: OS Independent",
     ],
     license="MIT",
-    install_requires=['requests','python>=3.7'],
+    #install_requires=['requests','python>=3.7'],
     entry_points={
         "console_scripts": [
             "drax=drax.__main__:main",

@@ -44,9 +44,43 @@ if platform.startswith('win'):
 else:
     SPLITTER = '/'
 
-DRAX_FOLDER = os.path.abspath(os.path.dirname(__file__)).split(SPLITTER)[0:-1]
+
+DRAX_FOLDER = os.path.abspath(os.path.dirname(__file__)).split(SPLITTER)[0:-2]
 DRAX_FOLDER = SPLITTER.join(DRAX_FOLDER) + SPLITTER
 RESOURCES_FOLDER=f'{DRAX_FOLDER}Resources{SPLITTER}'
+
+
+def check_all_resources():
+    metacyc_folder = f'{RESOURCES_FOLDER}metacyc{SPLITTER}'
+    required_resources = [
+        'compounds.dat',
+        'proteins.dat',
+        'reactions.dat',
+        'gene-links.dat',
+        'genes.dat',
+        'README.md',
+    ]
+    if not os.path.exists(metacyc_folder): return False
+    for file in os.listdir(metacyc_folder):
+        if file not in required_resources:
+            current_file = f'{metacyc_folder}{file}'
+            if not os.path.isdir(current_file):
+                os.remove(current_file)
+    c = 0
+    for i in required_resources:
+        if i in os.listdir(metacyc_folder):
+            c += 1
+    if len(required_resources) == c:
+        return True
+    return False
+
+
+metacyc_resources=check_all_resources()
+if not metacyc_resources:
+    if 'metacyc' in SCRAPPABLE_DBS:
+        SCRAPPABLE_DBS.remove('metacyc')
+
+
 
 def set_scrappable_dbs(user_databases):
     if user_databases:

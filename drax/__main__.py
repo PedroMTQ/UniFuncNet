@@ -5,12 +5,11 @@ from datetime import datetime
 from sys import platform
 import uuid
 
-from drax.Utils.util import SCRAPPABLE_DBS,set_scrappable_dbs,VALID_DIRECTIONS,print_version
+from drax.Utils.util import SCRAPPABLE_DBS,set_scrappable_dbs,VALID_DIRECTIONS,print_version,DRAX_FOLDER,RESOURCES_FOLDER,check_all_resources,check_all_resources
 from drax.Searchers.Gene_Searcher import  Gene_Searcher
 from drax.Searchers.Protein_Searcher import  Protein_Searcher
 from drax.Searchers.Compound_Searcher import  Compound_Searcher
 from drax.Searchers.Reaction_Searcher import  Reaction_Searcher
-#https://patorjk.com/software/taag/#p=display&f=Alpha&t=DRAX
 from time import time
 
 if platform.startswith('win'):
@@ -18,9 +17,7 @@ if platform.startswith('win'):
 else:
     SPLITTER = '/'
 
-DRAX_FOLDER = os.path.abspath(os.path.dirname(__file__)).split(SPLITTER)[0:-1]
-DRAX_FOLDER = SPLITTER.join(DRAX_FOLDER) + SPLITTER
-RESOURCES_FOLDER=f'{DRAX_FOLDER}Resources{SPLITTER}'
+
 
 def run_test():
     datetime_str = str(datetime.now().strftime("%Y-%m-%dT%H%M%S"))
@@ -216,9 +213,6 @@ def argv_input_generator_function():
         s.generate_ko_input(output_path,pickle_path, ec_json, ko_json)
     else:
         s.generate_universal_input(output_path,pickle_path,ec_json, ko_json)
-
-
-
 
 def set_search_mode(searchers_list,search_mode):
     for searcher in searchers_list:

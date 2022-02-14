@@ -13,9 +13,6 @@ if sys.platform.startswith('win'):
 else:
     SPLITTER = '/'
 
-DRAX_FOLDER = os.path.abspath(os.path.dirname(__file__)).split(SPLITTER)[0:-1]
-DRAX_FOLDER = SPLITTER.join(DRAX_FOLDER) + SPLITTER
-RESOURCES_FOLDER=f'{DRAX_FOLDER}Resources{SPLITTER}'
 
 
 class Input_Generator(Rhea_SQLITE_Connector,Metacyc_SQLITE_Connector):

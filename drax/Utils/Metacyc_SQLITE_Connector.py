@@ -1,6 +1,6 @@
 
 
-from drax.Utils.util import SPLITTER,RESOURCES_FOLDER,strip_tags,remove_inchi_key_equal
+from drax.Utils.util import SPLITTER,RESOURCES_FOLDER,strip_tags,remove_inchi_key_equal,check_all_resources
 import re
 import os
 import sqlite3
@@ -8,6 +8,7 @@ from string import punctuation
 from re import match
 
 stoichiometry_regex=re.compile('[n|N]\+?\d?')
+
 
 class Metacyc_SQLITE_Connector():
     def __init__(self):
@@ -25,7 +26,7 @@ class Metacyc_SQLITE_Connector():
         if os.path.exists(self.metacyc_db):
             self.metacyc_start_sqlite_cursor()
         else:
-            if self.check_all_resources():
+            if check_all_resources():
                 self.metacyc_create_db()
             else:
                 print(f'Missing metacyc files. Please download them and place them in {self.metacyc_folder}')
@@ -464,27 +465,6 @@ class Metacyc_SQLITE_Connector():
 
 
     ######### the parsing happens below
-
-    def check_all_resources(self):
-        required_resources=[
-            'compounds.dat',
-            'proteins.dat',
-            'reactions.dat',
-            'gene-links.dat',
-            'genes.dat',
-            'README.md',
-        ]
-        if not os.path.exists(self.metacyc_folder): return False
-        for file in os.listdir(self.metacyc_folder):
-            if file not in required_resources:
-                os.remove(f'{self.metacyc_folder}{file}')
-        c=0
-        for i in required_resources:
-            if i in os.listdir(self.metacyc_folder):
-                c+=1
-        if len(required_resources)==c:
-            return True
-        return False
 
     def process_chemical_formula(self,chemical_formula):
         res=[]

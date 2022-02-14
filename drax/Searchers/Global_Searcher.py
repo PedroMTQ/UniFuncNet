@@ -9,7 +9,7 @@ from drax.Utils.Metacyc_SQLITE_Connector import Metacyc_SQLITE_Connector
 from drax.Utils.Rhea_SQLITE_Connector import Rhea_SQLITE_Connector
 from drax.Utils.CHEBI_SQLITE_Connector import CHEBI_SQLITE_Connector
 
-
+import os
 import datetime
 import re
 import ast
