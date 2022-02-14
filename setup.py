@@ -2,7 +2,7 @@ import pathlib
 from setuptools import setup,find_packages
 
 
-package_name='DRAX'
+package_name='UniFuncNet'
 def get_package_version():
     import os
     from sys import platform
@@ -35,7 +35,7 @@ HERE = pathlib.Path(__file__).parent
 # The text of the README file
 README = (HERE / "README.md").read_text(encoding='utf-8')
 
-long_description='DRAX is network annotation tool that integrates multiple biological databases into one composite output.'
+long_description='UniFuncNet is network annotation tool that integrates multiple biological databases into one composite output.'
 
 setup(
     name=package_name,
@@ -45,9 +45,9 @@ setup(
     description="Biological network annotation tool.",
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url="https://github.com/PedroMTQ/drax",
+    url="https://github.com/PedroMTQ/unifuncnet",
     project_urls={
-        "Bug Tracker": "https://github.com/PedroMTQ/DRAX/issues",
+        "Bug Tracker": "https://github.com/PedroMTQ/UniFuncNet/issues",
     },
     packages=find_packages(),
     classifiers=[
@@ -56,10 +56,10 @@ setup(
         "Operating System :: OS Independent",
     ],
     license="MIT",
-    install_requires=['requests','python>=3.7'],
+    install_requires=['requests','beautifulsoup4','lxml'],
     entry_points={
         "console_scripts": [
-            "drax=drax.__main__:main",
+            "unifuncnet=unifuncnet.__main__:main",
         ],
     },
 )

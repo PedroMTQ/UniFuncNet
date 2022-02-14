@@ -98,15 +98,15 @@ class Input_Generator(Rhea_SQLITE_Connector,Metacyc_SQLITE_Connector):
         if not os.path.exists(pickle_path):
             self.generate_pickle_ecs_kos(pickle_path, ec_json, ko_json)
         with open(self.output_path,'w+') as file:
-            for drax_line in self.yield_all_lines(pickle_path):
-                file.write(drax_line)
+            for unifuncnet_line in self.yield_all_lines(pickle_path):
+                file.write(unifuncnet_line)
 
     def generate_ko_input(self,pickle_path):
         if not os.path.exists(pickle_path):
             self.generate_pickle_ecs_kos(pickle_path, ec_json, ko_json)
         with open(self.output_path,'w+') as file:
-            for drax_line in self.yield_all_kos(pickle_path):
-                file.write(drax_line)
+            for unifuncnet_line in self.yield_all_kos(pickle_path):
+                file.write(unifuncnet_line)
 
     def parse_tsv(self,input_file):
         res = {}

@@ -7,7 +7,7 @@ https://biocyc.org/download.shtml
 
 When you obtain your license, download the `Metacyc flat files`. The file is usually named `meta.tar.gz`.
 
-Extract all the files in the folder `data` to `DRAX/Resources/metacyc/`.
+Extract all the files in the folder `data` to `UniFuncNet/Resources/metacyc/`.
 Your need the following files:
 - compounds.dat
 - proteins.dat
@@ -15,11 +15,11 @@ Your need the following files:
 - gene-links.dat
 - genes.dat
 
-**When you execute DRAX, all other files in this folder are removed!**
+**When you execute UniFuncNet, all other files in this folder are removed!**
 
 So basically, this folder will only contain the previous files plus this `README.md`.
 
-**If you don't have these files, DRAX will not integrate Metacyc**
+**If you don't have these files, UniFuncNet will not integrate Metacyc**
 
 If everything is working correctly, a `metacyc.db` file should be created in the `Resources` folder
 

@@ -31,10 +31,10 @@ class Compounds_to_Organisms_Mapping():
 
             self.unwanted_mantis_dbs = ['nog', 'ncbi', 'tcdb']
             self.mantis_env='mantis_env'
-            self.drax_env='drax_env'
+            self.unifuncnet_env='unifuncnet_env'
 
-            self.drax_input = f'{self.output_folder}drax_input.tsv'
-            self.drax_output = f'{self.output_folder}drax_output{SPLITTER}'
+            self.unifuncnet_input = f'{self.output_folder}unifuncnet_input.tsv'
+            self.unifuncnet_output = f'{self.output_folder}unifuncnet_output{SPLITTER}'
             self.mantis_input = f'{self.output_folder}mantis_input.tsv'
             self.mantis_output = f'{self.output_folder}mantis_output{SPLITTER}'
             self.workflow_output = f'{self.output_folder}workflow_output{SPLITTER}'
@@ -45,7 +45,7 @@ class Compounds_to_Organisms_Mapping():
             self.conda_prefix = self.get_conda_prefix()
 
             self.politeness_timer=politeness_timer
-            for p in [self.output_folder,self.drax_output,self.mantis_output,self.workflow_output]:
+            for p in [self.output_folder,self.unifuncnet_output,self.mantis_output,self.workflow_output]:
                 Path(p).mkdir(parents=True, exist_ok=True)
             self.workflow()
 
@@ -123,22 +123,22 @@ class Compounds_to_Organisms_Mapping():
             print(f'Mantis already ran')
 
 
-    def run_drax(self):
+    def run_unifuncnet(self):
         self.create_mantis_input()
-        if not os.listdir(self.drax_output):
+        if not os.listdir(self.unifuncnet_output):
             if self.database:
-                run_drax_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && python {DRAX_FOLDER} -i {self.drax_input} -o {self.drax_output} -pt {self.politeness_timer} -db {self.database}'
+                run_unifuncnet_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.unifuncnet_env} && python {UniFuncNet_FOLDER} -i {self.unifuncnet_input} -o {self.unifuncnet_output} -pt {self.politeness_timer} -db {self.database}'
             else:
-                run_drax_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && python {DRAX_FOLDER} -i {self.drax_input} -o {self.drax_output} -pt {self.politeness_timer}'
+                run_unifuncnet_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.unifuncnet_env} && python {UniFuncNet_FOLDER} -i {self.unifuncnet_input} -o {self.unifuncnet_output} -pt {self.politeness_timer}'
 
 
-            subprocess.run(run_drax_command,shell=True)
+            subprocess.run(run_unifuncnet_command,shell=True)
 
         else:
-            print(f'We found files in {self.drax_output}, so DRAX will not run again')
+            print(f'We found files in {self.unifuncnet_output}, so UniFuncNet will not run again')
 
-    def compile_input_drax(self):
-        with open(self.drax_input, 'w+') as out_file:
+    def compile_input_unifuncnet(self):
+        with open(self.unifuncnet_input, 'w+') as out_file:
             with open(self.metabolites) as met_file:
                 for line in met_file:
                     line=line.strip('\n').split('\t')
@@ -158,9 +158,9 @@ class Compounds_to_Organisms_Mapping():
                 res.append(line)
         return res
 
-    def read_drax_tsv(self,drax_tsv):
+    def read_unifuncnet_tsv(self,unifuncnet_tsv):
         res = {}
-        with open(drax_tsv) as file:
+        with open(unifuncnet_tsv) as file:
             line = file.readline()
             while line:
                 line = line.strip('\n').split('\t')
@@ -213,7 +213,7 @@ class Compounds_to_Organisms_Mapping():
         for met in metabolites:
             if met not in mapped:
                 unmapped.append(met)
-        outline=f'DRAX managed to gather information on {len(mapped)} metabolites, but failed to do so for {len(unmapped)} metabolites.'
+        outline=f'UniFuncNet managed to gather information on {len(mapped)} metabolites, but failed to do so for {len(unmapped)} metabolites.'
         print(outline)
         return res
 
@@ -226,14 +226,14 @@ class Compounds_to_Organisms_Mapping():
                 reaction_cpds = reactions_info[reaction_id]['reaction_compounds']
                 if ' => ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' => ', ' <=> ')
                 if ' <= ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' <= ', ' <=> ')
-                drax_reactants, drax_products = reaction_cpds.split('<=>')
-                drax_reactants, drax_products = [j.strip() for j in drax_reactants.split('+')], [j.strip() for j in drax_products.split('+')]
-                reaction_cpds = set(drax_reactants + drax_products)
+                unifuncnet_reactants, unifuncnet_products = reaction_cpds.split('<=>')
+                unifuncnet_reactants, unifuncnet_products = [j.strip() for j in unifuncnet_reactants.split('+')], [j.strip() for j in unifuncnet_products.split('+')]
+                reaction_cpds = set(unifuncnet_reactants + unifuncnet_products)
                 metabolites_in_reactions = reaction_cpds.intersection(mapped_internal)
                 if metabolites_in_reactions:
                     res[reaction_id] = metabolites_in_reactions
                 compounds.update(metabolites_in_reactions)
-        outline=f'DRAX managed to link {len(compounds)} metabolites to a total of {len(res)} reactions.'
+        outline=f'UniFuncNet managed to link {len(compounds)} metabolites to a total of {len(res)} reactions.'
         print(outline)
         return res
 
@@ -249,7 +249,7 @@ class Compounds_to_Organisms_Mapping():
                 total_proteins_connected.update(proteins_connected)
             else:
                 unconnected.add(reaction_id)
-        outline=f'DRAX managed to link {len(res)} reactions to {len(total_proteins_connected)} proteins, but failed to do so for {len(unconnected)} reactions.'
+        outline=f'UniFuncNet managed to link {len(res)} reactions to {len(total_proteins_connected)} proteins, but failed to do so for {len(unconnected)} reactions.'
         print(outline)
         return res
 
@@ -321,9 +321,9 @@ class Compounds_to_Organisms_Mapping():
                 reaction_cpds = reactions_info[reaction_id]['reaction_compounds']
                 if ' => ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' => ', ' <=> ')
                 if ' <= ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' <= ', ' <=> ')
-                drax_reactants, drax_products = reaction_cpds.split('<=>')
-                drax_reactants, drax_products = [j.strip() for j in drax_reactants.split('+')], [j.strip() for j in drax_products.split('+')]
-                reaction_cpds = set(drax_reactants + drax_products)
+                unifuncnet_reactants, unifuncnet_products = reaction_cpds.split('<=>')
+                unifuncnet_reactants, unifuncnet_products = [j.strip() for j in unifuncnet_reactants.split('+')], [j.strip() for j in unifuncnet_products.split('+')]
+                reaction_cpds = set(unifuncnet_reactants + unifuncnet_products)
                 for cpd_id in reaction_cpds:
                     if cpd_id in mapping:
                         metabolites_info = mapping[cpd_id]
@@ -371,12 +371,12 @@ class Compounds_to_Organisms_Mapping():
                 file.write(line)
 
     def output_results(self):
-        compounds = f'{self.drax_output}Compounds.tsv'
-        proteins = f'{self.drax_output}Proteins.tsv'
-        reactions = f'{self.drax_output}Reactions.tsv'
-        compounds_info = self.read_drax_tsv(compounds)
-        reactions_info = self.read_drax_tsv(reactions)
-        proteins_info = self.read_drax_tsv(proteins)
+        compounds = f'{self.unifuncnet_output}Compounds.tsv'
+        proteins = f'{self.unifuncnet_output}Proteins.tsv'
+        reactions = f'{self.unifuncnet_output}Reactions.tsv'
+        compounds_info = self.read_unifuncnet_tsv(compounds)
+        reactions_info = self.read_unifuncnet_tsv(reactions)
+        proteins_info = self.read_unifuncnet_tsv(proteins)
         metabolites = self.get_metabolites()
         organisms_annotations= [f'{self.mantis_output}{org}{SPLITTER}consensus_annotation.tsv' for org in os.listdir(self.mantis_output)]
 
@@ -399,7 +399,7 @@ class Compounds_to_Organisms_Mapping():
     def workflow(self):
         self.run_mantis_setup()
         self.run_mantis()
-        self.compile_input_drax()
-        self.run_drax()
+        self.compile_input_unifuncnet()
+        self.run_unifuncnet()
         self.output_results()
 

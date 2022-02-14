@@ -30,8 +30,8 @@ class GSMM_Expansion():
                 self.metacyc_ref=None
 
         self.carveme_models = f'{self.output_folder}models{SPLITTER}'
-        self.drax_input = f'{self.output_folder}drax_input.tsv'
-        self.drax_output = f'{self.output_folder}drax_output{SPLITTER}'
+        self.unifuncnet_input = f'{self.output_folder}unifuncnet_input.tsv'
+        self.unifuncnet_output = f'{self.output_folder}unifuncnet_output{SPLITTER}'
         self.mantis_input = f'{self.output_folder}mantis_input.tsv'
         self.mantis_output = f'{self.output_folder}mantis_output{SPLITTER}'
         self.workflow_output = f'{self.output_folder}workflow_output{SPLITTER}'
@@ -42,13 +42,13 @@ class GSMM_Expansion():
         self.unwanted_mantis_dbs=['nog','ncbi','tcdb']
         self.mantis_env='mantis_env'
         self.carveme_env='carveme_env'
-        self.drax_env='drax_env'
+        self.unifuncnet_env='unifuncnet_env'
         self.conda_prefix = self.get_conda_prefix()
         self.compounds_match={'searched':set(),'matched':{}}
         #only expand network if some of the nodes are connected to the initial gsmm
         self.only_connected=only_connected
         self.politeness_timer=politeness_timer
-        for p in [self.output_folder,self.carveme_models,self.drax_output,self.mantis_output,self.workflow_output]:
+        for p in [self.output_folder,self.carveme_models,self.unifuncnet_output,self.mantis_output,self.workflow_output]:
             Path(p).mkdir(parents=True, exist_ok=True)
         self.workflow()
 
@@ -159,12 +159,12 @@ class GSMM_Expansion():
             if res[i]:
                 compound_dict[i] = res[i]
         with open(self.output_report,'a+') as file:
-            outline=f'This model has a total of {len(res)} compounds, with {len(res)-len(compound_dict)} not having any metadata to search with DRAX\n'
+            outline=f'This model has a total of {len(res)} compounds, with {len(res)-len(compound_dict)} not having any metadata to search with UniFuncNet\n'
             file.write(outline)
         return compound_dict
 
 
-    ###### generating drax input
+    ###### generating unifuncnet input
 
     def extract_mantis_ids(self,mantis_annotations):
         res = {}
@@ -183,7 +183,7 @@ class GSMM_Expansion():
                 line = file.readline()
         return res
 
-    def ids_to_run_drax(self,mantis_annotations, model_file):
+    def ids_to_run_unifuncnet(self,mantis_annotations, model_file):
         mantis_ids = self.extract_mantis_ids(mantis_annotations)
         model_ids = self.extract_model_ids_proteins_and_reactions(model_file)
         res = {}
@@ -210,21 +210,21 @@ class GSMM_Expansion():
                 res[id_type].update(ids_to_run[id_type])
         return res
 
-    def compile_input_drax(self):
-        print('Compiling DRAX input tsv')
-        drax_ids=[]
+    def compile_input_unifuncnet(self):
+        print('Compiling UniFuncNet input tsv')
+        unifuncnet_ids=[]
         for model in os.listdir(self.carveme_models):
             if model.endswith('.xml'):
                 model_name=model.split('.')[0]
                 model_path=f'{self.carveme_models}{model}'
                 mantis_annotations=f'{self.mantis_output}{model_name}{SPLITTER}consensus_annotation.tsv'
-                model_ids=self.ids_to_run_drax(mantis_annotations,model_path)
-                drax_ids.append(model_ids)
-        drax_ids=self.merge_ids_to_run(drax_ids)
-        with open(self.drax_input, 'w+') as file:
-            for id_type in drax_ids:
+                model_ids=self.ids_to_run_unifuncnet(mantis_annotations,model_path)
+                unifuncnet_ids.append(model_ids)
+        unifuncnet_ids=self.merge_ids_to_run(unifuncnet_ids)
+        with open(self.unifuncnet_input, 'w+') as file:
+            for id_type in unifuncnet_ids:
                 if id_type in ['enzyme_ec','metacyc']:
-                    for annot in drax_ids[id_type]:
+                    for annot in unifuncnet_ids[id_type]:
                         file.write(f'{annot}\t{id_type}\tprotein\tprc\n')
 
 
@@ -240,38 +240,38 @@ class GSMM_Expansion():
 
         return G
 
-    def create_network_drax(self,reactions_dict):
+    def create_network_unifuncnet(self,reactions_dict):
         compounds_match=self.compounds_match['matched']
 
         G = nx.DiGraph()
 
         for reaction_id in reactions_dict:
-            drax_reaction_id = f'RD_{reaction_id}'
+            unifuncnet_reaction_id = f'RD_{reaction_id}'
             if 'reaction_compounds' in reactions_dict[reaction_id]:
                 reaction_cpds = reactions_dict[reaction_id]['reaction_compounds']
                 if ' => ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' => ', ' <=> ')
                 if ' <= ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' <= ', ' <=> ')
-                drax_reactants, drax_products = reaction_cpds.split('<=>')
-                drax_reactants, drax_products = [j.strip() for j in drax_reactants.split('+')], [j.strip() for j in drax_products.split('+')]
-                for reactant in drax_reactants:
+                unifuncnet_reactants, unifuncnet_products = reaction_cpds.split('<=>')
+                unifuncnet_reactants, unifuncnet_products = [j.strip() for j in unifuncnet_reactants.split('+')], [j.strip() for j in unifuncnet_products.split('+')]
+                for reactant in unifuncnet_reactants:
                     if reactant in compounds_match:
                         reactant = compounds_match[reactant]
                     else:
                         reactant = {reactant}
-                    for product in drax_products:
+                    for product in unifuncnet_products:
                         if product in compounds_match:
                             product = compounds_match[product]
                         else:
                             product = {product}
 
                         for r in reactant:
-                            G.add_edge(r, drax_reaction_id)
+                            G.add_edge(r, unifuncnet_reaction_id)
                         for p in product:
-                            G.add_edge(drax_reaction_id, p)
+                            G.add_edge(unifuncnet_reaction_id, p)
 
         return G
 
-    def create_network_expanded(self,reactions_model, reactions_drax):
+    def create_network_expanded(self,reactions_model, reactions_unifuncnet):
         compounds_match=self.compounds_match['matched']
         rejected_reactions=0
         G = nx.DiGraph()
@@ -281,39 +281,39 @@ class GSMM_Expansion():
             for p in reactions_model[reaction_id]['products']:
                 G.add_edge(reaction_id, p)
 
-        for reaction_id in reactions_drax:
-            drax_reaction_id = f'RD_{reaction_id}'
-            if 'reaction_compounds' in reactions_drax[reaction_id]:
+        for reaction_id in reactions_unifuncnet:
+            unifuncnet_reaction_id = f'RD_{reaction_id}'
+            if 'reaction_compounds' in reactions_unifuncnet[reaction_id]:
 
-                reaction_cpds = reactions_drax[reaction_id]['reaction_compounds']
+                reaction_cpds = reactions_unifuncnet[reaction_id]['reaction_compounds']
                 if ' => ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' => ', ' <=> ')
                 if ' <= ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' <= ', ' <=> ')
-                drax_reactants, drax_products = reaction_cpds.split('<=>')
-                drax_reactants, drax_products = [j.strip() for j in drax_reactants.split('+')], [j.strip() for j in drax_products.split('+')]
+                unifuncnet_reactants, unifuncnet_products = reaction_cpds.split('<=>')
+                unifuncnet_reactants, unifuncnet_products = [j.strip() for j in unifuncnet_reactants.split('+')], [j.strip() for j in unifuncnet_products.split('+')]
                 if not self.only_connected:
                     connected=True
                 else:
                     connected = False
-                    for drax_cpd_id in drax_reactants+drax_products:
-                        if drax_cpd_id in compounds_match:
+                    for unifuncnet_cpd_id in unifuncnet_reactants+unifuncnet_products:
+                        if unifuncnet_cpd_id in compounds_match:
                             connected=True
                 if connected:
-                    for reactant in drax_reactants:
+                    for reactant in unifuncnet_reactants:
                         if reactant in compounds_match:
                             reactant = compounds_match[reactant]
                         else:
                             reactant = {reactant}
 
-                    for product in drax_products:
+                    for product in unifuncnet_products:
                         if product in compounds_match:
                             product = compounds_match[product]
                         else:
                             product = {product}
 
                     for r in reactant:
-                        G.add_edge(r, drax_reaction_id)
+                        G.add_edge(r, unifuncnet_reaction_id)
                     for p in product:
-                        G.add_edge(drax_reaction_id, p)
+                        G.add_edge(unifuncnet_reaction_id, p)
                 else:
                     rejected_reactions += 1
             else:
@@ -410,9 +410,9 @@ class GSMM_Expansion():
 
     ###### merge networks
 
-    def read_drax_tsv(self,drax_tsv):
+    def read_unifuncnet_tsv(self,unifuncnet_tsv):
         res = {}
-        with open(drax_tsv) as file:
+        with open(unifuncnet_tsv) as file:
             line = file.readline()
             while line:
                 line = line.strip('\n').split('\t')
@@ -429,11 +429,11 @@ class GSMM_Expansion():
                 line = file.readline()
         return res
 
-    def subset_drax_proteins(self,proteins_drax,mantis_annotations_tsv):
+    def subset_unifuncnet_proteins(self,proteins_unifuncnet,mantis_annotations_tsv):
         res={}
         mantis_annotations=self.extract_mantis_ids(mantis_annotations_tsv)
-        for protein_id in proteins_drax:
-            protein_info=proteins_drax[protein_id]
+        for protein_id in proteins_unifuncnet:
+            protein_info=proteins_unifuncnet[protein_id]
             passed=False
             if 'enzyme_ec' in protein_info and 'enzyme_ec' in mantis_annotations:
                 if protein_info['enzyme_ec'].intersection(mantis_annotations['enzyme_ec']):
@@ -450,7 +450,7 @@ class GSMM_Expansion():
                 res[i] = proteins_dict[i]
         return res
 
-    def remove_proteins_drax_in_model(self,model_ids, proteins_dict):
+    def remove_proteins_unifuncnet_in_model(self,model_ids, proteins_dict):
         '''
         since mantis annotations sometimes only had KOs, we now check whether we already had the respective ECs in the model
         '''
@@ -461,9 +461,9 @@ class GSMM_Expansion():
                     res[i] = proteins_dict[i]
         return res
 
-    def remove_reactions_without_proteins_in_drax(self,proteins_dict, reactions_dict):
+    def remove_reactions_without_proteins_in_unifuncnet(self,proteins_dict, reactions_dict):
         '''
-        some proteins were found by drax but were already in the model, so now we have to remove those and their respective reactions
+        some proteins were found by unifuncnet but were already in the model, so now we have to remove those and their respective reactions
 
         '''
         res = {}
@@ -472,9 +472,9 @@ class GSMM_Expansion():
                 res[r] = reactions_dict[r]
         return res
 
-    def remove_reactions_drax_in_model_ids(self,model_ids, reactions_dict):
+    def remove_reactions_unifuncnet_in_model_ids(self,model_ids, reactions_dict):
         '''
-        some of the reactions from drax were already in the model, so now we remove them
+        some of the reactions from unifuncnet were already in the model, so now we remove them
 
         '''
         res = {}
@@ -492,68 +492,68 @@ class GSMM_Expansion():
 
         return res
 
-    def match_compounds_drax_model(self,model_file, compounds_dict):
+    def match_compounds_unifuncnet_model(self,model_file, compounds_dict):
         model_compounds = self.extract_model_ids_compounds(model_file)
-        for drax_internal_id in compounds_dict:
+        for unifuncnet_internal_id in compounds_dict:
             for model_id in model_compounds:
                 if model_id not in self.compounds_match['searched']:
                     for db in self.db_type_model_cpd:
-                        if db in compounds_dict[drax_internal_id] and db in model_compounds[model_id]:
-                            if compounds_dict[drax_internal_id][db].intersection(model_compounds[model_id][db]):
-                                if drax_internal_id not in self.compounds_match['matched']:
-                                    self.compounds_match['matched'][drax_internal_id] = set()
-                                self.compounds_match['matched'][drax_internal_id].add(model_id)
+                        if db in compounds_dict[unifuncnet_internal_id] and db in model_compounds[model_id]:
+                            if compounds_dict[unifuncnet_internal_id][db].intersection(model_compounds[model_id][db]):
+                                if unifuncnet_internal_id not in self.compounds_match['matched']:
+                                    self.compounds_match['matched'][unifuncnet_internal_id] = set()
+                                self.compounds_match['matched'][unifuncnet_internal_id].add(model_id)
                                 self.compounds_match['searched'].add(model_id)
 
-    def check_match_reactions(self,model_compounds, drax_compounds):
+    def check_match_reactions(self,model_compounds, unifuncnet_compounds):
         res = 0
         for r1 in model_compounds:
             r1_set = {r1}
-            for r2 in drax_compounds:
+            for r2 in unifuncnet_compounds:
                 if r1_set.intersection(r2):
                     res += 1
         return res
 
-    def remove_reactions_drax_in_model_cpds(self,model_file, reactions_dict):
+    def remove_reactions_unifuncnet_in_model_cpds(self,model_file, reactions_dict):
         compounds_match=self.compounds_match['matched']
         model_data = self.read_model(model_file)
         matched_reactions = {}
         res={}
         matched = set()
         unmatched = set()
-        for r_drax in reactions_dict:
-            if 'reaction_compounds' in reactions_dict[r_drax]:
-                reaction_cpds = reactions_dict[r_drax]['reaction_compounds']
+        for r_unifuncnet in reactions_dict:
+            if 'reaction_compounds' in reactions_dict[r_unifuncnet]:
+                reaction_cpds = reactions_dict[r_unifuncnet]['reaction_compounds']
                 if ' => ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' => ', ' <=> ')
                 if ' <= ' in reaction_cpds: reaction_cpds = reaction_cpds.replace(' <= ', ' <=> ')
-                drax_reactants, drax_products = reaction_cpds.split('<=>')
-                drax_reactants, drax_products = [j.strip() for j in drax_reactants.split('+')], [j.strip() for j in drax_products.split('+')]
+                unifuncnet_reactants, unifuncnet_products = reaction_cpds.split('<=>')
+                unifuncnet_reactants, unifuncnet_products = [j.strip() for j in unifuncnet_reactants.split('+')], [j.strip() for j in unifuncnet_products.split('+')]
                 matched_reactants, matched_products = [], []
-                for cpd in drax_reactants:
+                for cpd in unifuncnet_reactants:
                     if cpd in compounds_match:
                         matched_reactants.append(compounds_match[cpd])
                         matched.add(cpd)
                     else:
                         unmatched.add(cpd)
-                for cpd in drax_products:
+                for cpd in unifuncnet_products:
                     if cpd in compounds_match:
                         matched_products.append(compounds_match[cpd])
                         matched.add(cpd)
                     else:
                         unmatched.add(cpd)
-                if len(matched_reactants) == len(drax_reactants) and len(matched_products) == len(drax_products):
+                if len(matched_reactants) == len(unifuncnet_reactants) and len(matched_products) == len(unifuncnet_products):
                     for r_model in model_data:
                         model_reactants, model_products = model_data[r_model]['reactants'], model_data[r_model]['products']
                         match_reactants = self.check_match_reactions(model_reactants, matched_reactants)
                         match_products = self.check_match_reactions(model_products, matched_products)
                         if len(model_reactants) and len(model_products):
                             if match_reactants == len(model_reactants) and match_products == len(model_products):
-                                matched_reactions[r_drax] = r_model
+                                matched_reactions[r_unifuncnet] = r_model
 
                             match_reactants = self.check_match_reactions(model_reactants, matched_products)
                             match_products = self.check_match_reactions(model_products, matched_reactants)
                             if match_reactants == len(model_reactants) and match_products == len(model_products):
-                                matched_reactions[r_drax] = r_model
+                                matched_reactions[r_unifuncnet] = r_model
         #print('Matched compounds', len(matched))
         #print('Unmatched compounds', len(unmatched))
         for i in reactions_dict:
@@ -685,76 +685,76 @@ class GSMM_Expansion():
             print(f'Mantis already ran')
 
 
-    def run_drax(self):
-        print('Running DRAX')
+    def run_unifuncnet(self):
+        print('Running UniFuncNet')
         self.create_mantis_input()
-        if not os.listdir(self.drax_output):
+        if not os.listdir(self.unifuncnet_output):
             if self.database:
-                run_drax_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && drax -i {self.drax_input} -o {self.drax_output} -db {self.database} -pt {self.politeness_timer}'
+                run_unifuncnet_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.unifuncnet_env} && unifuncnet -i {self.unifuncnet_input} -o {self.unifuncnet_output} -db {self.database} -pt {self.politeness_timer}'
             else:
-                run_drax_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.drax_env} && drax -i {self.drax_input} -o {self.drax_output} -pt {self.politeness_timer}'
+                run_unifuncnet_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.unifuncnet_env} && unifuncnet -i {self.unifuncnet_input} -o {self.unifuncnet_output} -pt {self.politeness_timer}'
 
-            subprocess.run(run_drax_command,shell=True)
+            subprocess.run(run_unifuncnet_command,shell=True)
         else:
-            print(f'We found files in {self.mantis_output}, so DRAX will not run again')
+            print(f'We found files in {self.mantis_output}, so UniFuncNet will not run again')
 
     ###### main workflow
 
 
-    def read_output_drax(self,model_file, drax_output,mantis_annotations_tsv):
+    def read_output_unifuncnet(self,model_file, unifuncnet_output,mantis_annotations_tsv):
         '''
-        now we have information from drax where we used the extra mantis annotations as seed
-        first we need to match the identifiers from drax/Proteins to the model ids, and exclude those, since it might be that we didn't find a match before due to the ids being different
+        now we have information from unifuncnet where we used the extra mantis annotations as seed
+        first we need to match the identifiers from unifuncnet/Proteins to the model ids, and exclude those, since it might be that we didn't find a match before due to the ids being different
         '''
         model_reactions = self.read_model(model_file)
         model_ids = self.extract_model_ids_proteins_and_reactions(model_file,verbose=False)
-        compounds_drax = self.read_drax_tsv(drax_output + '/Compounds.tsv')
-        self.match_compounds_drax_model(model_file, compounds_drax)
+        compounds_unifuncnet = self.read_unifuncnet_tsv(unifuncnet_output + '/Compounds.tsv')
+        self.match_compounds_unifuncnet_model(model_file, compounds_unifuncnet)
         compounds_match=self.compounds_match['matched']
         with open(self.output_report,'a+') as file:
 
-            proteins_drax = self.read_drax_tsv(drax_output + '/Proteins.tsv')
-            outline=f'All proteins found by DRAX: {len(proteins_drax)}\n'
+            proteins_unifuncnet = self.read_unifuncnet_tsv(unifuncnet_output + '/Proteins.tsv')
+            outline=f'All proteins found by UniFuncNet: {len(proteins_unifuncnet)}\n'
             file.write(outline)
 
-            proteins_drax=self.subset_drax_proteins(proteins_drax,mantis_annotations_tsv)
-            outline=f'All proteins in sample found by DRAX: {len(proteins_drax)}\n'
+            proteins_unifuncnet=self.subset_unifuncnet_proteins(proteins_unifuncnet,mantis_annotations_tsv)
+            outline=f'All proteins in sample found by UniFuncNet: {len(proteins_unifuncnet)}\n'
             file.write(outline)
 
             # now we remove proteins without a reaction
-            proteins_drax = self.remove_proteins_without_reaction(proteins_drax)
-            outline=f'All proteins in sample connected to a reaction: {len(proteins_drax)}\n'
+            proteins_unifuncnet = self.remove_proteins_without_reaction(proteins_unifuncnet)
+            outline=f'All proteins in sample connected to a reaction: {len(proteins_unifuncnet)}\n'
             file.write(outline)
 
-            proteins_drax = self.remove_proteins_drax_in_model(model_ids, proteins_drax)
-            outline=f'All proteins in sample absent in the model: {len(proteins_drax)}\n'
+            proteins_unifuncnet = self.remove_proteins_unifuncnet_in_model(model_ids, proteins_unifuncnet)
+            outline=f'All proteins in sample absent in the model: {len(proteins_unifuncnet)}\n'
             file.write(outline)
 
-            reactions_drax = self.read_drax_tsv(drax_output + '/Reactions.tsv')
-            outline=f'All reactions found by DRAX: {len(reactions_drax)}\n'
+            reactions_unifuncnet = self.read_unifuncnet_tsv(unifuncnet_output + '/Reactions.tsv')
+            outline=f'All reactions found by UniFuncNet: {len(reactions_unifuncnet)}\n'
             file.write(outline)
 
-            reactions_drax = self.remove_reactions_without_proteins_in_drax(proteins_drax, reactions_drax)
-            outline=f'All reactions connected to proteins in sample: {len(reactions_drax)}\n'
+            reactions_unifuncnet = self.remove_reactions_without_proteins_in_unifuncnet(proteins_unifuncnet, reactions_unifuncnet)
+            outline=f'All reactions connected to proteins in sample: {len(reactions_unifuncnet)}\n'
             file.write(outline)
 
-            reactions_drax = self.remove_reactions_drax_in_model_ids(model_ids, reactions_drax)
-            outline=f'All reactions in sample absent in the model (ID matching): {len(reactions_drax)}\n'
+            reactions_unifuncnet = self.remove_reactions_unifuncnet_in_model_ids(model_ids, reactions_unifuncnet)
+            outline=f'All reactions in sample absent in the model (ID matching): {len(reactions_unifuncnet)}\n'
             file.write(outline)
 
-            reactions_drax = self.remove_reactions_drax_in_model_cpds(model_file, reactions_drax)
-            outline=f'All reactions in sample absent in the model (compound matching): {len(reactions_drax)}\n'
+            reactions_unifuncnet = self.remove_reactions_unifuncnet_in_model_cpds(model_file, reactions_unifuncnet)
+            outline=f'All reactions in sample absent in the model (compound matching): {len(reactions_unifuncnet)}\n'
             file.write(outline)
 
 
-            outline=f'DRAX can potentially add {len(reactions_drax)} new reactions to the model\n'
+            outline=f'UniFuncNet can potentially add {len(reactions_unifuncnet)} new reactions to the model\n'
             file.write(outline)
 
             model_network = self.create_network_model(model_reactions)
             self.evaluate_network(model_network, nx.weakly_connected_components,'baseline')
 
-            expanded_network,rejected_reactions = self.create_network_expanded(model_reactions, reactions_drax)
-            outline = f'We rejected {rejected_reactions} reactions so we only added {len(reactions_drax)-rejected_reactions} reactions\n'
+            expanded_network,rejected_reactions = self.create_network_expanded(model_reactions, reactions_unifuncnet)
+            outline = f'We rejected {rejected_reactions} reactions so we only added {len(reactions_unifuncnet)-rejected_reactions} reactions\n'
             file.write(outline)
             self.evaluate_network(expanded_network, nx.weakly_connected_components,'expanded')
         self.compare_dead_end_metabolites(model_network, expanded_network)
@@ -806,7 +806,7 @@ class GSMM_Expansion():
                 with open(self.output_report, 'a+') as file:
                     outline = f'####################################################################################################\nStarting analysis of {model}\n####################################################################################################\n'
                     file.write(outline)
-                model_network,expanded_network=self.read_output_drax(model_path,self.drax_output,mantis_annotations_tsv)
+                model_network,expanded_network=self.read_output_unifuncnet(model_path,self.unifuncnet_output,mantis_annotations_tsv)
                 model_edges,expanded_edges=self.get_all_nodes(model_network,expanded_network)
                 self.output_graph(output_sif_path,model_edges,expanded_edges)
 
@@ -814,8 +814,8 @@ class GSMM_Expansion():
         self.run_mantis_setup()
         self.run_carveme()
         self.run_mantis()
-        self.compile_input_drax()
-        self.run_drax()
+        self.compile_input_unifuncnet()
+        self.run_unifuncnet()
         self.output_results()
 
 

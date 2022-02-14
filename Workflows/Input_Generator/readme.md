@@ -1,8 +1,8 @@
 # What is this workflow for?
 
-This workflow is used to create an universal DRAX input tsv file.
+This workflow is used to create an universal UniFuncNet input tsv file.
 
-It collects all available KOs,enzyme ECs, Metacyc protein ids and Rhea reactions, and saves a DRAX input tsv with those IDs with the 'global' search mode.
+It collects all available KOs,enzyme ECs, Metacyc protein ids and Rhea reactions, and saves a UniFuncNet input tsv with those IDs with the 'global' search mode.
 
 
 
