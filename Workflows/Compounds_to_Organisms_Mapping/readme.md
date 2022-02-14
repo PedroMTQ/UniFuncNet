@@ -8,7 +8,7 @@ Please also make sure that when you install drax, you leave the environment with
 
 ## Executing workflow
 
-To execute this workflow simply do `python Compounds_to_Organisms_Mapping.py -i input_folder -o output_folder -met metabolites.tsv -db kegg,rhea,biocyc,hmdb`.
+To execute this workflow simply do `drax compounds_to_organism -i input_folder -o output_folder -met metabolites.tsv -db kegg,rhea,biocyc,hmdb`.
 
 The `input_folder` variable should be a folder with one or more protein sequences fastas. 
 The `metabolites.tsv` contains a list of metabolites. Each line should contain two columns, the first one should have the ID, the second the ID type, e.g.:

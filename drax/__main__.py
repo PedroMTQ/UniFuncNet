@@ -31,7 +31,6 @@ def run_test():
     searcher.run_searcher('1.1.1.178', 'enzyme_ec')
     searcher.output_results()
 
-
 def argv_gsmm_expansion_function():
     from Workflows.GSMM_Expansion.GSMM_Expansion import GSMM_Expansion
     print('Executing command:\n', ' '.join(sys.argv))
@@ -171,7 +170,6 @@ def argv_neo4j_function():
     else:
         neo4j_driver.export_drax_to_neo4j(input_path)
 
-
 def argv_input_generator_function():
     from Workflows.Input_Generator.Input_Generator import Input_Generator
     print('Executing command:\n', ' '.join(sys.argv))
@@ -182,7 +180,7 @@ def argv_input_generator_function():
     parser.add_argument('workflow')
     parser.add_argument('-o', '--output_folder', help='[required]\tOutput folder')
     parser.add_argument('-ec', '--ec_json', help='[required]\tEC json from https://www.kegg.jp/brite/ko01000')
-    parser.add_argument('-ko', '--ko_json', help='[required]\tEC json from https://www.genome.jp/kegg-bin/show_brite?ko00001.keg')
+    parser.add_argument('-ko', '--ko_json', help='[required]\tKO json from https://www.genome.jp/kegg-bin/show_brite?ko00001.keg')
     parser.add_argument('-db', '--database', help='[optional]\tDatabase to generate input. <all> by default',choices = ['all', 'ko'])
 
     args = parser.parse_args()

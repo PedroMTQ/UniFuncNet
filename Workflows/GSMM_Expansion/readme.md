@@ -17,7 +17,7 @@ You need `networkx` to run this analysis; to install it run `conda install -c an
 
 ## Executing workflow
 
-To execute this workflow simply do `python GSMM_Expansion.py -i input_folder -o output_folder -db kegg,rhea,biocyc,hmdb`
+To execute this workflow simply do `drax gsmm_expansion -i input_folder -o output_folder -db kegg,rhea,biocyc,hmdb`
 
 The `input_folder` variable should be a folder with one or more protein sequences fastas. 
 The `output_folder` will be the directory where this workflow outputs its analysis. This folder contains the following folders and files:
