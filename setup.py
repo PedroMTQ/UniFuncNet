@@ -45,7 +45,7 @@ setup(
     description="Biological network annotation tool.",
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url="https://github.com/PedroMTQ/unifuncnet",
+    url="https://github.com/PedroMTQ/UniFuncNet",
     project_urls={
         "Bug Tracker": "https://github.com/PedroMTQ/UniFuncNet/issues",
     },
