@@ -7,8 +7,9 @@
 
 
 To run this workflow you need to install CarveMe, which requires that you install CPLEX manually.
+Please follow the instructions [here](https://carveme.readthedocs.io/en/latest/installation.html)
 
-**Please name your CarveMe environment as `carveme_env`**
+**Please name your CarveMe environment as `carveme_env`** 
 
 
 To download and install CPLEX:
@@ -19,7 +20,9 @@ To download and install CPLEX:
 5. Execute `sudo chmod -R 777 /opt/ibm`
 6. Execute `python /opt/ibm/ILOG/CPLEX_Studio201/cplex/python/3.8/x86-64_linux/setup.py install`
 
-Then install the following packages in your unifuncnet enrivonment:
+The exact paths above will depend on your system, I only provided an example.
+
+Then install the following packages in your unifuncnet environment:
 
 ```
     conda install -c anaconda networkx
@@ -29,7 +32,6 @@ Then install the following packages in your unifuncnet enrivonment:
 
 
 
-I also provide a `env.yml` so you can see the specific versions used.
 
 
 ## Executing workflow
@@ -46,4 +48,5 @@ To execute this workflow simply do `unifuncnet gsmm_expansion -i input_folder -o
   - `workflow_output` - the expanded networks in `.sif` format, each network has 4 columns, `SOURCE`,`INTERACTION`,`TARGET`, and`EXPANSION`. The `SOURCE` and `TARGET` nodes can either be the IDs from the original network or the `internal_id`s from UniFuncNet. The `INTERACTION` column describes the type of connection (either `cr` for a `compound->reaction` edge or `rc` for `reaction->compound` edge). The `EXPANSION` column marks (1/0) whether the current edge came from the original CarveMe model (`0`), or if it was added during the expansion (`1`). **The network expansion only add edges if they are somehow connected to the original network**.
   - `console.out` - console output
 - The `database` can be used to choose which database you want to collect data from. By default, all the databases are used.
-- You can additionally add `-oc` or `----only_connected` when running this workflow. With `-oc` the resulting `.sif` networks will only contain the additional edges that connect to compounds in the original network.
+- You can additionally add `-oc` or `--only_connected` when running this workflow. With `-oc` the resulting `.sif` networks will only contain the additional edges that connect to compounds in the original network.
+- the `path_to_metacyc_ref` is the path to the Metacyc reference database to be used by Mantis. You can create it following the instructions [here](https://github.com/PedroMTQ/refdb_generator). Keep in mind this requires that the metacyc data is available (see UniFuncNet's readme)

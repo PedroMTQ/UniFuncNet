@@ -184,6 +184,9 @@ def argv_input_generator_function():
     output_folder = args.output_folder
     ec_json = args.ec_json
     ko_json = args.ko_json
+    if not ec_json or not ko_json:
+        print('Missing json files')
+        return
     database = args.database
     if not database: database='all'
 
@@ -208,11 +211,11 @@ def argv_input_generator_function():
 
     pickle_path=f'{output_folder}ecs_kos.pickle'
     output_path=f'{output_folder}universal_input.tsv'
-    s=Input_Generator()
+    s=Input_Generator(output_path=output_path)
     if database=='ko':
         s.generate_ko_input(output_path,pickle_path, ec_json, ko_json)
     else:
-        s.generate_universal_input(output_path,pickle_path,ec_json, ko_json)
+        s.generate_universal_input(pickle_path,ec_json, ko_json)
 
 def set_search_mode(searchers_list,search_mode):
     for searcher in searchers_list:

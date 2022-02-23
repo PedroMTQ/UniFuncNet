@@ -4,8 +4,8 @@ import os
 import pickle
 import json
 
-from source.Utils.Rhea_SQLITE_Connector import Rhea_SQLITE_Connector
-from source.Utils.Metacyc_SQLITE_Connector import Metacyc_SQLITE_Connector
+from unifuncnet.Utils.Rhea_SQLITE_Connector import Rhea_SQLITE_Connector
+from unifuncnet.Utils.Metacyc_SQLITE_Connector import Metacyc_SQLITE_Connector
 
 
 if sys.platform.startswith('win'):
@@ -94,14 +94,14 @@ class Input_Generator(Rhea_SQLITE_Connector,Metacyc_SQLITE_Connector):
         for db_id in ecs_kos['kegg_ko']:
             yield f'{db_id}\tkegg_ko\tprotein\tprc\n'
 
-    def generate_universal_input(self,pickle_path):
+    def generate_universal_input(self,pickle_path,ec_json, ko_json):
         if not os.path.exists(pickle_path):
             self.generate_pickle_ecs_kos(pickle_path, ec_json, ko_json)
         with open(self.output_path,'w+') as file:
             for unifuncnet_line in self.yield_all_lines(pickle_path):
                 file.write(unifuncnet_line)
 
-    def generate_ko_input(self,pickle_path):
+    def generate_ko_input(self,pickle_path,ec_json, ko_json):
         if not os.path.exists(pickle_path):
             self.generate_pickle_ecs_kos(pickle_path, ec_json, ko_json)
         with open(self.output_path,'w+') as file:
