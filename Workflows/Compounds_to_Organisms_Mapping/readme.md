@@ -8,7 +8,7 @@ Please also make sure that when you install unifuncnet, you leave the environmen
 
 ## Executing workflow
 
-To execute this workflow simply do `unifuncnet compounds_to_organism -i input_folder -o output_folder -met metabolites.tsv -db kegg,rhea,biocyc,hmdb`.
+To execute this workflow simply do `unifuncnet compounds_to_organism -i input_folder -o output_folder -met metabolites.tsv -db kegg,rhea,metacyc,hmdb`.
 
 The `input_folder` variable should be a folder with one or more protein sequences fastas. 
 The `metabolites.tsv` contains a list of metabolites. Each line should contain two columns, the first one should have the ID, the second the ID type, e.g.:

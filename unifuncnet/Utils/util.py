@@ -48,27 +48,26 @@ else:
 UniFuncNet_FOLDER = os.path.abspath(os.path.dirname(__file__)).split(SPLITTER)[0:-2]
 UniFuncNet_FOLDER = SPLITTER.join(UniFuncNet_FOLDER) + SPLITTER
 RESOURCES_FOLDER=f'{UniFuncNet_FOLDER}Resources{SPLITTER}'
+METACYC_FOLDER = f'{RESOURCES_FOLDER}metacyc{SPLITTER}'
 
 
 def check_all_resources():
-    metacyc_folder = f'{RESOURCES_FOLDER}metacyc{SPLITTER}'
     required_resources = [
         'compounds.dat',
         'proteins.dat',
         'reactions.dat',
         'gene-links.dat',
         'genes.dat',
-        'README.md',
     ]
-    if not os.path.exists(metacyc_folder): return False
-    for file in os.listdir(metacyc_folder):
+    if not os.path.exists(METACYC_FOLDER): return False
+    for file in os.listdir(METACYC_FOLDER):
         if file not in required_resources:
-            current_file = f'{metacyc_folder}{file}'
+            current_file = f'{METACYC_FOLDER}{file}'
             if not os.path.isdir(current_file):
                 os.remove(current_file)
     c = 0
     for i in required_resources:
-        if i in os.listdir(metacyc_folder):
+        if i in os.listdir(METACYC_FOLDER):
             c += 1
     if len(required_resources) == c:
         return True
@@ -86,6 +85,9 @@ def set_scrappable_dbs(user_databases):
     if user_databases:
         while SCRAPPABLE_DBS: SCRAPPABLE_DBS.pop()
         for i in user_databases: SCRAPPABLE_DBS.append(i)
+    if 'metacyc' in SCRAPPABLE_DBS and not metacyc_resources:
+        print(f'Missing metacyc files. Please download them and place them in {METACYC_FOLDER}')
+        SCRAPPABLE_DBS.remove('metacyc')
 
 
 def print_version(user,project):

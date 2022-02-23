@@ -19,7 +19,7 @@ Once the `conda-forge` channel has been enabled, `unifuncnet` can be installed w
 conda install unifuncnet
 ```
 
-### Download Metacyc's cada (optional but recommended)
+### Download Metacyc's data (optional but recommended)
 
 1. Request [Metacyc license](https://metacyc.org/download.shtml)
 2. Download the `Metacyc flat files`

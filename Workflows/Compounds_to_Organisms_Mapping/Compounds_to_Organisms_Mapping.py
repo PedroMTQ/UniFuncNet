@@ -3,7 +3,6 @@ import sys
 import os
 import subprocess
 from pathlib import Path
-import argparse
 
 
 if sys.platform.startswith('win'):
@@ -24,14 +23,13 @@ class Compounds_to_Organisms_Mapping():
             self.output_folder=output_folder
             self.metabolites=metabolites
             self.metacyc_ref=metacyc_ref
+            self.mantis_cfg = f'{output_folder}mantis.cfg'
             self.database=database
             if database:
                 if 'metacyc' not in database:
                     self.metacyc_ref = None
 
             self.unwanted_mantis_dbs = ['nog', 'ncbi', 'tcdb']
-            self.mantis_env='mantis_env'
-            self.unifuncnet_env='unifuncnet_env'
 
             self.unifuncnet_input = f'{self.output_folder}unifuncnet_input.tsv'
             self.unifuncnet_output = f'{self.output_folder}unifuncnet_output{SPLITTER}'
@@ -60,42 +58,25 @@ class Compounds_to_Organisms_Mapping():
             base_prefix=f'{current_prefix}{SPLITTER}'
         return base_prefix
 
-    def create_mantis_config(self,mantis_cfg):
-        with open(mantis_cfg,'w+') as file:
+    def create_mantis_config(self):
+        with open(self.mantis_cfg,'w+') as file:
             for db in self.unwanted_mantis_dbs:
                 file.write(f'{db}_ref_folder=NA\n')
 
-    def create_mantis_config_metacyc(self,mantis_cfg):
-        with open(mantis_cfg,'w+') as file:
+    def create_mantis_config_metacyc(self):
+        with open(self.mantis_cfg,'w+') as file:
             for db in self.unwanted_mantis_dbs:
                 file.write(f'{db}_ref_folder=NA\n')
             file.write(f'custom_ref={self.metacyc_ref}\n')
 
 
     def run_mantis_setup(self):
-        mantis_cfg=f'{RESOURCES_FOLDER}mantis.cfg'
-        activate_mantis_env = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env}'
-        process = subprocess.run(activate_mantis_env, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if process.stderr:
-            print('Could not find mantis_env environment, creating environment')
-            conda_create_env_command = f'conda create -n mantis_env'
-            subprocess.run(conda_create_env_command, shell=True)
-            activate_mantis_env = f'. {self.conda_prefix}/etc/profile.d/conda.sh &&' \
-                                  f' conda activate {self.mantis_env} &&' \
-                                  f' conda config --add channels defaults &&' \
-                                  f' conda config --add channels bioconda &&' \
-                                  f' conda config --add channels conda-forge &&' \
-                                  f' conda install -c bioconda mantis_pfa'
-            process = subprocess.run(activate_mantis_env, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        else:
-            pass
-        self.create_mantis_config(mantis_cfg)
-        mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env} && mantis setup -mc {mantis_cfg}'
+        self.create_mantis_config()
+        mantis_setup_command = f'mantis setup -mc {self.mantis_cfg}'
         subprocess.run(mantis_setup_command,shell=True)
-        mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env} && mantis check -mc {mantis_cfg}'
+        mantis_setup_command = f'mantis check -mc {self.mantis_cfg}'
         subprocess.run(mantis_setup_command,shell=True)
-        self.create_mantis_config_metacyc(mantis_cfg)
+        self.create_mantis_config_metacyc()
 
 
     def create_mantis_input(self):
@@ -114,10 +95,9 @@ class Compounds_to_Organisms_Mapping():
 
     def run_mantis(self):
         print('Running Mantis')
-        mantis_cfg=f'{RESOURCES_FOLDER}mantis.cfg'
         n_input=self.create_mantis_input()
         if n_input:
-            mantis_setup_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.mantis_env} && mantis run -i {self.mantis_input} -o {self.mantis_output} -da heuristic -mc {mantis_cfg}'
+            mantis_setup_command = f'mantis run -i {self.mantis_input} -o {self.mantis_output} -da heuristic -mc {self.mantis_cfg}'
             subprocess.run(mantis_setup_command,shell=True)
         else:
             print(f'Mantis already ran')
@@ -127,9 +107,9 @@ class Compounds_to_Organisms_Mapping():
         self.create_mantis_input()
         if not os.listdir(self.unifuncnet_output):
             if self.database:
-                run_unifuncnet_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.unifuncnet_env} && python {UniFuncNet_FOLDER} -i {self.unifuncnet_input} -o {self.unifuncnet_output} -pt {self.politeness_timer} -db {self.database}'
+                run_unifuncnet_command = f'unifuncnet -i {self.unifuncnet_input} -o {self.unifuncnet_output} -pt {self.politeness_timer} -db {self.database}'
             else:
-                run_unifuncnet_command = f'. {self.conda_prefix}/etc/profile.d/conda.sh && conda activate {self.unifuncnet_env} && python {UniFuncNet_FOLDER} -i {self.unifuncnet_input} -o {self.unifuncnet_output} -pt {self.politeness_timer}'
+                run_unifuncnet_command = f'unifuncnet -i {self.unifuncnet_input} -o {self.unifuncnet_output} -pt {self.politeness_timer}'
 
 
             subprocess.run(run_unifuncnet_command,shell=True)

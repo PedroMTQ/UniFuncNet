@@ -53,7 +53,7 @@ def argv_gsmm_expansion_function():
     if input_folder and output_folder:
         GSMM_Expansion(input_folder=input_folder,output_folder=output_folder,metacyc_ref=metacyc_ref,database=database,only_connected=only_connected,politeness_timer=politeness_timer)
     else:
-        print('Missing input and output folders')
+        print('Missing input or output folders')
 
     pass
 

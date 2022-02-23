@@ -20,7 +20,7 @@ class Memory_Keeper():
     def check_already_searched_memory(self,dict_input_key,dict_input_value):
         #so that we dont add empties
         if not dict_input_value: return True
-        print('Already searched', dict_input_key, dict_input_value)
+        #print('Already searched', dict_input_key, dict_input_value)
 
         for searched_dict in self.already_tried_to_search:
             key_searched_dict=list(searched_dict.keys())[0]
