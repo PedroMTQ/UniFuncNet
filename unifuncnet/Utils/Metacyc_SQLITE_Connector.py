@@ -33,8 +33,9 @@ class Metacyc_SQLITE_Connector():
 
 
     def metacyc_start_sqlite_cursor(self):
-        self.metacyc_sqlite_connection = sqlite3.connect(self.metacyc_db)
-        self.metacyc_cursor = self.metacyc_sqlite_connection.cursor()
+        if check_all_resources():
+            self.metacyc_sqlite_connection = sqlite3.connect(self.metacyc_db)
+            self.metacyc_cursor = self.metacyc_sqlite_connection.cursor()
 
     def metacyc_commit(self):
         self.metacyc_sqlite_connection.commit()

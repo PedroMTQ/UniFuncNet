@@ -497,7 +497,7 @@ class UniFuncNet_Neo4j_Connector():
         self.create_nodes_unifuncnet(unifuncnet_output_folder)
         print('Connecting nodes')
         self.connect_nodes_unifuncnet(unifuncnet_output_folder)
-        print(f'Finished creating Neo4j DB in {time()-self.start_time}')
+        print(f'Finished creating Neo4j DB in {time.time()-self.start_time}')
 
 
     def parse_tsv(self,input_file, wanted_ids):

@@ -91,10 +91,10 @@ def argv_compounds_to_organism_function():
                                        politeness_timer=politeness_timer)
     else:
         print(f'Missing a parameter:\n'
-              f'input_samples {input_samples}'
-              f'metabolites {metabolites}'
-              f'output_folder {output_folder}'
-              f'metacyc_ref {metacyc_ref}'
+              f'-i/--input_samples\t {input_samples}\n'
+              f'-m/--metabolites\t {metabolites}\n'
+              f'-o/--output_folder\t {output_folder}\n'
+              f'-mr/--metacyc_ref\t {metacyc_ref}'
               )
 
 def argv_neo4j_function():

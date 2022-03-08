@@ -1,6 +1,14 @@
 # Running the UniFuncNet_Neo4j_Connector workflow
 
 
+This workflow can be used to export UniFuncNet's data to neo4j.
+This database can then be queried by the user using the browser, python, etc.
+
+I've also included an option to extract SIF-formatted functional networks from this database. To do so, first export the UniFuncNet to Neo4j. Then run the workflow again, but now use the `consensus_annotation.tsv` coming from [Mantis](https://github.com/PedroMTQ/mantis).
+
+Keep in mind each time you run the UniFuncNet->Neo4j part of this workflow, the database is reset!
+Running this workflow to extract the SIF networks, does not reset the database.
+
 
 ## Required installation
 
@@ -15,7 +23,7 @@ To run Neo4j in UniFuncNet do the following:
 2. Download your specific OS version and follow the instructions
 3. Go to your Neo4j folder and run  `./bin/neo4j console`. Now your Neo4j database should be running in the background.
 4. Install the Neo4j driver in your environment with `conda install -c conda-forge neo4j-python-driver`
-5. Go to http://localhost:7474/browser/ and set up your database (basically, set a username and password)
+5. Go to http://localhost:7474/browser/ and set up your database (basically, set a username and password). The initial username and password are `neo4j`
 
 ## Executing workflow
 

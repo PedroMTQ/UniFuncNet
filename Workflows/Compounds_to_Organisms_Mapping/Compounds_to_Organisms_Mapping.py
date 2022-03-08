@@ -218,7 +218,6 @@ class Compounds_to_Organisms_Mapping():
         return res
 
     def get_mapped_proteins(self,linked_reactions, reactions_info):
-        print('linked_reactions',linked_reactions)
         res = {}
         unconnected = set()
         total_proteins_connected=set()
@@ -238,7 +237,6 @@ class Compounds_to_Organisms_Mapping():
 
     def get_mapped_annotations(self,linked_proteins, proteins_info):
         res = {}
-        print('linked_proteins',linked_proteins)
         for reaction_id in linked_proteins:
             current_proteins=linked_proteins[reaction_id]
             for protein_id in current_proteins:

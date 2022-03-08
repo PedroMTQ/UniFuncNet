@@ -16,7 +16,7 @@ conda config --set channel_priority strict
 Once the `conda-forge` channel has been enabled, `unifuncnet` can be installed with:
 
 ```
-conda install unifuncnet
+conda install unifuncnet -c conda-forge
 ```
 
 ### Download Metacyc's data (optional but recommended)
@@ -27,6 +27,9 @@ conda install unifuncnet
 4. `UniFuncNet/Resources/metacyc/` should contain: `compounds.dat`,`proteins.dat`,`reactions.dat`,`gene-links.dat`, and `genes.dat`,
 
 **Using Metacyc is technically optional (as all databases) but since it contains high quality information, using it is usually desirable**
+
+
+Now when UniFuncNet runs it will generate a SQL database for MetaCyc
 
 ## Using UniFuncNet
 

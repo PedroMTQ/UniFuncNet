@@ -4,11 +4,27 @@
 
 ## Required installation
 
-Please also make sure that when you install unifuncnet, you leave the environment with the default name: `unifuncnet_env`
+For this workflow you need to install [Mantis](https://github.com/PedroMTQ/mantis)
+
+```
+    conda install python=3.9
+    conda install mantis_pfa -c bioconda
+```
+
+This workflow uses the KOfam and Metacyc reference databases for functional annotation.
+To generate the Metacyc reference database go [here](https://github.com/PedroMTQ/refdb_generator) and clone the repo.
+You also need the files `proteins.dat` and `protseq.fsa` which you can download after obtaining the MetaCyc academic license: 
+1. Request [Metacyc license](https://metacyc.org/download.shtml)
+2. Download the `Metacyc flat files`
+3. Export the `protseq.fsa` and `proteins.dat` in data to an `metacyc_ref_path`
+4. Run `python Reference_Generator.py -db metacyc -o metacyc_ref_path`
+
+If the Metacyc reference database is not available, only KOfam is used. I strongly suggest using both.
+
 
 ## Executing workflow
 
-To execute this workflow simply do `unifuncnet compounds_to_organism -i input_folder -o output_folder -m metabolites.tsv -db kegg,rhea,metacyc,hmdb`.
+To execute this workflow simply do `unifuncnet compounds_to_organism -i input_folder -o output_folder -m metabolites.tsv -db list_dbs -mr metacyc_ref_path`.
 
 
 Execution parameters:
@@ -26,5 +42,5 @@ Execution parameters:
     | 35581  |  chebi  |
     | 1-hexanol  | synonym |
 
-- The `database` can be used to choose which database you want to collect data from. By default, all the databases are used.
-- the `path_to_metacyc_ref` is the path to the Metacyc reference database to be used by Mantis. You can create it following the instructions [here](https://github.com/PedroMTQ/refdb_generator). Keep in mind this requires that the metacyc data is available (see UniFuncNet's readme)
+- The `database` can be used to choose which database you want to collect data from. By default, all the databases (kegg,rhea,metacyc,hmdb) are used. 
+- the `metacyc_ref` is the path to the Metacyc reference database to be used by Mantis. You can create it following the instructions [here](https://github.com/PedroMTQ/refdb_generator). Keep in mind this requires that the metacyc data is available (see UniFuncNet's readme)

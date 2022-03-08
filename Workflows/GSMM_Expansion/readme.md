@@ -22,13 +22,27 @@ To download and install CPLEX:
 
 The exact paths above will depend on your system, I only provided an example.
 
-Then install the following packages in your unifuncnet environment:
+
+You also need to install [Mantis](https://github.com/PedroMTQ/mantis) on your unifuncnet conda environment.
 
 ```
-    conda install -c anaconda networkx
     conda install python=3.9
+    conda install -c anaconda networkx
     conda install mantis_pfa -c bioconda
 ```
+
+
+This workflow uses the KOfam and Metacyc reference databases for functional annotation.
+To generate the Metacyc reference database go [here](https://github.com/PedroMTQ/refdb_generator) and clone the repo.
+You also need the files `proteins.dat` and `protseq.fsa` which you can download after obtaining the MetaCyc academic license: 
+1. Request [Metacyc license](https://metacyc.org/download.shtml)
+2. Download the `Metacyc flat files`
+3. Export the `protseq.fsa` and `proteins.dat` in data to an `metacyc_ref_path`
+4. Run `python Reference_Generator.py -db metacyc -o metacyc_ref_path`
+
+If the Metacyc reference database is not available, only KOfam is used. I strongly suggest using both.
+
+
 
 
 
@@ -36,7 +50,7 @@ Then install the following packages in your unifuncnet environment:
 
 ## Executing workflow
 
-To execute this workflow simply do `unifuncnet gsmm_expansion -i input_folder -o output_folder -db kegg,rhea,metacyc,hmdb -mr path_to_metacyc_ref -pt politeness_timer`
+To execute this workflow simply do `unifuncnet gsmm_expansion -i input_folder -o output_folder -db list_dbs -mr path_to_metacyc_ref -pt politeness_timer`
 
 - The `input_folder` variable should be a folder with one or more protein sequences fastas. 
 - The `output_folder` will be the directory where this workflow outputs its analysis. This folder contains the following folders and files:
@@ -47,6 +61,6 @@ To execute this workflow simply do `unifuncnet gsmm_expansion -i input_folder -o
   - `unifuncnet_output` - UniFuncNet's output, i.e., data gathered on compounds,reactions, and proteins, as well as the corresponding graph in `.sif` format 
   - `workflow_output` - the expanded networks in `.sif` format, each network has 4 columns, `SOURCE`,`INTERACTION`,`TARGET`, and`EXPANSION`. The `SOURCE` and `TARGET` nodes can either be the IDs from the original network or the `internal_id`s from UniFuncNet. The `INTERACTION` column describes the type of connection (either `cr` for a `compound->reaction` edge or `rc` for `reaction->compound` edge). The `EXPANSION` column marks (1/0) whether the current edge came from the original CarveMe model (`0`), or if it was added during the expansion (`1`). **The network expansion only add edges if they are somehow connected to the original network**.
   - `console.out` - console output
-- The `database` can be used to choose which database you want to collect data from. By default, all the databases are used.
+- The `database` can be used to choose which database you want to collect data from. By default, all the databases (kegg,rhea,metacyc,hmdb) are used.
 - You can additionally add `-oc` or `--only_connected` when running this workflow. With `-oc` the resulting `.sif` networks will only contain the additional edges that connect to compounds in the original network.
 - the `path_to_metacyc_ref` is the path to the Metacyc reference database to be used by Mantis. You can create it following the instructions [here](https://github.com/PedroMTQ/refdb_generator). Keep in mind this requires that the metacyc data is available (see UniFuncNet's readme)
