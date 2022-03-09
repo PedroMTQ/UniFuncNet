@@ -45,9 +45,10 @@ class Compound(Base_Component,CHEBI_SQLITE_Connector):
 
     def add_chebi_ids(self):
         for chebi_id in self.get_detail('chebi',all_possible=True):
-            chebi_mapping=self.fetch_chebi_id_info(chebi_id)
+            main_chebi_id,chebi_mapping=self.fetch_chebi_id_info(chebi_id)
             for db in chebi_mapping:
                 self.set_detail(db,chebi_mapping[db],converged_in='chebi')
+            self.set_detail('chebi',main_chebi_id,converged_in='chebi')
 
 
     ###MATCHING AND UNITING###

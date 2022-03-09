@@ -171,17 +171,38 @@ class CHEBI_SQLITE_Connector():
             self.chebi_executemany(insert_command, table_chunk)
         self.chebi_commit()
 
+    def fetch_chebi_alt_id_info(self,chebi_id):
+        res={}
+        try:    chebi_id=int(chebi_id)
+        except: return res
+        fetch_command = f"SELECT CHEBI,DATABASE, ALTID FROM CHEBI2OTHERS WHERE ALTID = {chebi_id} AND DATABASE='chebi'"
+        res_fetch = self.chebi_execute(fetch_command).fetchall()
+        main_chebi_id=set()
+        for i in res_fetch:
+            chebi_id,db,alt_id=i
+            main_chebi_id.add(chebi_id)
+        if len(main_chebi_id)>1: raise Exception
+        elif not main_chebi_id: return res
+        else:
+            return main_chebi_id.pop()
+
     def fetch_chebi_id_info(self,chebi_id):
         res={}
         try:    chebi_id=int(chebi_id)
         except: return res
         fetch_command = f"SELECT CHEBI,DATABASE, ALTID FROM CHEBI2OTHERS WHERE CHEBI = {chebi_id}"
         res_fetch=self.chebi_execute(fetch_command).fetchall()
+        if res_fetch:
+            main_chebi_id=str(chebi_id)
         for i in res_fetch:
             chebi_id,db,alt_id=i
             if db not in res: res[db]=set()
             res[db].add(alt_id)
-        return res
+        if not res:
+            main_chebi_id=self.fetch_chebi_alt_id_info(chebi_id)
+            main_chebi_id=str(main_chebi_id)
+            return self.fetch_chebi_id_info(main_chebi_id)
+        return main_chebi_id,res
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 
 # UniFuncNet modules
-from unifuncnet.Utils.util import strip_tags
+from unifuncnet.Utils.util import strip_tags,CPDS_TO_IGNORE
 from unifuncnet.Searchers.Global_Searcher import *
 from unifuncnet.Fetchers.Compound_Fetchers.Compound_Fetcher_Metacyc import Compound_Fetcher_Metacyc
 from unifuncnet.Fetchers.Compound_Fetchers.Compound_Fetcher_KEGG import Compound_Fetcher_KEGG
@@ -47,7 +47,7 @@ class Compound_Searcher(Global_Searcher):
             if fetcher_cpd:
                 if convergence_search:
                     # converge only occurs in the searchers- these are the global classes
-                    if self.is_valid_search_mode({'global','crpg','crp','cr'}):
+                    if self.is_valid_search_mode({'global','crpg','crp','cr'}) and not self.cpd_to_ignore(fetcher_cpd):
                         fetcher.converge_compound_global()
                 return fetcher_cpd,fetcher
         else:
@@ -124,7 +124,6 @@ class Compound_Searcher(Global_Searcher):
             if rn != rn_with_ids and rn_with_ids:
                 whole_met_id = rn_with_ids[i]
                 met_id = whole_met_id[1]
-
             match=self.get_compound_reaction_met_instances(db,met_id, met_name)
 
 
@@ -298,7 +297,7 @@ class Compound_Searcher(Global_Searcher):
                 for fetcher in fetcher_insts:
                     fetcher_compound=fetcher.get_compound()
                     if fetcher_compound is compound_match and convergence_search:
-                        if self.is_valid_search_mode({'global','crpg','crp','cr'}):
+                        if self.is_valid_search_mode({'global','crpg','crp','cr'})  and not self.cpd_to_ignore(fetcher_compound):
                             fetcher.converge_compound_global()
                 if not passed_check:
                     return compound_match
@@ -340,17 +339,16 @@ class Compound_Searcher(Global_Searcher):
         print(f'Starting compound search {bio_query} in {bio_db}')
         temp_args_to_search=[]
         args_to_search=[]
-        temp_inst=None
         #we roll out the search by filling out our args_to_search varible with all the possible data from what is provided
         if bio_db=='synonyms':
             temp_args_to_search.append(['synonyms',bio_query])
         if bio_db in ['pubchem_cid','pubchem_sid','inchi','inchi_key'] and 'pubchem' in SCRAPPABLE_DBS:
             temp_args_to_search.append([bio_db,bio_query])
         if bio_db=='chebi':
-            temp_args_to_search.append(['rhea', bio_query])
-            chebi_to_others=self.fetch_chebi_id_info(bio_query)
+            main_chebi_id,chebi_to_others=self.fetch_chebi_id_info(bio_query)
+            temp_args_to_search.append(['rhea', main_chebi_id])
             for chebi_db in chebi_to_others:
-                if chebi_db not in ['smiles','chemical_formula']: #we also have this info in the sql database, wont really change much, just avoid function calls since there's no fetcher for these
+                if chebi_db not in ['smiles','chemical_formula','chebi']: #we also have this info in the sql database, wont really change much, just avoid function calls since there's no fetcher for these
                     for chebi_db_id in chebi_to_others[chebi_db]:
                         temp_args_to_search.append([chebi_db,chebi_db_id])
         if bio_db in SCRAPPABLE_DBS:
@@ -447,6 +445,14 @@ class Compound_Searcher(Global_Searcher):
                         #to avoid very long searches
                         if id_arg.intersection(syns): return
                 self.add_to_already_tried_to_search(db_arg, s_id_arg)
+
+    def cpd_to_ignore(self,cpd_instance):
+        for db in CPDS_TO_IGNORE:
+            cpd_ids=cpd_instance.get_detail(db,all_possible=True)
+            if CPDS_TO_IGNORE[db].intersection(cpd_ids):
+                return True
+        return False
+
 
 if __name__ == '__main__':
     searcher = Compound_Searcher(search_mode={''})
