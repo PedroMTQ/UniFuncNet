@@ -54,17 +54,15 @@ METACYC_FOLDER = f'{RESOURCES_FOLDER}metacyc{SPLITTER}'
 def get_cpd_to_ignore():
     res={}
     file_path=f'{RESOURCES_FOLDER}cpd_to_ignore.tsv'
-    with open(file_path) as file:
-        file.readline()
-        for line in file:
-            line=line.strip('\n')
-            db_id,db=line.split('\t')
-            if db not in res: res[db]=set()
-            res[db].add(db_id)
+    if os.path.exists(file_path):
+        with open(file_path) as file:
+            file.readline()
+            for line in file:
+                line=line.strip('\n')
+                db_id,db=line.split('\t')
+                if db not in res: res[db]=set()
+                res[db].add(db_id.lower())
     return res
-
-CPDS_TO_IGNORE=get_cpd_to_ignore()
-
 
 
 def check_all_resources():

@@ -5,7 +5,7 @@ from datetime import datetime
 from sys import platform
 import uuid
 
-from unifuncnet.Utils.util import SCRAPPABLE_DBS,set_scrappable_dbs,VALID_DIRECTIONS,print_version,UniFuncNet_FOLDER,RESOURCES_FOLDER,check_all_resources,check_all_resources
+from unifuncnet.Utils.util import SCRAPPABLE_DBS,set_scrappable_dbs,VALID_DIRECTIONS,print_version,UniFuncNet_FOLDER,RESOURCES_FOLDER,check_all_resources,check_all_resources,get_cpd_to_ignore
 from unifuncnet.Searchers.Gene_Searcher import  Gene_Searcher
 from unifuncnet.Searchers.Protein_Searcher import  Protein_Searcher
 from unifuncnet.Searchers.Compound_Searcher import  Compound_Searcher
@@ -50,8 +50,10 @@ def argv_gsmm_expansion_function():
     only_connected = args.only_connected
     if politeness_timer: politeness_timer=int(politeness_timer)
     else: politeness_timer=10
+    cpds_to_ignore = get_cpd_to_ignore()
+
     if input_folder and output_folder:
-        GSMM_Expansion(input_folder=input_folder,output_folder=output_folder,metacyc_ref=metacyc_ref,database=database,only_connected=only_connected,politeness_timer=politeness_timer)
+        GSMM_Expansion(input_folder=input_folder,output_folder=output_folder,metacyc_ref=metacyc_ref,database=database,only_connected=only_connected,politeness_timer=politeness_timer,cpds_to_ignore=cpds_to_ignore)
     else:
         print('Missing input or output folders')
 
@@ -250,7 +252,7 @@ def check_validity_input(target_path):
                     raise Exception
             line=infile.readline()
 
-def run_searcher(target_path,output_folder,politeness_timer):
+def run_searcher(target_path,output_folder,politeness_timer,cpds_to_ignore={}):
     start=time()
     print(f'Available databases:\n{",".join(SCRAPPABLE_DBS)}')
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -260,6 +262,8 @@ def run_searcher(target_path,output_folder,politeness_timer):
     protein_searcher= gene_searcher.protein_searcher
     compound_searcher= gene_searcher.compound_searcher
     reaction_searcher= gene_searcher.reaction_searcher
+
+    compound_searcher.cpds_to_ignore=cpds_to_ignore
     check_list=open(f'{output_folder}finished.tsv','w+')
     with open(target_path) as infile:
         line=infile.readline()
@@ -316,6 +320,8 @@ def main():
     elif '--version' in sys.argv:
         print_version('pedromtq','unifuncnet')
     else:
+        cpd_to_ignore_path = f'{RESOURCES_FOLDER}cpd_to_ignore.tsv'
+
         search_modes_str='; '.join(VALID_DIRECTIONS)
         print('Executing command:\n', ' '.join(sys.argv))
         #https://patorjk.com/software/taag/#p=display&f=Doom&t=UniFuncNet
@@ -330,6 +336,7 @@ def main():
         parser.add_argument('-i', '--input_path', help='[required]\tTSV file path with a list of identifiers.')
         parser.add_argument('-o', '--output_folder', help='[required]\tOutput folder path for the information collected from the different sources')
         parser.add_argument('-db', '--databases', help='[optional]\tComma separated list of databases to search for information in.')
+        parser.add_argument('-ign_cpd', '--ignore_cpd', action='store_true', help=f'[optional]\tWhether to ignore the list of compounds available in {cpd_to_ignore_path}')
         parser.add_argument('-pt', '--politeness_timer', help='[optional]\tTime (seconds) between requests. Default is 10. Please be careful not to overleaf the corresponding databases, you might get blocked from doing future requests.')
 
         print(f'Resources folder is here:\n{RESOURCES_FOLDER}')
@@ -337,7 +344,14 @@ def main():
         args = parser.parse_args()
         target_path = args.input_path
         output_folder = args.output_folder
+        ignore_cpd = args.ignore_cpd
         politeness_timer = args.politeness_timer
+
+        if ignore_cpd:
+            cpds_to_ignore = get_cpd_to_ignore()
+        else:
+            cpds_to_ignore={}
+
         if not target_path:
             print('Missing input path, quitting!')
             return
@@ -378,7 +392,8 @@ def main():
             if passed_check:
                 run_searcher(target_path=target_path,
                              output_folder=output_folder,
-                             politeness_timer=politeness_timer)
+                             politeness_timer=politeness_timer,
+                             cpds_to_ignore=cpds_to_ignore)
 
         else:
             print('Input file not found!')

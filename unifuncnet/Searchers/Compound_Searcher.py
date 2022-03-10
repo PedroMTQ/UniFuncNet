@@ -1,6 +1,6 @@
 
 # UniFuncNet modules
-from unifuncnet.Utils.util import strip_tags,CPDS_TO_IGNORE
+from unifuncnet.Utils.util import strip_tags
 from unifuncnet.Searchers.Global_Searcher import *
 from unifuncnet.Fetchers.Compound_Fetchers.Compound_Fetcher_Metacyc import Compound_Fetcher_Metacyc
 from unifuncnet.Fetchers.Compound_Fetchers.Compound_Fetcher_KEGG import Compound_Fetcher_KEGG
@@ -12,6 +12,7 @@ from unifuncnet.Utils.util import get_stoichiometry
 class Compound_Searcher(Global_Searcher):
     def __init__(self,memory_storage=None,search_mode=None,db_name=None,wanted_org_kegg_codes=[],output_folder=None,politeness_timer=10):
         Global_Searcher.__init__(self,memory_storage,search_mode,db_name=db_name,wanted_org_kegg_codes=wanted_org_kegg_codes,output_folder=output_folder,politeness_timer=politeness_timer)
+        self.cpds_to_ignore={}
 
 
 
@@ -447,9 +448,11 @@ class Compound_Searcher(Global_Searcher):
                 self.add_to_already_tried_to_search(db_arg, s_id_arg)
 
     def cpd_to_ignore(self,cpd_instance):
-        for db in CPDS_TO_IGNORE:
+        for db in self.cpds_to_ignore:
             cpd_ids=cpd_instance.get_detail(db,all_possible=True)
-            if CPDS_TO_IGNORE[db].intersection(cpd_ids):
+            cpd_ids=[i.lower() for i in cpd_ids]
+            print(cpd_ids,self.cpds_to_ignore[db])
+            if self.cpds_to_ignore[db].intersection(cpd_ids):
                 return True
         return False
 

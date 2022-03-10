@@ -17,13 +17,14 @@ else:
 
 
 class GSMM_Expansion():
-    def __init__(self,input_folder,output_folder,metacyc_ref=None,database=None,only_connected=False,politeness_timer=10):
+    def __init__(self,input_folder,output_folder,metacyc_ref=None,database=None,only_connected=False,politeness_timer=10,cpds_to_ignore={}):
         if not input_folder.endswith('/'):input_folder+='/'
         self.input_folder=input_folder
         if not output_folder.endswith('/'):output_folder+='/'
         self.output_folder=output_folder
         self.metacyc_ref=metacyc_ref
         self.database=database
+        self.cpds_to_ignore=cpds_to_ignore
         self.mantis_cfg = f'{output_folder}mantis.cfg'
         if database:
             if 'metacyc' not in database:
@@ -268,7 +269,7 @@ class GSMM_Expansion():
 
         return G
 
-    def create_network_expanded(self,reactions_model, reactions_unifuncnet):
+    def create_network_expanded(self,reactions_model, reactions_unifuncnet,cpd_ids_to_ignore):
         compounds_match=self.compounds_match['matched']
         rejected_reactions=0
         G = nx.DiGraph()
@@ -308,9 +309,11 @@ class GSMM_Expansion():
                             product = {product}
 
                     for r in reactant:
-                        G.add_edge(r, unifuncnet_reaction_id)
+                        if r not in cpd_ids_to_ignore:
+                            G.add_edge(r, unifuncnet_reaction_id)
                     for p in product:
-                        G.add_edge(unifuncnet_reaction_id, p)
+                        if p not in cpd_ids_to_ignore:
+                            G.add_edge(unifuncnet_reaction_id, p)
                 else:
                     rejected_reactions += 1
             else:
@@ -669,15 +672,27 @@ class GSMM_Expansion():
         self.create_mantis_input()
         if not os.listdir(self.unifuncnet_output):
             if self.database:
-                run_unifuncnet_command = f'unifuncnet -i {self.unifuncnet_input} -o {self.unifuncnet_output} -db {self.database} -pt {self.politeness_timer}'
+                run_unifuncnet_command = f'unifuncnet -i {self.unifuncnet_input} -o {self.unifuncnet_output} -db {self.database} -pt {self.politeness_timer} --ignore_cpd'
             else:
-                run_unifuncnet_command = f'unifuncnet -i {self.unifuncnet_input} -o {self.unifuncnet_output} -pt {self.politeness_timer}'
+                run_unifuncnet_command = f'unifuncnet -i {self.unifuncnet_input} -o {self.unifuncnet_output} -pt {self.politeness_timer} --ignore_cpd'
 
             subprocess.run(run_unifuncnet_command,shell=True)
         else:
             print(f'We found files in {self.mantis_output}, so UniFuncNet will not run again')
 
     ###### main workflow
+
+    def get_cpd_ids_to_ignore(self,compounds_unifuncnet):
+        res=set()
+        for cpd_id in compounds_unifuncnet:
+            cpd_info=compounds_unifuncnet[cpd_id]
+            for db in cpd_info:
+                if db in self.cpds_to_ignore:
+                    cpd_ids = set([i.lower() for i in cpd_info[db]])
+                    if self.cpds_to_ignore[db].intersection(cpd_ids):
+                        res.add(cpd_id)
+        print(f'Compounds to ingore:\n{res}')
+        return res
 
 
     def read_output_unifuncnet(self,model_file, unifuncnet_output,mantis_annotations_tsv):
@@ -688,6 +703,7 @@ class GSMM_Expansion():
         model_reactions = self.read_model(model_file)
         model_ids = self.extract_model_ids_proteins_and_reactions(model_file,verbose=False)
         compounds_unifuncnet = self.read_unifuncnet_tsv(unifuncnet_output + '/Compounds.tsv')
+        cpd_ids_to_ignore=self.get_cpd_ids_to_ignore(compounds_unifuncnet)
         self.match_compounds_unifuncnet_model(model_file, compounds_unifuncnet)
         compounds_match=self.compounds_match['matched']
         with open(self.output_report,'a+') as file:
@@ -732,7 +748,7 @@ class GSMM_Expansion():
             model_network = self.create_network_model(model_reactions)
             self.evaluate_network(model_network, nx.weakly_connected_components,'baseline')
 
-            expanded_network,rejected_reactions = self.create_network_expanded(model_reactions, reactions_unifuncnet)
+            expanded_network,rejected_reactions = self.create_network_expanded(model_reactions, reactions_unifuncnet,cpd_ids_to_ignore)
             outline = f'We rejected {rejected_reactions} reactions so we only added {len(reactions_unifuncnet)-rejected_reactions} reactions\n'
             file.write(outline)
             self.evaluate_network(expanded_network, nx.weakly_connected_components,'expanded')
