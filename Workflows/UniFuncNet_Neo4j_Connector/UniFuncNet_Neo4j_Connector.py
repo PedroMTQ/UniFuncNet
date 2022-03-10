@@ -401,25 +401,26 @@ class UniFuncNet_Neo4j_Connector():
             reaction_compounds=[]
             stoichiometry=[]
             node_info=nodes_dict[node]
-            substrates= node_info.pop('IS_SUBSTRATE')
-            products= node_info.pop('IS_PRODUCT')
-            reaction_str= node_info.pop('reaction_str').pop()
-            reaction_sign = self.get_sign(reaction_str)
-            for stoi,cpd in substrates:
-                stoichiometry.append(stoi)
-                reaction_compounds.append(cpd)
-                reaction_compounds.append('+')
-            reaction_compounds.pop(-1)
-            reaction_compounds.append(reaction_sign)
-            for stoi,cpd in products:
-                stoichiometry.append(stoi)
-                reaction_compounds.append(cpd)
-                reaction_compounds.append('+')
-            reaction_compounds.pop(-1)
-            reaction_compounds=' '.join(reaction_compounds)
-            stoichiometry=','.join(stoichiometry)
-            nodes_dict[node]['reaction_compounds']=reaction_compounds
-            nodes_dict[node]['stoichiometry']=stoichiometry
+            if 'IS_SUBSTRATE' in node_info:
+                substrates= node_info.pop('IS_SUBSTRATE')
+                products= node_info.pop('IS_PRODUCT')
+                reaction_str= node_info.pop('reaction_str').pop()
+                reaction_sign = self.get_sign(reaction_str)
+                for stoi,cpd in substrates:
+                    stoichiometry.append(stoi)
+                    reaction_compounds.append(cpd)
+                    reaction_compounds.append('+')
+                reaction_compounds.pop(-1)
+                reaction_compounds.append(reaction_sign)
+                for stoi,cpd in products:
+                    stoichiometry.append(stoi)
+                    reaction_compounds.append(cpd)
+                    reaction_compounds.append('+')
+                reaction_compounds.pop(-1)
+                reaction_compounds=' '.join(reaction_compounds)
+                stoichiometry=','.join(stoichiometry)
+                nodes_dict[node]['reaction_compounds']=reaction_compounds
+                nodes_dict[node]['stoichiometry']=stoichiometry
 
 
 
@@ -588,7 +589,6 @@ class UniFuncNet_Neo4j_Connector():
 
         output_tsvs=[['g',genes_info],['p',proteins_info],['r',reactions_info],['c',compounds_info]]
         top_line='SOURCE\tINTERACTION\tTARGET\n'
-
         with open(f'{output_tsv_folder}Graph.sif', 'w+') as file:
 
             for source_type,info_dict in output_tsvs:

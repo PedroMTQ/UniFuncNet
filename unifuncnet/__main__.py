@@ -143,8 +143,16 @@ def argv_neo4j_function():
           f'URI name:\t{uri}\n'
           f'Browser link:\t{browser_link}\n')
     neo4j_driver = UniFuncNet_Neo4j_Connector(username, password, db_name=database_name, uri=uri)
-    print(f'Connected to neo4j.')
+    try:
+        neo4j_driver.run_command_neo4j('MATCH () RETURN 1 LIMIT 1')
+        print(f'Connected to neo4j.')
+    except:
+        print('Failed connection!')
+        raise Exception
 
+    if not input_path:
+        print('Missing input path')
+        raise Exception
 
     if input_path.endswith('.tsv'):
         if output_folder:
