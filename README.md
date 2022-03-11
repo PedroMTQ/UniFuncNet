@@ -4,6 +4,15 @@
 UniFuncNet is a network annotation tool, fetching information on multiple entities and establishing gene-protein-reaction-compound relationships across multiple databases.
 It was built to aid in the mapping of metabolism related entities, for example to aid in the expansion of metabolic networks, automating the often monotonous, manual data collection.
 
+Current release info
+====================
+
+| Name | Downloads | Version | Platforms | Latest release |
+| --- | --- |---|---|---|
+| [![Conda Recipe](https://img.shields.io/badge/recipe-unifuncnet-green.svg)](https://anaconda.org/conda-forge/unifuncnet) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/unifuncnet.svg)](https://anaconda.org/conda-forge/unifuncnet) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/unifuncnet.svg)](https://anaconda.org/conda-forge/unifuncnet) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/unifuncnet.svg)](https://anaconda.org/conda-forge/unifuncnet) | [![Conda Platforms](https://anaconda.org/conda-forge/unifuncnet/badges/latest_release_relative_date.svg)](https://anaconda.org/conda-forge/unifuncnet) |
+
+
+
 ## Installation
 
 Installing `unifuncnet` from the `conda-forge` channel can be achieved by adding `conda-forge` to your channels with:
