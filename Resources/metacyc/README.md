@@ -9,6 +9,7 @@ When you obtain your license, download the `Metacyc flat files`. The file is usu
 
 Extract all the files in the folder `data` to `UniFuncNet/Resources/metacyc/`.
 Your need the following files:
+
 - compounds.dat
 - proteins.dat
 - reactions.dat
@@ -22,7 +23,6 @@ So basically, this folder will only contain the previous files plus this `README
 **If you don't have these files, UniFuncNet will not integrate Metacyc**
 
 If everything is working correctly, a `metacyc.db` file should be created in the `Resources` folder
-
 
 If using Metacyc date please cite:
 

@@ -1,146 +1,146 @@
-DB_ID	DB
-10-FORMYL-THF	metacyc
-10-FORMYL-THF	synonyms
-Acceptor	metacyc
-Acceptor	synonyms
-acetyl-CoA	synonyms
-ACETYL-COA	metacyc
-ACETYL-COA	synonyms
-ADP	metacyc
-ADP	synonyms
-AMP	metacyc
-AMP	synonyms
-ATP	metacyc
-ATP	synonyms
-C00002	kegg
-C00003	kegg
-C00004	kegg
-C00005	kegg
-C00006	kegg
-C00008	kegg
-C00010	kegg
-C00020	kegg
-C00022	kegg
-C00024	kegg
-C00025	kegg
-C00028	kegg
-C00030	kegg
-C00035	kegg
-C00044	kegg
-C00064	kegg
-C00074	kegg
-C00091	kegg
-C00100	kegg
-C00101	kegg
-C00126	kegg
-C00234	kegg
-C00524	kegg
-C03024	kegg
-C03161	kegg
-C00080	kegg
-CO-A	metacyc
-CO-A	synonyms
-coenzyme A	synonyms
-Cytochromes-C	metacyc
-Cytochromes-C	synonyms
-Cytochromes-C-Reduced	metacyc
-Cytochromes-C-Reduced	synonyms
-Donor-H2	metacyc
-Donor-H2	synonyms
-GDP	metacyc
-GDP	synonyms
-GLN	metacyc
-GLN-L-Glutamine	synonyms
-GLT	metacyc
-GLT-L-Glutamate	synonyms
-GTP	metacyc
-GTP	synonyms
-L-glutamate	synonyms
-L-glutamine	synonyms
-N10-formyl-THF	synonyms
-NAD	metacyc
-NAD	synonyms
-NAD+	synonyms
-NADH	metacyc
-NADH	synonyms
-NADP	metacyc
-NADP	synonyms
-NADP+	synonyms
-NADPH	metacyc
-NADPH	synonyms
-Oxidized-flavodoxins	metacyc
-Oxidized-flavodoxins	synonyms
-PHOSPHO-ENOL-PYRUVATE	metacyc
-PHOSPHO-ENOL-PYRUVATE	synonyms
-phosphoenolpyruvate	synonyms
-propionyl-CoA	synonyms
-PROPIONYL-COA	metacyc
-PROPIONYL-COA	synonyms
-pyruvate	synonyms
-PYRUVATE	metacyc
-PYRUVATE	synonyms
-Reduced-flavodoxins	metacyc
-Reduced-flavodoxins	synonyms
-SUC-COA	metacyc
-SUC-COA	synonyms
-succinyl-CoA	synonyms
-tetrahydrofolate	synonyms
-THF	metacyc
-THF	synonyms
-carbon dioxide	synonyms
-acceptor	synonyms
-adenosine-5'-triphosphate	synonyms
-adenosine-triphosphate	synonyms
-adenylpyrophosphate	synonyms
-adenosine 5'-pyrophosphate	synonyms
-adenosine pyrophosphate	synonyms
-adenosine-5'-diphosphate	synonyms
-adenosine-5-diphosphate	synonyms
-guanosine-5'-diphosphate	synonyms
-guanosine-diphosphate	synonyms
-adenosine 3',5'-bisphosphate	synonyms
-phosphoadenosine phosphate	synonyms
-cis-octadec-9-enoyl-coa	synonyms
-(9z)-octadec-9-enoyl-coa	synonyms
-coenzyme ii	synonyms
-(9z)-octadec-9-enoate	synonyms
-udp	synonyms
-udp	synonyms
-dioxygen	synonyms
-oxygen	synonyms
-oxygen molecule	synonyms
-acetyl coenzyme-a	synonyms
-acetylcoenzyme-a	synonyms
-geranylgeranyl	synonyms
-2-oxopropanoate	synonyms
-alpha-ketopropionic acid	synonyms
-hydrogen oxide	synonyms
-water	synonyms
+DB_ID                                           	DB
+10-FORMYL-THF                                   	metacyc
+10-FORMYL-THF                                   	synonyms
+Acceptor                                        	metacyc
+Acceptor                                        	synonyms
+acetyl-CoA                                      	synonyms
+ACETYL-COA                                      	metacyc
+ACETYL-COA                                      	synonyms
+ADP                                             	metacyc
+ADP                                             	synonyms
+AMP                                             	metacyc
+AMP                                             	synonyms
+ATP                                             	metacyc
+ATP                                             	synonyms
+C00002                                          	kegg
+C00003                                          	kegg
+C00004                                          	kegg
+C00005                                          	kegg
+C00006                                          	kegg
+C00008                                          	kegg
+C00010                                          	kegg
+C00020                                          	kegg
+C00022                                          	kegg
+C00024                                          	kegg
+C00025                                          	kegg
+C00028                                          	kegg
+C00030                                          	kegg
+C00035                                          	kegg
+C00044                                          	kegg
+C00064                                          	kegg
+C00074                                          	kegg
+C00091                                          	kegg
+C00100                                          	kegg
+C00101                                          	kegg
+C00126                                          	kegg
+C00234                                          	kegg
+C00524                                          	kegg
+C03024                                          	kegg
+C03161                                          	kegg
+C00080                                          	kegg
+CO-A                                            	metacyc
+CO-A                                            	synonyms
+coenzyme A                                      	synonyms
+Cytochromes-C                                   	metacyc
+Cytochromes-C                                   	synonyms
+Cytochromes-C-Reduced                           	metacyc
+Cytochromes-C-Reduced                           	synonyms
+Donor-H2                                        	metacyc
+Donor-H2                                        	synonyms
+GDP                                             	metacyc
+GDP                                             	synonyms
+GLN                                             	metacyc
+GLN-L-Glutamine                                 	synonyms
+GLT                                             	metacyc
+GLT-L-Glutamate                                 	synonyms
+GTP                                             	metacyc
+GTP                                             	synonyms
+L-glutamate                                     	synonyms
+L-glutamine                                     	synonyms
+N10-formyl-THF                                  	synonyms
+NAD                                             	metacyc
+NAD                                             	synonyms
+NAD+                                            	synonyms
+NADH                                            	metacyc
+NADH                                            	synonyms
+NADP                                            	metacyc
+NADP                                            	synonyms
+NADP+                                           	synonyms
+NADPH                                           	metacyc
+NADPH                                           	synonyms
+Oxidized-flavodoxins                            	metacyc
+Oxidized-flavodoxins                            	synonyms
+PHOSPHO-ENOL-PYRUVATE                           	metacyc
+PHOSPHO-ENOL-PYRUVATE                           	synonyms
+phosphoenolpyruvate                             	synonyms
+propionyl-CoA                                   	synonyms
+PROPIONYL-COA                                   	metacyc
+PROPIONYL-COA                                   	synonyms
+pyruvate                                        	synonyms
+PYRUVATE                                        	metacyc
+PYRUVATE                                        	synonyms
+Reduced-flavodoxins                             	metacyc
+Reduced-flavodoxins                             	synonyms
+SUC-COA                                         	metacyc
+SUC-COA                                         	synonyms
+succinyl-CoA                                    	synonyms
+tetrahydrofolate                                	synonyms
+THF                                             	metacyc
+THF                                             	synonyms
+carbon dioxide                                  	synonyms
+acceptor                                        	synonyms
+adenosine-5'-triphosphate                       	synonyms
+adenosine-triphosphate                          	synonyms
+adenylpyrophosphate                             	synonyms
+adenosine 5'-pyrophosphate                      	synonyms
+adenosine pyrophosphate                         	synonyms
+adenosine-5'-diphosphate                        	synonyms
+adenosine-5-diphosphate                         	synonyms
+guanosine-5'-diphosphate                        	synonyms
+guanosine-diphosphate                           	synonyms
+adenosine 3',5'-bisphosphate                    	synonyms
+phosphoadenosine phosphate                      	synonyms
+cis-octadec-9-enoyl-coa                         	synonyms
+(9z)-octadec-9-enoyl-coa                        	synonyms
+coenzyme ii                                     	synonyms
+(9z)-octadec-9-enoate                           	synonyms
+udp                                             	synonyms
+udp                                             	synonyms
+dioxygen                                        	synonyms
+oxygen                                          	synonyms
+oxygen molecule                                 	synonyms
+acetyl coenzyme-a                               	synonyms
+acetylcoenzyme-a                                	synonyms
+geranylgeranyl                                  	synonyms
+2-oxopropanoate                                 	synonyms
+alpha-ketopropionic acid                        	synonyms
+hydrogen oxide                                  	synonyms
+water                                           	synonyms
 beta-nicotinamide adenine dinucleotide phosphate	synonyms
-acyl coenzyme a	synonyms
-h	synonyms
-h(+)	synonyms
-hydrogen ion	synonyms
-coa	synonyms
-diphosphate	synonyms
-adenosine-3',5'-bisphosphate	synonyms
-oleoyl-coa	synonyms
-(9z)-octadecenoyl-coa	synonyms
-(9z)-octadec-9-enoic acid	synonyms
-uridine 5'-diphosphate	synonyms
-uridine-5'-diphosphate	synonyms
-molecular oxygen	synonyms
-geranylgeranyl diphosphate	synonyms
-2-oxopropanoic acid	synonyms
-pyroracemic acid	synonyms
-acyl-coa	synonyms
-hydron	synonyms
-coenzyme	synonyms
-(9z)-octadecenoate	synonyms
-ggpp	synonyms
-uridine-diphosphate	synonyms
-geranylgeranyl-pp	synonyms
-acetylformic acid	synonyms
-pyruvate	synonyms
-acyl-coenzyme a	synonyms
-proton	synonyms
+acyl coenzyme a                                 	synonyms
+h                                               	synonyms
+h(+)                                            	synonyms
+hydrogen ion                                    	synonyms
+coa                                             	synonyms
+diphosphate                                     	synonyms
+adenosine-3',5'-bisphosphate                    	synonyms
+oleoyl-coa                                      	synonyms
+(9z)-octadecenoyl-coa                           	synonyms
+(9z)-octadec-9-enoic acid                       	synonyms
+uridine 5'-diphosphate                          	synonyms
+uridine-5'-diphosphate                          	synonyms
+molecular oxygen                                	synonyms
+geranylgeranyl diphosphate                      	synonyms
+2-oxopropanoic acid                             	synonyms
+pyroracemic acid                                	synonyms
+acyl-coa                                        	synonyms
+hydron                                          	synonyms
+coenzyme                                        	synonyms
+(9z)-octadecenoate                              	synonyms
+ggpp                                            	synonyms
+uridine-diphosphate                             	synonyms
+geranylgeranyl-pp                               	synonyms
+acetylformic acid                               	synonyms
+pyruvate                                        	synonyms
+acyl-coenzyme a                                 	synonyms
+proton                                          	synonyms
